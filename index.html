@@ -18,67 +18,44 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
   --card:#fff;--border:rgba(0,0,0,0.10);
   --r:10px;--r-sm:7px;
 }
-
-/* SCREENS */
-#setup-screen,#signin-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d3a70,#1a56a0 60%,#2563ba)}
+#signin-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d3a70,#1a56a0 60%,#2563ba)}
 #app{display:none;flex-direction:column;min-height:100vh}
-
-/* SIGN-IN CARD */
-.auth-card{background:#fff;border-radius:16px;padding:2.2rem;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.auth-card{background:#fff;border-radius:16px;padding:2.2rem;width:100%;max-width:430px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .auth-logo{font-size:44px;text-align:center;display:block;margin-bottom:10px}
 .auth-title{font-size:19px;font-weight:700;text-align:center;margin-bottom:3px}
 .auth-sub{font-size:13px;color:#888;text-align:center;margin-bottom:20px}
-
-/* SETUP STEPS */
 .step-list{counter-reset:step;list-style:none;margin:0;padding:0}
-.step-list li{counter-increment:step;display:flex;gap:10px;margin-bottom:12px;font-size:13px;line-height:1.5}
-.step-list li::before{content:counter(step);background:var(--blue);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.step-list li{counter-increment:step;display:flex;gap:10px;margin-bottom:10px;font-size:12px;line-height:1.5}
+.step-list li::before{content:counter(step);background:var(--blue);color:#fff;border-radius:50%;width:20px;height:20px;min-width:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
 .step-list a{color:var(--blue)}
-
-/* TOPBAR */
 .topbar{background:var(--blue-dk);color:#fff;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:200}
 .topbar-brand strong{font-size:14px;display:block}
 .topbar-brand span{font-size:11px;opacity:.75}
-.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .topbar-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.3);object-fit:cover}
 .topbar-uname{font-size:12px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.refresh-status{font-size:11px;opacity:.7;display:flex;align-items:center;gap:5px}
-
-/* TABS */
 .tabs{background:var(--card);border-bottom:1px solid var(--border);display:flex;padding:0 14px;overflow-x:auto;gap:2px}
 .tab{padding:10px 14px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;color:var(--gray);transition:color .15s,border-color .15s}
 .tab.active{color:var(--blue);border-bottom-color:var(--blue)}
 .tab:hover:not(.active){color:#222}
-
-/* MAIN */
-.main{flex:1;padding:16px;max-width:1080px;margin:0 auto;width:100%}
+.main{flex:1;padding:16px;max-width:1100px;margin:0 auto;width:100%}
 .panel{display:none}.panel.active{display:block}
 .sec-title{font-size:15px;font-weight:700;margin-bottom:3px}
 .sec-sub{font-size:12px;color:var(--gray);margin-bottom:14px}
-
-/* CARDS */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px}
-
-/* STAT */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
 .stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px}
 .stat .lbl{font-size:11px;color:var(--gray);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .stat .val{font-size:24px;font-weight:700}
 .stat.s-blue .val{color:var(--blue)}.stat.s-green .val{color:var(--green)}
 .stat.s-amber .val{color:var(--amber)}.stat.s-red .val{color:var(--red)}
-
-/* BADGE */
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .b-green{background:var(--green-lt);color:var(--green-dk)}.b-amber{background:var(--amber-lt);color:var(--amber)}
 .b-red{background:var(--red-lt);color:var(--red)}.b-blue{background:var(--blue-lt);color:var(--blue)}
 .b-gray{background:var(--gray-lt);color:var(--gray)}
-
-/* PROGRESS */
 .prog-wrap{background:#e2e8f0;border-radius:4px;height:7px;margin:8px 0}
 .prog-bar{height:7px;border-radius:4px;transition:width .5s}
 .pg-green{background:var(--green)}.pg-amber{background:var(--amber)}.pg-red{background:var(--red)}
-
-/* TABLE */
 .tbl{width:100%;border-collapse:collapse;font-size:13px}
 .tbl th{padding:9px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--gray);border-bottom:1px solid var(--border);background:#f8fafc;text-transform:uppercase;letter-spacing:.04em}
 .tbl td{padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.05);vertical-align:middle}
@@ -86,143 +63,121 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
 .tbl tr:hover td{background:#f8fafc}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
 .dot-g{background:var(--green)}.dot-a{background:var(--amber)}.dot-r{background:var(--red)}
-
-/* FORM */
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 @media(max-width:540px){.frow{grid-template-columns:1fr}}
 .flbl{display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:5px}
 .finput,.fselect,.ftextarea{width:100%;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:var(--r-sm);font-size:13px;background:#fff;color:#1a1a1a;font-family:inherit}
 .finput:focus,.fselect:focus,.ftextarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,160,.1)}
 .ftextarea{resize:vertical;min-height:60px}
-
-/* BUTTONS */
 .btn{padding:9px 18px;border-radius:var(--r-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s,transform .1s;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{opacity:.88}.btn:active{transform:scale(.98)}
 .btn-primary{background:var(--blue);color:#fff}
 .btn-green{background:var(--green);color:#fff}
 .btn-outline{background:#fff;border:1px solid rgba(0,0,0,.2);color:#333}
 .btn-red{background:var(--red);color:#fff}
+.btn-amber{background:var(--amber);color:#fff}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.btn-sm-g{padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:var(--green);color:#fff;font-weight:600}
-.btn-sm-o{padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;border:1px solid rgba(0,0,0,.2);background:#fff;color:#333;font-weight:500}
-
-/* ALERT */
+.btn-sm{padding:5px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:1px solid rgba(0,0,0,.15);background:#fff;color:#333;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.btn-sm:hover{background:#f1f5f9}
+.btn-sm-g{padding:5px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:var(--green);color:#fff;font-weight:600}
+.btn-sm-r{padding:5px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:var(--red);color:#fff;font-weight:600}
 .alert{padding:10px 14px;border-radius:var(--r-sm);font-size:13px;margin-bottom:12px;line-height:1.5}
 .a-info{background:var(--blue-lt);color:#0d3a70}
 .a-warn{background:var(--amber-lt);color:#7a3b00}
 .a-ok{background:var(--green-lt);color:var(--green-dk)}
 .a-err{background:var(--red-lt);color:#7a1a1a}
-
-/* SHEET ITEM */
+.wa-box{background:#e9f8ef;border:1px solid #a8d9bb;border-radius:var(--r-sm);padding:14px;font-size:13px;white-space:pre-wrap;line-height:1.7;color:#0a3d20;max-height:380px;overflow-y:auto;margin-top:8px}
 .sheet-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
 .sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
 .sheet-title{font-size:14px;font-weight:700}
 .sheet-meta{font-size:11px;color:var(--gray);margin-top:2px;line-height:1.6}
-
-/* WA BOX */
-.wa-box{background:#e9f8ef;border:1px solid #a8d9bb;border-radius:var(--r-sm);padding:14px;font-size:13px;white-space:pre-wrap;line-height:1.7;color:#0a3d20;max-height:350px;overflow-y:auto;margin-top:8px}
-
-/* SPINNER */
 .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block;vertical-align:middle}
 .spin-b{border:2px solid rgba(26,86,160,.2);border-top-color:var(--blue)}
 @keyframes sp{to{transform:rotate(360deg)}}
-
-/* CHIP */
 .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip{padding:4px 11px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid rgba(0,0,0,.14);background:#fff;color:var(--gray);user-select:none;transition:all .1s}
 .chip.on{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);font-weight:600}
-
-/* LANG TOGGLE */
 .lang-tog{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px}
-.lang-btn{padding:5px 14px;font-size:12px;cursor:pointer;border:none;background:#fff;color:var(--gray);font-weight:500;transition:background .1s,color .1s}
+.lang-btn{padding:5px 14px;font-size:12px;cursor:pointer;border:none;background:#fff;color:var(--gray);font-weight:500}
 .lang-btn.on{background:var(--blue);color:#fff}
-
-/* COUNTDOWN RING */
-.cring{display:inline-flex;align-items:center;gap:5px;font-size:11px;opacity:.75}
+.cring{display:inline-flex;align-items:center;gap:5px;font-size:11px;opacity:.8}
 .cring-bar{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden}
 .cring-fill{height:4px;background:rgba(255,255,255,.7);border-radius:2px;transition:width 1s linear}
-
+.copy-link-box{display:flex;align-items:center;gap:8px;background:#f0f7ff;border:1px solid #b8d4f5;border-radius:var(--r-sm);padding:10px 12px;margin-top:10px}
+.copy-link-url{font-size:12px;color:var(--blue);word-break:break-all;flex:1}
+.trash-item{background:#fff8f8;border:1px solid #f5c6c6;border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
 .hidden{display:none!important}
-a{color:var(--blue)}
-.link-sm{font-size:12px}
+a{color:var(--blue)}.link-sm{font-size:12px}
 </style>
 </head>
 <body>
 
-<!-- ══════════ SETUP / SIGN-IN SCREEN ══════════ -->
+<!-- ══════════ SIGN IN ══════════ -->
 <div id="signin-screen">
   <div class="auth-card">
     <span class="auth-logo">🏛️</span>
     <div class="auth-title">Thiruvannamalai District</div>
-    <div class="auth-sub">திருவண்ணாமலை மாவட்டம் — Google Sheet Tracker</div>
+    <div class="auth-sub">திருவண்ணாமலை மாவட்டம் — Sheet Tracker</div>
 
-    <!-- STEP A: Client ID input -->
-    <div id="step-clientid">
-      <div style="background:#f0f7ff;border:1px solid #b8d4f5;border-radius:8px;padding:14px;margin-bottom:16px">
+    <div id="step-cid">
+      <div style="background:#f0f7ff;border:1px solid #b8d4f5;border-radius:8px;padding:14px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:700;color:var(--blue-dk);margin-bottom:10px">⚙️ One-time Setup (Free)</div>
         <ol class="step-list">
-          <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → Sign in with your Google account</li>
-          <li>Click <strong>Select a project</strong> → <strong>New Project</strong> → give any name → <strong>Create</strong></li>
-          <li>Go to <strong>APIs & Services → Library</strong> → Search <em>"Google Sheets API"</em> → Enable</li>
-          <li>Same Library → Search <em>"Google Drive API"</em> → Enable</li>
-          <li>Go to <strong>APIs & Services → Credentials</strong> → <strong>+ Create Credentials → OAuth 2.0 Client ID</strong></li>
-          <li>Application type: <strong>Web application</strong> → Under <em>Authorised JavaScript origins</em> add: <code style="background:#eee;padding:1px 5px;border-radius:3px;font-size:11px">https://localhost</code> AND the URL where you host this file</li>
-          <li>Click <strong>Create</strong> → Copy the <strong>Client ID</strong> (ends in .apps.googleusercontent.com)</li>
-          <li>Paste it below and click Save</li>
+          <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
+          <li>APIs & Services → Library → Enable <strong>Google Sheets API</strong></li>
+          <li>Same Library → Enable <strong>Google Drive API</strong></li>
+          <li>Credentials → + Create Credentials → <strong>OAuth 2.0 Client ID</strong></li>
+          <li>Configure consent screen if asked → External → fill app name & email</li>
+          <li>Audience → Test users → Add your Gmail</li>
+          <li>Application type: <strong>Web application</strong> → Authorised JS origins: <code style="background:#eee;padding:1px 4px;border-radius:3px;font-size:11px">https://sathish-sics.github.io</code></li>
+          <li>Copy the <strong>Client ID</strong> → paste below</li>
         </ol>
-        <div style="margin-top:10px">
-          <label class="flbl">Your Google OAuth Client ID</label>
-          <input class="finput" id="cid-input" placeholder="xxxxxxxxxx.apps.googleusercontent.com" style="font-size:12px">
-          <button class="btn btn-primary" style="margin-top:8px;width:100%;justify-content:center" onclick="saveClientId()">Save & Continue to Sign In</button>
-        </div>
+        <label class="flbl" style="margin-top:10px">Google OAuth Client ID</label>
+        <input class="finput" id="cid-input" placeholder="xxxxxxxxx.apps.googleusercontent.com" style="font-size:12px">
+        <button class="btn btn-primary" style="margin-top:8px;width:100%;justify-content:center" onclick="saveClientId()">Save & Sign In</button>
       </div>
-      <div style="font-size:11px;color:#aaa;text-align:center">This tool is 100% free. No charges. Google Cloud APIs used here are in the free tier.</div>
+      <div style="font-size:11px;color:#aaa;text-align:center">100% Free — Google Sheets & Drive APIs are in the free tier</div>
     </div>
 
-    <!-- STEP B: Sign in button (shown after client ID saved) -->
     <div id="step-signin" class="hidden">
-      <div class="alert a-ok" style="margin-bottom:14px">✅ Client ID saved. Click below to sign in with your Google account.</div>
-      <button id="g-btn" onclick="doSignIn()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:#fff;border:1.5px solid #dadce0;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:#3c4043;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.15)'" onmouseout="this.style.boxShadow=''">
+      <div class="alert a-ok" style="margin-bottom:14px">✅ Client ID saved. Sign in with your Google account.</div>
+      <button id="g-btn" onclick="doSignIn()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:#fff;border:1.5px solid #dadce0;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:#3c4043">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="">
         Sign in with Google
       </button>
-      <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px;font-size:12px" onclick="resetClientId()">← Change Client ID</button>
+      <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px;font-size:12px" onclick="resetCid()">← Change Client ID</button>
     </div>
-
-    <div id="signin-msg" style="font-size:12px;color:#e74c3c;text-align:center;margin-top:10px"></div>
+    <div id="signin-msg" style="font-size:12px;color:#c0392b;text-align:center;margin-top:8px"></div>
   </div>
 </div>
 
-<!-- ══════════ MAIN APP ══════════ -->
+<!-- ══════════ APP ══════════ -->
 <div id="app">
-
-  <!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-brand">
       <strong>🏛 Thiruvannamalai — Sheet Tracker</strong>
       <span>திருவண்ணாமலை மாவட்டம் | 21 ஒப்பந்த வட்டாரங்கள்</span>
     </div>
     <div class="topbar-right">
-      <div class="cring" id="countdown-display">
-        <span id="countdown-text">5:00</span>
-        <div class="cring-bar"><div class="cring-fill" id="cring-fill" style="width:100%"></div></div>
+      <div class="cring">
+        <span id="cd-text">5:00</span>
+        <div class="cring-bar"><div class="cring-fill" id="cd-fill" style="width:100%"></div></div>
         <span>auto</span>
       </div>
-      <button class="btn btn-outline btn-sm-o" onclick="manualRefreshAll()" id="refresh-btn" style="font-size:11px;padding:5px 10px">🔄 Refresh Now</button>
+      <button class="btn-sm" onclick="manualRefresh()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">🔄 Refresh</button>
       <img class="topbar-avatar" id="user-avatar" src="" alt="">
       <span class="topbar-uname" id="user-name"></span>
-      <button class="btn-sm-o" onclick="doSignOut()" style="padding:4px 10px;font-size:11px">Sign Out</button>
+      <button class="btn-sm" onclick="doSignOut()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">Sign Out</button>
     </div>
   </div>
 
-  <!-- TABS -->
   <div class="tabs">
     <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
     <div class="tab" data-tab="create">➕ Add Sheet</div>
     <div class="tab" data-tab="monitor">🔍 Monitor Live</div>
     <div class="tab" data-tab="whatsapp">💬 WhatsApp</div>
     <div class="tab" data-tab="repo">🗄 Repository</div>
-    <div class="tab" data-tab="setup">⚙️ Setup Info</div>
+    <div class="tab" data-tab="trash">🗑 Trash</div>
   </div>
 
   <div class="main">
@@ -231,9 +186,9 @@ a{color:var(--blue)}
     <div class="panel active" id="panel-dashboard">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">
         <div class="sec-title">Dashboard</div>
-        <div id="last-refresh-label" style="font-size:11px;color:var(--gray)"></div>
+        <div id="last-refresh" style="font-size:11px;color:var(--gray)"></div>
       </div>
-      <div class="sec-sub">அனைத்து தாள்களின் நேரடி நிலை — Live status of all tracked sheets</div>
+      <div class="sec-sub">அனைத்து தாள்களின் நேரடி நிலை — Live block fill status</div>
       <div class="stat-grid">
         <div class="stat s-blue"><div class="lbl">Sheets</div><div class="val" id="st-total">0</div></div>
         <div class="stat s-green"><div class="lbl">Fully Filled</div><div class="val" id="st-full">0</div></div>
@@ -245,22 +200,24 @@ a{color:var(--blue)}
 
     <!-- ═══ ADD SHEET ═══ -->
     <div class="panel" id="panel-create">
-      <div class="sec-title">Add / Import Sheet</div>
-      <div class="sec-sub">Paste an existing link to monitor it, or create a new sheet in your Google Drive.</div>
+      <div class="sec-title">Add / Create Sheet</div>
+      <div class="sec-sub">Import an existing sheet link, or create a new district sheet from a State sheet.</div>
 
       <div class="lang-tog">
         <button class="lang-btn on" id="lt-ta" onclick="setLang('ta')">தமிழ் (Default)</button>
         <button class="lang-btn" id="lt-en" onclick="setLang('en')">English</button>
       </div>
 
+      <!-- COMMON FIELDS -->
       <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">📌 Sheet Details</div>
         <div class="frow">
           <div>
             <label class="flbl">Sheet Title *</label>
-            <input class="finput" id="ns-title" placeholder="e.g. மாதாந்திர முன்னேற்றம் மார்ச் 2025">
+            <input class="finput" id="ns-title" placeholder="e.g. PDL-1 ஏப்ரல் 2025">
           </div>
           <div>
-            <label class="flbl">Sheet Type</label>
+            <label class="flbl">Type</label>
             <select class="fselect" id="ns-type">
               <option value="state">State Sheet — Head Office அனுப்பியது</option>
               <option value="own">Own Sheet — நான் உருவாக்கியது</option>
@@ -269,60 +226,67 @@ a{color:var(--blue)}
         </div>
         <div class="frow">
           <div>
-            <label class="flbl">State Head Office Sheet Link</label>
-            <input class="finput" id="ns-state-link" placeholder="https://docs.google.com/spreadsheets/d/...">
-          </div>
-          <div>
             <label class="flbl">Deadline</label>
             <input class="finput" type="date" id="ns-deadline">
           </div>
-        </div>
-
-        <!-- OPTION A -->
-        <div style="border:1px solid #c8daf5;border-radius:8px;padding:12px;margin-bottom:12px;background:#f5f9ff">
-          <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">📥 OPTION A — Paste existing sheet link (Already posted)</div>
-          <label class="flbl">Google Sheet Link (your block-level sheet)</label>
-          <input class="finput" id="ns-existing-link" placeholder="https://docs.google.com/spreadsheets/d/...">
-          <div style="font-size:11px;color:var(--gray);margin-top:3px">Sheet must be set to "Anyone with link can view"</div>
-          <button class="btn btn-primary" style="margin-top:10px" onclick="importSheet()">📥 Import & Auto-Read Now</button>
-        </div>
-
-        <!-- OPTION B -->
-        <div style="border:1px solid #b8e0c8;border-radius:8px;padding:12px;background:#f4fdf8">
-          <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">📄 OPTION B — Create new sheet in your Google Drive</div>
-          <div class="frow" style="margin-bottom:8px">
-            <div>
-              <label class="flbl">Structure</label>
-              <select class="fselect" id="ns-structure">
-                <option value="single">Single tab — 21 blocks in one sheet</option>
-                <option value="multi">Multi tab — one tab per block</option>
-              </select>
-            </div>
+          <div>
+            <label class="flbl">Notes</label>
+            <input class="finput" id="ns-notes" placeholder="குறிப்புகள்...">
           </div>
-          <label class="flbl">Select Blocks to include</label>
-          <div class="chip-row" id="block-chips"></div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selAll()">Select All</button>
-            <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selNone()">Clear</button>
-          </div>
-          <button class="btn btn-green" style="margin-top:12px" onclick="createSheet()">
+        </div>
+      </div>
+
+      <!-- OPTION A: IMPORT EXISTING -->
+      <div class="card" style="border-left:4px solid var(--blue)">
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px">📥 Option A — Import existing sheet (already posted)</div>
+        <label class="flbl">Paste your District Google Sheet link</label>
+        <input class="finput" id="ns-existing-link" placeholder="https://docs.google.com/spreadsheets/d/...">
+        <div style="font-size:11px;color:var(--gray);margin-top:3px">Sheet must be shared as "Anyone with link can view"</div>
+        <label class="flbl" style="margin-top:10px">State Head Office Sheet Link (if any)</label>
+        <input class="finput" id="ns-state-link" placeholder="https://docs.google.com/spreadsheets/d/...">
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="importSheet()">📥 Import & Read Now</button>
+        </div>
+      </div>
+
+      <!-- OPTION B: CREATE FROM STATE SHEET -->
+      <div class="card" style="border-left:4px solid var(--green)">
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">📄 Option B — Create district sheet from State sheet</div>
+        <div class="alert a-info" style="margin-bottom:10px;font-size:12px">
+          The State sheet will be copied exactly. Only the Region/District names (in column B or C) will be replaced with your 21 block names. All headings, formulas, and formatting will remain intact.
+        </div>
+        <label class="flbl">State Head Office Sheet Link *</label>
+        <input class="finput" id="ns-state-src" placeholder="https://docs.google.com/spreadsheets/d/...">
+        <label class="flbl" style="margin-top:10px">New sheet title *</label>
+        <input class="finput" id="ns-new-title" placeholder="e.g. திருவண்ணாமலை — PDL-1 ஏப்ரல் 2025">
+        <label class="flbl" style="margin-top:10px">Select blocks to include</label>
+        <div class="chip-row" id="block-chips"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selAll()">Select All</button>
+          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selNone()">Clear</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="createFromStateSheet()">
             <span id="create-spin" class="hidden"><span class="spin"></span></span>
-            📄 Create New Sheet in Drive
+            📄 Create District Sheet
           </button>
         </div>
-
-        <div>
-          <label class="flbl" style="margin-top:12px">Notes</label>
-          <textarea class="ftextarea" id="ns-notes" placeholder="குறிப்புகள்..."></textarea>
-        </div>
         <div id="create-msg" class="hidden" style="margin-top:10px"></div>
+        <!-- COPY LINK BOX shown after creation -->
+        <div id="new-link-box" class="hidden">
+          <div class="copy-link-box">
+            <span class="copy-link-url" id="new-link-url"></span>
+            <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;flex-shrink:0" onclick="copyNewLink()">📋 Copy Link</button>
+            <a id="new-link-open" href="#" target="_blank" style="font-size:12px;white-space:nowrap">Open ↗</a>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- ═══ MONITOR ═══ -->
     <div class="panel" id="panel-monitor">
       <div class="sec-title">Monitor — Live Sheet Reader</div>
-      <div class="sec-sub">கூகுள் தாள் செல்களை நேரடியாகப் படிக்கிறது — Reads Google Sheet cells and auto-matches block names</div>
+      <div class="sec-sub">கூகுள் தாள் செல்களை நேரடியாகப் படிக்கிறது. சூத்திர மதிப்புகள் கணக்கில் எடுக்கப்படுவதில்லை.</div>
       <div class="card">
         <div class="frow">
           <div>
@@ -338,8 +302,8 @@ a{color:var(--blue)}
             </button>
           </div>
         </div>
-        <div id="mon-link-row" class="hidden" style="font-size:12px;margin-top:4px">
-          <a id="mon-link" href="#" target="_blank">Open in Google Sheets ↗</a>
+        <div id="mon-link-row" class="hidden">
+          <a id="mon-link" href="#" target="_blank" class="link-sm">Open in Google Sheets ↗</a>
         </div>
       </div>
       <div id="mon-result"></div>
@@ -367,84 +331,48 @@ a{color:var(--blue)}
             </select>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span class="flbl" style="margin:0">Language:</span>
-          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="wa-lang" value="ta" checked onchange="genWA()"> தமிழ்
-          </label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="wa-lang" value="en" onchange="genWA()"> English
-          </label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="radio" name="wa-lang" value="both" onchange="genWA()"> Both
-          </label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="ta" checked onchange="genWA()"> தமிழ்</label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="en" onchange="genWA()"> English</label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="both" onchange="genWA()"> Both</label>
         </div>
       </div>
       <div id="wa-out" class="hidden">
         <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Generated Message</div>
         <div class="wa-box" id="wa-text"></div>
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="copyWA()">📋 Copy Message</button>
-        </div>
+        <div class="btn-row"><button class="btn btn-green" onclick="copyWA()">📋 Copy Message</button></div>
       </div>
     </div>
 
     <!-- ═══ REPOSITORY ═══ -->
     <div class="panel" id="panel-repo">
       <div class="sec-title">Repository</div>
-      <div class="sec-sub">All sheets — state and own, active and completed</div>
+      <div class="sec-sub">All tracked sheets — state and own, active and completed</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRepoFilter('all')">All</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRepoFilter('state')">State Sheets</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRepoFilter('own')">My Sheets</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRepoFilter('active')">Active</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRepoFilter('done')">Completed</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('all')">All</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('state')">State Sheets</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('own')">My Sheets</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('active')">Active</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('done')">Completed</button>
       </div>
       <div id="repo-list"></div>
     </div>
 
-    <!-- ═══ SETUP INFO ═══ -->
-    <div class="panel" id="panel-setup">
-      <div class="sec-title">Setup & Help</div>
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px">📦 How your data is stored</div>
-        <p style="font-size:13px;line-height:1.7;color:#444">All your sheet records are saved in a <strong>Google Sheet called "TVM Tracker DB"</strong> in your own Google Drive. This means:<br><br>
-        ✅ Same data on home computer + office computer<br>
-        ✅ Stored in your Google One 100GB account<br>
-        ✅ Never lost — backed up automatically by Google<br>
-        ✅ 100% free, no third-party storage</p>
-      </div>
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px">🔄 Auto-refresh</div>
-        <p style="font-size:13px;line-height:1.7;color:#444">The dashboard reads all active Google Sheets every <strong>5 minutes</strong> automatically. You can also click <strong>Refresh Now</strong> in the top bar at any time.<br><br>
-        The countdown timer in the top bar shows when the next auto-refresh will happen.</p>
-      </div>
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px">📋 Block name matching</div>
-        <p style="font-size:13px;line-height:1.7;color:#444">When reading a Google Sheet, the dashboard scans every row in every tab looking for block names in <strong>Tamil or English</strong>. It checks if other cells in that row are filled to determine status:<br><br>
-        🟢 <strong>நிரப்பினர் (Filled)</strong> — 4 or more cells filled<br>
-        🟡 <strong>பகுதி (Partial)</strong> — 2–3 cells filled<br>
-        🔴 <strong>நிரப்பவில்லை (Unfilled)</strong> — only block name or empty</p>
-      </div>
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px">💾 Host this file online</div>
-        <p style="font-size:13px;line-height:1.7;color:#444">To access from both home and office, upload this HTML file to <strong>Google Drive</strong> → Right-click → <strong>Open with → Google Sites</strong> or share the Drive link. Anyone with the link and your Google login can use it.<br><br>
-        Or upload to <a href="https://sites.google.com" target="_blank">Google Sites</a> (free) for a permanent URL.</p>
-      </div>
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">🔑 Current Client ID</div>
-        <div id="current-cid" style="font-size:12px;color:#666;word-break:break-all"></div>
-        <button class="btn btn-outline" style="font-size:12px;margin-top:8px" onclick="resetClientId()">Change Client ID</button>
-      </div>
+    <!-- ═══ TRASH ═══ -->
+    <div class="panel" id="panel-trash">
+      <div class="sec-title">🗑 Trash</div>
+      <div class="sec-sub">Deleted sheets — restore or permanently delete</div>
+      <div id="trash-list"></div>
     </div>
 
-  </div><!-- /main -->
-</div><!-- /app -->
+  </div>
+</div>
 
 <script>
-/* ═══════════════════════════════════════════════
-   BLOCK MASTER DATA
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   BLOCK DATA
+══════════════════════════════════ */
 const BLOCKS=[
   {en:'Tiruvannamalai HQ',ta:'திருவண்ணாமலை HQ'},
   {en:'Tiruvannamalai-1', ta:'திருவண்ணாமலை 1'},
@@ -469,22 +397,21 @@ const BLOCKS=[
   {en:'Thellar',          ta:'தெள்ளார்'}
 ];
 
-/* All aliases for fuzzy matching — Tamil + English + common abbreviations */
 const ALIASES={
-  'திருவண்ணாமலை hq':0,'tiruvannamalai hq':0,'tvmalai hq':0,'திருவண்ணாமலை தலைமையிடம்':0,
-  'திருவண்ணாமலை 1':1,'tiruvannamalai 1':1,'tiruvannamalai-1':1,'தி.மலை 1':1,
-  'திருவண்ணாமலை 2':2,'tiruvannamalai 2':2,'tiruvannamalai-2':2,'தி.மலை 2':2,
+  'திருவண்ணாமலை hq':0,'tiruvannamalai hq':0,'tvmalai hq':0,
+  'திருவண்ணாமலை 1':1,'tiruvannamalai-1':1,'tiruvannamalai 1':1,
+  'திருவண்ணாமலை 2':2,'tiruvannamalai-2':2,'tiruvannamalai 2':2,
   'துரிஞ்சாபுரம்':3,'thurinjapuram':3,
-  'கீழ்பென்னாத்தூர்':4,'kilpennathur':4,'keel pennathur':4,
+  'கீழ்பென்னாத்தூர்':4,'kilpennathur':4,'kilpennathur':4,
   'செங்கம்':5,'chengam':5,
   'புதுப்பாளையம்':6,'pudhupalayam':6,
   'தண்டராம்பட்டு':7,'thandrampet':7,'thandrampattu':7,
   'கலசபாக்கம்':8,'kalasapakkam':8,
   'போளூர்':9,'polur':9,
-  'ஜமுனாமரத்தூர்':10,'jamunamarathur':10,'yamunamarathur':10,'jamuna marathur':10,
+  'ஜமுனாமரத்தூர்':10,'jamunamarathur':10,'yamunamarathur':10,
   'சேத்பட்':11,'chetpet':11,
-  'ஆரணி (கிழக்கு)':12,'arani east':12,'ஆரணி கிழக்கு':12,'arani (east)':12,
-  'ஆரணி (மேற்கு)':13,'arani west':13,'ஆரணி மேற்கு':13,'arani (west)':13,
+  'ஆரணி (கிழக்கு)':12,'arani east':12,'ஆரணி கிழக்கு':12,
+  'ஆரணி (மேற்கு)':13,'arani west':13,'ஆரணி மேற்கு':13,
   'செய்யார்':14,'cheyyar':14,
   'அனக்காவூர்':15,'anakavoor':15,
   'வெம்பாக்கம் 1':16,'vembakkam 1':16,'vembakkam-1':16,
@@ -494,57 +421,52 @@ const ALIASES={
   'தெள்ளார்':20,'thellar':20
 };
 
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════
    STATE
-═══════════════════════════════════════════════ */
+══════════════════════════════════ */
 let CLIENT_ID=localStorage.getItem('tvm_cid')||'';
 let accessToken=null;
-let currentUser=null;
-let dbSheetId=null; // ID of the TVM Tracker DB sheet in Drive
-let sheets=[]; // loaded from DB sheet
+let dbSheetId=null;
+let sheets=[];
+let trashedSheets=[];
 let blockLang='ta';
 let selectedBlocks=new Set(BLOCKS.map((_,i)=>i));
 let repoFilter='all';
-let autoTimer=null;
-let countdownSec=300;
-let countdownTimer=null;
+let cdSec=300;
+let cdTimer=null;
+let newCreatedLink='';
 
-const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive';
 const DISC=['https://sheets.googleapis.com/$discovery/rest?version=v4',
             'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
 const DB_TITLE='TVM Tracker DB';
-const DB_TAB='sheets';
 
 function today(){return new Date().toISOString().slice(0,10)}
-function now(){return new Date().toLocaleString('en-IN')}
+function nowStr(){return new Date().toLocaleString('en-IN')}
 function daysSince(d){if(!d)return 0;const x=Math.floor((new Date()-new Date(d))/86400000);return x<0?0:x}
 function sidFromUrl(u){const m=(u||'').match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m[1]:null}
 
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════
    AUTH
-═══════════════════════════════════════════════ */
+══════════════════════════════════ */
 window.addEventListener('load',()=>{
   if(CLIENT_ID){
     document.getElementById('cid-input').value=CLIENT_ID;
-    document.getElementById('step-clientid').classList.add('hidden');
+    document.getElementById('step-cid').classList.add('hidden');
     document.getElementById('step-signin').classList.remove('hidden');
   }
 });
-
 function saveClientId(){
   const v=document.getElementById('cid-input').value.trim();
-  if(!v||!v.includes('apps.googleusercontent.com')){
-    alert('Please paste a valid Google OAuth Client ID ending in .apps.googleusercontent.com');return;
-  }
-  CLIENT_ID=v; localStorage.setItem('tvm_cid',v);
-  document.getElementById('step-clientid').classList.add('hidden');
+  if(!v){alert('Paste your Client ID first.');return;}
+  CLIENT_ID=v;localStorage.setItem('tvm_cid',v);
+  document.getElementById('step-cid').classList.add('hidden');
   document.getElementById('step-signin').classList.remove('hidden');
 }
-function resetClientId(){
+function resetCid(){
   document.getElementById('step-signin').classList.add('hidden');
-  document.getElementById('step-clientid').classList.remove('hidden');
+  document.getElementById('step-cid').classList.remove('hidden');
 }
-
 function doSignIn(){
   if(!CLIENT_ID){alert('Set Client ID first.');return;}
   gapi.load('client',async()=>{
@@ -552,12 +474,11 @@ function doSignIn(){
       await gapi.client.init({discoveryDocs:DISC});
       const tc=google.accounts.oauth2.initTokenClient({
         client_id:CLIENT_ID,scope:SCOPES,
-        callback:async(r)=>{
-          if(r.error){showMsg(r.error,'err');return;}
+        callback:async r=>{
+          if(r.error){showSignMsg(r.error);return;}
           accessToken=r.access_token;
           gapi.client.setToken({access_token:accessToken});
           const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}}).then(x=>x.json());
-          currentUser=ui;
           document.getElementById('user-name').textContent=ui.name||ui.email||'';
           if(ui.picture)document.getElementById('user-avatar').src=ui.picture;
           document.getElementById('signin-screen').style.display='none';
@@ -566,31 +487,25 @@ function doSignIn(){
         }
       });
       tc.requestAccessToken();
-    }catch(e){showMsg('Sign-in error: '+e.message,'err');}
+    }catch(e){showSignMsg('Error: '+e.message);}
   });
 }
 function doSignOut(){
   if(accessToken)google.accounts.oauth2.revoke(accessToken);
-  accessToken=null;currentUser=null;dbSheetId=null;sheets=[];
-  clearInterval(autoTimer);clearInterval(countdownTimer);
+  accessToken=null;dbSheetId=null;sheets=[];trashedSheets=[];
+  clearInterval(cdTimer);
   document.getElementById('signin-screen').style.display='flex';
   document.getElementById('app').style.display='none';
 }
-function showMsg(m,t='ok'){
-  const el=document.getElementById('signin-msg');
-  el.style.color=t==='err'?'#c0392b':'#0f7a55';
-  el.textContent=m;
-}
+function showSignMsg(m){document.getElementById('signin-msg').textContent=m;}
 
-/* ═══════════════════════════════════════════════
-   INIT APP
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
 async function initApp(){
   renderBlockChips();
   const d=new Date();d.setDate(d.getDate()+7);
   document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
-  document.getElementById('current-cid').textContent=CLIENT_ID;
-  // tabs
   document.querySelectorAll('.tab').forEach(t=>{
     t.addEventListener('click',()=>{
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
@@ -598,173 +513,179 @@ async function initApp(){
       t.classList.add('active');
       document.getElementById('panel-'+t.dataset.tab).classList.add('active');
       refreshDropdowns();
+      if(t.dataset.tab==='repo')renderRepo();
+      if(t.dataset.tab==='trash')renderTrash();
     });
   });
-  // load DB sheet
-  await ensureDbSheet();
-  await loadSheetsFromDb();
-  renderDashboard(); renderRepo(); refreshDropdowns();
-  // auto refresh all sheets on load
+  await ensureDb();
+  await loadFromDb();
+  renderDashboard();renderRepo();refreshDropdowns();
   await autoRefreshAll();
-  // start countdown
   startCountdown();
 }
 
-/* ═══════════════════════════════════════════════
-   DB SHEET — TVM Tracker DB in Drive
-   Columns: id | title | type | structure | link | sheetId | stateLink | deadline | notes | createdAt | status | lang | blockStatusJSON | lastRead
-═══════════════════════════════════════════════ */
-async function ensureDbSheet(){
-  // Search for existing TVM Tracker DB
-  const resp=await gapi.client.request({
-    path:'https://www.googleapis.com/drive/v3/files',
-    params:{q:`name='${DB_TITLE}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:'files(id,name)'}
-  });
-  const files=resp.result.files||[];
+/* ══════════════════════════════════
+   DB — TVM Tracker DB Google Sheet
+   Columns: id|title|type|link|sheetId|stateLink|deadline|notes|createdAt|status|lang|blockStatusJSON|lastRead|trashed
+══════════════════════════════════ */
+async function ensureDb(){
+  const r=await gapi.client.request({path:'https://www.googleapis.com/drive/v3/files',params:{q:`name='${DB_TITLE}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:'files(id)'}});
+  const files=(r.result.files||[]);
   if(files.length>0){dbSheetId=files[0].id;return;}
-  // Create it
-  const cr=await gapi.client.sheets.spreadsheets.create({resource:{
-    properties:{title:DB_TITLE},
-    sheets:[{properties:{title:DB_TAB}}]
-  }});
+  const cr=await gapi.client.sheets.spreadsheets.create({resource:{properties:{title:DB_TITLE},sheets:[{properties:{title:'data'}}]}});
   dbSheetId=cr.result.spreadsheetId;
-  // Write header
-  await gapi.client.sheets.spreadsheets.values.update({
-    spreadsheetId:dbSheetId,range:`${DB_TAB}!A1`,valueInputOption:'RAW',
-    resource:{values:[['id','title','type','structure','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead']]}
-  });
+  await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:dbSheetId,range:'data!A1',valueInputOption:'RAW',
+    resource:{values:[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]}});
 }
 
-async function loadSheetsFromDb(){
-  const r=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:dbSheetId,range:`${DB_TAB}!A2:N1000`});
-  const rows=r.result.values||[];
-  sheets=rows.filter(r=>r[0]).map(r=>({
-    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',structure:r[3]||'single',
-    link:r[4]||'',sheetId:r[5]||'',stateLink:r[6]||'',deadline:r[7]||'',
-    notes:r[8]||'',createdAt:r[9]||'',status:r[10]||'active',lang:r[11]||'ta',
-    blockStatus:safeJson(r[12])||[],lastRead:r[13]||''
+function sj(s){try{return JSON.parse(s);}catch{return [];}}
+
+async function loadFromDb(){
+  const r=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:dbSheetId,range:'data!A2:N2000'});
+  const rows=(r.result.values||[]).filter(r=>r[0]);
+  sheets=rows.filter(r=>r[13]!=='1').map(r=>({
+    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
+    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
+    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:false
+  }));
+  trashedSheets=rows.filter(r=>r[13]==='1').map(r=>({
+    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
+    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
+    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:true
   }));
 }
 
-function safeJson(s){try{return JSON.parse(s);}catch{return null;}}
-
-async function saveSheetsToDb(){
-  // Rewrite all rows
-  const rows=sheets.map(s=>[
-    s.id,s.title,s.type,s.structure,s.link,s.sheetId,s.stateLink,
-    s.deadline,s.notes,s.createdAt,s.status,s.lang,
-    JSON.stringify(s.blockStatus),s.lastRead
-  ]);
-  const clearRange=`${DB_TAB}!A2:N1000`;
-  await gapi.client.sheets.spreadsheets.values.clear({spreadsheetId:dbSheetId,range:clearRange});
+async function saveToDb(){
+  const all=[...sheets,...trashedSheets];
+  const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
+  await gapi.client.sheets.spreadsheets.values.clear({spreadsheetId:dbSheetId,range:'data!A2:N2000'});
   if(rows.length>0){
-    await gapi.client.sheets.spreadsheets.values.update({
-      spreadsheetId:dbSheetId,range:`${DB_TAB}!A2`,valueInputOption:'RAW',
-      resource:{values:rows}
-    });
+    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:dbSheetId,range:'data!A2',valueInputOption:'RAW',resource:{values:rows}});
   }
 }
 
-/* ═══════════════════════════════════════════════
-   AUTO REFRESH COUNTDOWN
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   COUNTDOWN
+══════════════════════════════════ */
 function startCountdown(){
-  clearInterval(autoTimer);clearInterval(countdownTimer);
-  countdownSec=300;updateCountdownUI();
-  countdownTimer=setInterval(async()=>{
-    countdownSec--;
-    updateCountdownUI();
-    if(countdownSec<=0){
-      countdownSec=300;
-      await autoRefreshAll();
-    }
-  },1000);
+  clearInterval(cdTimer);
+  cdSec=300;updateCd();
+  cdTimer=setInterval(async()=>{cdSec--;updateCd();if(cdSec<=0){cdSec=300;await autoRefreshAll();}},1000);
 }
-function updateCountdownUI(){
-  const m=Math.floor(countdownSec/60);
-  const s=countdownSec%60;
-  document.getElementById('countdown-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
-  document.getElementById('cring-fill').style.width=(countdownSec/300*100)+'%';
+function updateCd(){
+  const m=Math.floor(cdSec/60),s=cdSec%60;
+  document.getElementById('cd-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('cd-fill').style.width=(cdSec/300*100)+'%';
 }
-async function manualRefreshAll(){
-  const btn=document.getElementById('refresh-btn');
-  btn.disabled=true;btn.textContent='⏳ Refreshing...';
-  await autoRefreshAll();
-  countdownSec=300;updateCountdownUI();
-  btn.disabled=false;btn.textContent='🔄 Refresh Now';
+async function manualRefresh(){
+  await autoRefreshAll();cdSec=300;updateCd();
 }
 async function autoRefreshAll(){
   const active=sheets.filter(s=>s.status==='active'&&s.sheetId);
-  for(const s of active){
-    try{await readSheetData(s);}catch(e){console.warn('Read failed for',s.title,e);}
-  }
-  if(active.length>0)await saveSheetsToDb();
-  document.getElementById('last-refresh-label').textContent='Last refreshed: '+now();
+  for(const s of active){try{await readSheetData(s);}catch(e){console.warn(s.title,e);}}
+  if(active.length)await saveToDb();
+  document.getElementById('last-refresh').textContent='Last refreshed: '+nowStr();
   renderDashboard();refreshDropdowns();
 }
 
-/* ═══════════════════════════════════════════════
-   BLOCK MATCHING
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   FILL DETECTION
+   Key rule: formula cells that return 0
+   are reported by Sheets API as "0" string.
+   We detect real user-typed data by:
+   1. Cell must be non-empty string
+   2. Value must not be 0/0.0/0.00/"-"/"—"
+   3. Value must be a meaningful number >0
+      OR a non-numeric non-empty string
+══════════════════════════════════ */
+function isRealData(cell){
+  if(cell===null||cell===undefined)return false;
+  const s=String(cell).trim();
+  if(s===''||s==='-'||s==='—'||s==='0'||s==='0.0'||s==='0.00'||s==='0.000')return false;
+  // If numeric, must be >0
+  const n=parseFloat(s);
+  if(!isNaN(n))return n>0;
+  // Non-numeric non-empty = real data (text labels)
+  return s.length>0;
+}
+
 function matchBlock(row){
   for(const cell of row){
     if(!cell)continue;
-    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ');
+    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
     if(ALIASES[norm]!==undefined)return ALIASES[norm];
     for(const [alias,idx] of Object.entries(ALIASES)){
-      if(norm.includes(alias)||alias.includes(norm))return idx;
+      if(norm===alias||norm.includes(alias)||alias.includes(norm))return idx;
     }
   }
   return -1;
 }
-function rowStatus(row){
-  const ne=row.filter(c=>c&&String(c).trim()!=='').length;
-  if(ne<=1)return 'unfilled';
-  if(ne<=3)return 'partial';
-  return 'filled';
-}
 
-/* ═══════════════════════════════════════════════
-   READ SHEET DATA
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   READ SHEET — scans all tabs,
+   accumulates real data score per block
+══════════════════════════════════ */
 async function readSheetData(s){
   const meta=await gapi.client.sheets.spreadsheets.get({spreadsheetId:s.sheetId});
   const tabs=meta.result.sheets.map(sh=>sh.properties.title);
-  const ranges=tabs.map(t=>`'${t}'!A:Z`);
-  const dataResp=await gapi.client.sheets.spreadsheets.values.batchGet({spreadsheetId:s.sheetId,ranges});
-  const found={};
+  // Use FORMULA_VALUE to get actual values, not formulas
+  const dataResp=await gapi.client.sheets.spreadsheets.values.batchGet({
+    spreadsheetId:s.sheetId,
+    ranges:tabs.map(t=>`'${t}'!A:Z`),
+    valueRenderOption:'FORMATTED_VALUE'
+  });
+
+  // blockScore[idx] = {score, tabs}
+  const blockScore={};
+
   dataResp.result.valueRanges.forEach((vr,ti)=>{
     const tabName=tabs[ti];
-    const rows=(vr.values||[]);
-    // Check if tab name itself is a block
-    const tabIdx=matchBlock([tabName]);
-    if(tabIdx>=0&&found[tabIdx]===undefined){
-      const dataRows=rows.slice(1);
-      const ne=dataRows.reduce((acc,r)=>acc+r.filter(c=>c&&String(c).trim()).length,0);
-      found[tabIdx]={status:ne===0?'unfilled':ne<=3?'partial':'filled',tab:tabName};
-    }
-    // Scan each row
-    rows.forEach((row,ri)=>{
-      if(ri===0)return;
-      const bIdx=matchBlock(row);
-      if(bIdx>=0&&found[bIdx]===undefined){
-        found[bIdx]={status:rowStatus(row),tab:tabName,row:ri+1};
+    const rows=vr.values||[];
+
+    // Find which column contains block names (scan first 10 rows)
+    let blockCol=-1;
+    for(let ri=0;ri<Math.min(rows.length,10);ri++){
+      for(let ci=0;ci<(rows[ri]||[]).length;ci++){
+        if(matchBlock([rows[ri][ci]])>=0){blockCol=ci;break;}
       }
+      if(blockCol>=0)break;
+    }
+
+    rows.forEach((row,ri)=>{
+      // Skip completely empty rows
+      if(!row||row.length===0)return;
+      const bIdx=matchBlock(row);
+      if(bIdx<0)return;
+
+      // Count real data cells in this row, excluding the block name cell
+      let score=0;
+      row.forEach((cell,ci)=>{
+        if(ci===blockCol)return; // skip block name column
+        if(isRealData(cell))score++;
+      });
+
+      if(!blockScore[bIdx]){blockScore[bIdx]={score:0,tabs:[]};}
+      blockScore[bIdx].score+=score;
+      if(!blockScore[bIdx].tabs.includes(tabName))blockScore[bIdx].tabs.push(tabName);
     });
   });
-  // Update blockStatus
-  s.blockStatus=BLOCKS.map((_,i)=>({
-    idx:i,
-    status:found[i]?found[i].status:'unfilled',
-    tab:found[i]?found[i].tab:null,
-    updatedAt:today()
-  }));
-  s.lastRead=now();
+
+  // Convert score to status
+  s.blockStatus=BLOCKS.map((_,i)=>{
+    const bs=blockScore[i];
+    let status='unfilled';
+    if(bs){
+      if(bs.score>=4)status='filled';
+      else if(bs.score>=1)status='partial';
+    }
+    return{idx:i,status,tabs:bs?bs.tabs:[],updatedAt:today()};
+  });
+  s.lastRead=nowStr();
 }
 
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════
    IMPORT EXISTING SHEET
-═══════════════════════════════════════════════ */
+══════════════════════════════════ */
 async function importSheet(){
   const title=document.getElementById('ns-title').value.trim();
   const link=document.getElementById('ns-existing-link').value.trim();
@@ -772,112 +693,209 @@ async function importSheet(){
   if(!link){alert('Please paste a Google Sheet link.');return;}
   const sid=sidFromUrl(link);
   if(!sid){alert('Invalid Google Sheet link.');return;}
-  const selIdx=[...selectedBlocks].sort((a,b)=>a-b);
   const rec={
     id:Date.now(),title,type:document.getElementById('ns-type').value,
-    structure:document.getElementById('ns-structure').value,
     link,sheetId:sid,
     stateLink:document.getElementById('ns-state-link').value.trim(),
     deadline:document.getElementById('ns-deadline').value,
     notes:document.getElementById('ns-notes').value.trim(),
     createdAt:today(),status:'active',lang:blockLang,
-    blockStatus:selIdx.map(i=>({idx:i,status:'unfilled',tab:null,updatedAt:null})),
-    lastRead:''
+    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+    lastRead:'',trashed:false
   };
-  showCreateMsg('<span class="spin spin-b"></span> Reading sheet...','info');
+  showCMsg('<span class="spin spin-b"></span> Reading sheet cells...','info');
   try{
     await readSheetData(rec);
     sheets.unshift(rec);
-    await saveSheetsToDb();
+    await saveToDb();
     renderDashboard();refreshDropdowns();renderRepo();
-    showCreateMsg('✅ Sheet imported and read successfully! View status in Dashboard.','ok');
+    showCMsg('✅ Sheet imported and read successfully!','ok');
     document.getElementById('ns-title').value='';
     document.getElementById('ns-existing-link').value='';
     document.getElementById('ns-state-link').value='';
   }catch(e){
-    // Save anyway even if read fails
-    sheets.unshift(rec);
-    await saveSheetsToDb();
+    sheets.unshift(rec);await saveToDb();
     renderDashboard();refreshDropdowns();renderRepo();
-    showCreateMsg('⚠️ Sheet saved but could not read cells. Ensure sheet is shared publicly. Error: '+e.message,'warn');
+    showCMsg('⚠️ Sheet saved. Could not read cells: '+e.message,'warn');
   }
 }
 
-/* ═══════════════════════════════════════════════
-   CREATE NEW SHEET IN DRIVE
-═══════════════════════════════════════════════ */
-async function createSheet(){
-  const title=document.getElementById('ns-title').value.trim();
-  if(!title){alert('Please enter a title.');return;}
-  const structure=document.getElementById('ns-structure').value;
+/* ══════════════════════════════════
+   CREATE FROM STATE SHEET
+   Steps:
+   1. Read state sheet metadata (all tabs, all data)
+   2. Copy entire sheet using Drive copy API
+   3. Find region/district name column in each tab
+   4. Replace district names with 21 block names (Tamil)
+   5. Delete extra rows beyond 21 blocks
+   6. Keep total/summary row if exists
+   7. Share publicly
+══════════════════════════════════ */
+async function createFromStateSheet(){
+  const stateLink=document.getElementById('ns-state-src').value.trim();
+  const newTitle=document.getElementById('ns-new-title').value.trim()||document.getElementById('ns-title').value.trim();
+  if(!stateLink){alert('Please paste the State sheet link.');return;}
+  if(!newTitle){alert('Please enter a title for the new sheet.');return;}
+  const stateSid=sidFromUrl(stateLink);
+  if(!stateSid){alert('Invalid State sheet link.');return;}
+
   const selIdx=[...selectedBlocks].sort((a,b)=>a-b);
   const selBlocks=selIdx.map(i=>BLOCKS[i]);
+
   document.getElementById('create-spin').classList.remove('hidden');
-  showCreateMsg('Creating sheet in your Google Drive...','info');
+  document.getElementById('new-link-box').classList.add('hidden');
+  showCMsg('Step 1/4: Copying state sheet to your Drive...','info');
+
   try{
-    let body;
-    if(structure==='single'){
-      const header=['வ.எண்','ஒப்பந்த வட்டாரம் (Tamil)','Block (English)'];
-      const dataRows=selBlocks.map((b,i)=>[i+1,b.ta,b.en]);
-      body={
-        properties:{title},
-        sheets:[{properties:{title:'District Data',sheetId:0},
-          data:[{startRow:0,startColumn:0,rowData:[
-            {values:header.map(v=>({userEnteredValue:{stringValue:v},userEnteredFormat:{textFormat:{bold:true},backgroundColor:{red:.85,green:.9,blue:.98}}}))},
-            ...dataRows.map(r=>({values:r.map(v=>({userEnteredValue:{stringValue:String(v)}}))}))
-          ]}]
-        }]
-      };
-    }else{
-      body={properties:{title},sheets:selBlocks.map((b,i)=>({
-        properties:{title:b.ta,sheetId:i},
-        data:[{startRow:0,startColumn:0,rowData:[
-          {values:[{userEnteredValue:{stringValue:'ஒப்பந்த வட்டாரம்'},userEnteredFormat:{textFormat:{bold:true},backgroundColor:{red:.85,green:.9,blue:.98}}},
-                   {userEnteredValue:{stringValue:'Block'},userEnteredFormat:{textFormat:{bold:true},backgroundColor:{red:.85,green:.9,blue:.98}}}]},
-          {values:[{userEnteredValue:{stringValue:b.ta}},{userEnteredValue:{stringValue:b.en}}]}
-        ]}]
-      }))};
-    }
-    const cr=await gapi.client.sheets.spreadsheets.create({resource:body});
-    const newSid=cr.result.spreadsheetId;
+    // STEP 1: Copy the entire spreadsheet via Drive API
+    const copyResp=await gapi.client.request({
+      path:`https://www.googleapis.com/drive/v3/files/${stateSid}/copy`,
+      method:'POST',
+      body:{name:newTitle}
+    });
+    const newSid=copyResp.result.id;
     const newUrl=`https://docs.google.com/spreadsheets/d/${newSid}/edit`;
-    // Share publicly
-    await gapi.client.request({path:`https://www.googleapis.com/drive/v3/files/${newSid}/permissions`,method:'POST',body:{role:'writer',type:'anyone'}});
-    // Save record
+
+    showCMsg('Step 2/4: Reading sheet structure...','info');
+
+    // STEP 2: Get all tabs and their data
+    const meta=await gapi.client.sheets.spreadsheets.get({spreadsheetId:newSid});
+    const tabSheets=meta.result.sheets;
+
+    showCMsg('Step 3/4: Replacing region names with block names...','info');
+
+    // STEP 3: For each tab, find region name column and replace
+    for(const tabSheet of tabSheets){
+      const tabTitle=tabSheet.properties.title;
+      const tabId=tabSheet.properties.sheetId;
+
+      // Read the tab data
+      const dataResp=await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId:newSid,
+        range:`'${tabTitle}'!A:Z`,
+        valueRenderOption:'FORMATTED_VALUE'
+      });
+      const rows=dataResp.result.values||[];
+      if(rows.length===0)continue;
+
+      // Find the column that has district/region names
+      // Strategy: scan rows 3-10, find column where cells match known district patterns
+      let nameCol=-1;
+      let firstDataRow=-1;
+      const districtPatterns=['ariyalur','chennai','coimbatore','cuddalore','dharmapuri','dindigul',
+        'erode','kancheepuram','chengalpattu','kanyakumari','karur','krishnagiri','madurai',
+        'nagapattinam','mayiladuthurai','namakkal','nilgiris','perambalur','pudukkottai',
+        'ramanathapuram','salem','sivagangai','thanjavur','theni','tiruchy','tirunelveli',
+        'tenkasi','tiruppur','tiruvallur','tiruvannamalai','tiruvarur','vellore','villupuram',
+        'virudhunagar','thiruvannamalai','திருவண்ணாமலை','அரியலூர்','சென்னை'];
+
+      for(let ri=0;ri<Math.min(rows.length,15);ri++){
+        const row=rows[ri]||[];
+        for(let ci=0;ci<row.length;ci++){
+          const cellVal=String(row[ci]||'').trim().toLowerCase();
+          if(districtPatterns.some(p=>cellVal.includes(p))){
+            nameCol=ci;firstDataRow=ri;break;
+          }
+        }
+        if(nameCol>=0)break;
+      }
+
+      if(nameCol<0)continue; // no region column found in this tab
+
+      // Find total row (usually last row with "total"/"மொத்தம்" keyword)
+      let totalRowIdx=-1;
+      for(let ri=rows.length-1;ri>=firstDataRow;ri--){
+        const rowStr=(rows[ri]||[]).join(' ').toLowerCase();
+        if(rowStr.includes('total')||rowStr.includes('மொத்தம்')||rowStr.includes('grand')){
+          totalRowIdx=ri;break;
+        }
+      }
+
+      // Build requests: update block names in nameCol
+      const requests=[];
+
+      // Replace each district name with block name (rows firstDataRow to firstDataRow+selBlocks.length-1)
+      for(let bi=0;bi<selBlocks.length;bi++){
+        const rowIdx=firstDataRow+bi;
+        if(rowIdx>=rows.length)break;
+        requests.push({
+          updateCells:{
+            range:{sheetId:tabId,startRowIndex:rowIdx,endRowIndex:rowIdx+1,startColumnIndex:nameCol,endColumnIndex:nameCol+1},
+            rows:[{values:[{userEnteredValue:{stringValue:selBlocks[bi].ta}}]}],
+            fields:'userEnteredValue'
+          }
+        });
+      }
+
+      // Delete extra rows (rows after 21 blocks and before total row)
+      const lastBlockRow=firstDataRow+selBlocks.length;
+      let deleteUpTo=totalRowIdx>=0?totalRowIdx:rows.length;
+      if(deleteUpTo>lastBlockRow){
+        requests.push({
+          deleteDimension:{range:{sheetId:tabId,dimension:'ROWS',startIndex:lastBlockRow,endIndex:deleteUpTo}}
+        });
+      }
+
+      if(requests.length>0){
+        await gapi.client.sheets.spreadsheets.batchUpdate({
+          spreadsheetId:newSid,
+          resource:{requests}
+        });
+      }
+    }
+
+    showCMsg('Step 4/4: Sharing sheet publicly...','info');
+
+    // STEP 4: Share publicly (anyone with link can edit)
+    await gapi.client.request({
+      path:`https://www.googleapis.com/drive/v3/files/${newSid}/permissions`,
+      method:'POST',
+      body:{role:'writer',type:'anyone'}
+    });
+
+    // Save to tracker
     const rec={
-      id:Date.now(),title,type:document.getElementById('ns-type').value,structure,
+      id:Date.now(),title:newTitle,type:'state',
       link:newUrl,sheetId:newSid,
-      stateLink:document.getElementById('ns-state-link').value.trim(),
+      stateLink:stateLink,
       deadline:document.getElementById('ns-deadline').value,
       notes:document.getElementById('ns-notes').value.trim(),
-      createdAt:today(),status:'active',lang:blockLang,
-      blockStatus:selIdx.map(i=>({idx:i,status:'unfilled',tab:null,updatedAt:null})),
-      lastRead:''
+      createdAt:today(),status:'active',lang:'ta',
+      blockStatus:selIdx.map(i=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+      lastRead:'',trashed:false
     };
     sheets.unshift(rec);
-    await saveSheetsToDb();
+    await saveToDb();
     renderDashboard();refreshDropdowns();renderRepo();
-    showCreateMsg(`✅ Sheet created! <a href="${newUrl}" target="_blank">Open Sheet ↗</a> — Copy this link and share in WhatsApp.`,'ok');
-    document.getElementById('ns-title').value='';
-    document.getElementById('ns-state-link').value='';
-    document.getElementById('ns-notes').value='';
+
+    newCreatedLink=newUrl;
+    document.getElementById('new-link-url').textContent=newUrl;
+    document.getElementById('new-link-open').href=newUrl;
+    document.getElementById('new-link-box').classList.remove('hidden');
+    showCMsg('✅ District sheet created successfully! Copy the link and share in WhatsApp.','ok');
+
   }catch(e){
-    showCreateMsg('❌ Error: '+e.message,'err');
+    showCMsg('❌ Error: '+e.message,'err');
   }
   document.getElementById('create-spin').classList.add('hidden');
 }
 
-function showCreateMsg(html,type){
+function copyNewLink(){
+  navigator.clipboard.writeText(newCreatedLink).then(()=>{
+    alert('✅ Link copied!\nShare this in your WhatsApp group.');
+  });
+}
+
+function showCMsg(html,type){
   const el=document.getElementById('create-msg');
   const cls={info:'a-info',ok:'a-ok',warn:'a-warn',err:'a-err'};
-  el.className='alert '+cls[type];
-  el.innerHTML=html;
+  el.className='alert '+cls[type];el.innerHTML=html;
   el.classList.remove('hidden');
 }
 
-/* ═══════════════════════════════════════════════
-   MONITOR TAB — read one sheet manually
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   MONITOR
+══════════════════════════════════ */
 function onMonChange(){
   const id=parseInt(document.getElementById('mon-sel').value);
   const s=sheets.find(x=>x.id===id);
@@ -893,38 +911,35 @@ async function readOneSheet(){
   document.getElementById('read-spin').classList.remove('hidden');
   document.getElementById('mon-result').innerHTML='<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells...</div>';
   try{
-    await readSheetData(s);
-    await saveSheetsToDb();
+    await readSheetData(s);await saveToDb();
     renderDashboard();refreshDropdowns();
     renderMonTable(s);
   }catch(e){
-    document.getElementById('mon-result').innerHTML=`<div class="alert a-err">❌ Error: ${e.message}<br><small>Ensure the sheet is shared "Anyone with link can view".</small></div>`;
+    document.getElementById('mon-result').innerHTML=`<div class="alert a-err">❌ Error: ${e.message}<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>`;
   }
   document.getElementById('read-spin').classList.add('hidden');
 }
+
 function renderMonTable(s){
   const f=s.blockStatus.filter(b=>b.status==='filled').length;
   const p=s.blockStatus.filter(b=>b.status==='partial').length;
   const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
   const t=s.blockStatus.length;
-  const pct=Math.round((f/t)*100);
+  const pct=Math.round((f/Math.max(t,1))*100);
   const col=pct>=100?'green':pct>0?'amber':'red';
-  let html=`
-    <div class="card" style="padding:12px 16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
-        <div style="font-size:14px;font-weight:700">${s.title}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <span class="badge b-green">✓ ${f}</span>
-          <span class="badge b-amber">◑ ${p}</span>
-          <span class="badge b-red">✗ ${n}</span>
-        </div>
+  let html=`<div class="card" style="padding:14px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <div style="font-size:14px;font-weight:700">${s.title}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge b-green">✓ ${f} நிரப்பினர்</span>
+        <span class="badge b-amber">◑ ${p} பகுதி</span>
+        <span class="badge b-red">✗ ${n} நிரப்பவில்லை</span>
       </div>
-      <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
-      <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Last read: ${s.lastRead||'—'} · ${pct}% complete</div>
-      <div style="overflow-x:auto">
-      <table class="tbl">
-        <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை</th><th>Tab</th><th>நாட்கள்</th></tr></thead>
-        <tbody>`;
+    </div>
+    <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Last read: ${s.lastRead||'—'} · ${pct}% complete</div>
+    <div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
   s.blockStatus.forEach((bs,i)=>{
     const b=BLOCKS[bs.idx];
     const sc=bs.status==='filled'?'b-green':bs.status==='partial'?'b-amber':'b-red';
@@ -935,20 +950,20 @@ function renderMonTable(s){
       <td style="font-weight:600">${b.ta}</td>
       <td style="font-size:12px;color:var(--gray)">${b.en}</td>
       <td><span class="badge ${sc}">${sl}</span></td>
-      <td style="font-size:11px;color:var(--gray)">${bs.tab||'—'}</td>
+      <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
       <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
     </tr>`;
   });
   html+=`</tbody></table></div>
-    <div class="btn-row" style="margin-top:10px">
+    <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-outline" style="font-size:12px" onclick="goToWA(${s.id})">📤 Generate WhatsApp Message</button>
     </div></div>`;
   document.getElementById('mon-result').innerHTML=html;
 }
 
-/* ═══════════════════════════════════════════════
-   DASHBOARD RENDER
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   DASHBOARD
+══════════════════════════════════ */
 function renderDashboard(){
   const active=sheets.filter(s=>s.status==='active');
   let fc=0,pc=0,nc=0;
@@ -962,6 +977,7 @@ function renderDashboard(){
   document.getElementById('st-full').textContent=fc;
   document.getElementById('st-partial').textContent=pc;
   document.getElementById('st-none').textContent=nc;
+
   if(!active.length){
     document.getElementById('dash-list').innerHTML='<div class="alert a-info">No active sheets. Go to "Add Sheet" to begin.</div>';
     return;
@@ -970,7 +986,7 @@ function renderDashboard(){
     const f=s.blockStatus.filter(b=>b.status==='filled').length;
     const p=s.blockStatus.filter(b=>b.status==='partial').length;
     const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
-    const t=s.blockStatus.length||1;
+    const t=Math.max(s.blockStatus.length,1);
     const pct=Math.round((f/t)*100);
     const col=pct>=100?'green':pct>0?'amber':'red';
     const dl=s.deadline?Math.ceil((new Date(s.deadline)-new Date())/86400000):null;
@@ -978,33 +994,32 @@ function renderDashboard(){
     if(dl!==null){if(dl<0)dlb=`<span class="badge b-red">Overdue ${Math.abs(dl)}d</span>`;
     else if(dl<=2)dlb=`<span class="badge b-amber">Due in ${dl}d</span>`;
     else dlb=`<span class="badge b-gray">Due ${s.deadline}</span>`;}
-    const pendList=s.blockStatus.filter(b=>b.status!=='filled').map(b=>BLOCKS[b.idx].ta);
+    const pendTa=s.blockStatus.filter(b=>b.status!=='filled').map(b=>BLOCKS[b.idx].ta);
     return `<div class="sheet-item">
       <div class="sheet-head">
         <div>
           <div class="sheet-title">${s.title}</div>
-          <div class="sheet-meta">
-            ${s.type==='state'?'🏛 State Sheet':'📁 My Sheet'} · ${s.createdAt}
-            ${s.lastRead?`· <span style="color:var(--green)">நேரடி: ${s.lastRead}</span>`:'· <span style="color:var(--amber)">Not yet read</span>'}
-          </div>
+          <div class="sheet-meta">${s.type==='state'?'🏛 State Sheet':'📁 My Sheet'} · ${s.createdAt}${s.lastRead?` · <span style="color:var(--green)">நேரடி: ${s.lastRead}</span>`:' · <span style="color:var(--amber)">Not yet read</span>'}</div>
           ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Open Sheet ↗</a>`:''}
+          ${s.link?`<button class="btn-sm" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Link copied!'))" style="margin-left:6px;font-size:11px">📋 Copy Link</button>`:''}
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start;justify-content:flex-end">
           ${dlb}
           <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
-          <button class="btn-sm-o" onclick="archiveSheet(${s.id})">Archive</button>
+          <button class="btn-sm" onclick="quickRead(${s.id})">🔄</button>
+          <button class="btn-sm" onclick="archiveSheet(${s.id})">✓ Done</button>
+          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})">🗑</button>
         </div>
       </div>
       <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
-      <div style="display:flex;gap:12px;font-size:12px;margin-top:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:14px;font-size:12px;margin-top:6px;flex-wrap:wrap">
         <span><span class="dot dot-g"></span>${f} நிரப்பினர்</span>
         <span><span class="dot dot-a"></span>${p} பகுதி</span>
         <span><span class="dot dot-r"></span>${n} நிரப்பவில்லை</span>
         <span style="color:var(--gray)">${t} மொத்தம்</span>
       </div>
-      ${n>0?`<div style="margin-top:7px;font-size:12px;color:var(--red);line-height:1.6">⏳ நிலுவை: ${pendList.join(', ')}</div>`:''}
+      ${n>0?`<div style="margin-top:7px;font-size:12px;color:var(--red);line-height:1.6">⏳ நிலுவை: ${pendTa.join(', ')}</div>`:''}
       <div class="btn-row" style="margin-top:8px">
-        <button class="btn-sm-o" onclick="quickRead(${s.id})">🔄 Read Now</button>
         <button class="btn-sm-g" onclick="goToWA(${s.id})">💬 WhatsApp</button>
       </div>
     </div>`;
@@ -1012,26 +1027,43 @@ function renderDashboard(){
 }
 
 async function quickRead(id){
-  const s=sheets.find(x=>x.id===id);
-  if(!s)return;
-  try{
-    await readSheetData(s);
-    await saveSheetsToDb();
-    renderDashboard();
-  }catch(e){alert('Error reading sheet: '+e.message);}
+  const s=sheets.find(x=>x.id===id);if(!s)return;
+  try{await readSheetData(s);await saveToDb();renderDashboard();}
+  catch(e){alert('Error: '+e.message);}
 }
-
 async function archiveSheet(id){
-  if(!confirm('Archive this sheet?'))return;
-  const s=sheets.find(x=>x.id===id);
-  if(s)s.status='done';
-  await saveSheetsToDb();
-  renderDashboard();refreshDropdowns();renderRepo();
+  if(!confirm('Mark this sheet as completed?'))return;
+  const s=sheets.find(x=>x.id===id);if(s)s.status='done';
+  await saveToDb();renderDashboard();refreshDropdowns();renderRepo();
+}
+async function trashSheet(id){
+  if(!confirm('Move to trash?'))return;
+  const idx=sheets.findIndex(x=>x.id===id);
+  if(idx>=0){
+    sheets[idx].trashed=true;
+    trashedSheets.push(sheets[idx]);
+    sheets.splice(idx,1);
+    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
+  }
+}
+async function restoreSheet(id){
+  const idx=trashedSheets.findIndex(x=>x.id===id);
+  if(idx>=0){
+    trashedSheets[idx].trashed=false;
+    sheets.push(trashedSheets[idx]);
+    trashedSheets.splice(idx,1);
+    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
+  }
+}
+async function permDelete(id){
+  if(!confirm('Permanently delete? This cannot be undone.'))return;
+  const idx=trashedSheets.findIndex(x=>x.id===id);
+  if(idx>=0){trashedSheets.splice(idx,1);await saveToDb();renderTrash();}
 }
 
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════
    DROPDOWNS
-═══════════════════════════════════════════════ */
+══════════════════════════════════ */
 function refreshDropdowns(){
   const active=sheets.filter(s=>s.status==='active');
   const opts='<option value="">— Select a sheet —</option>'+active.map(s=>`<option value="${s.id}">${s.title}</option>`).join('');
@@ -1039,9 +1071,9 @@ function refreshDropdowns(){
   document.getElementById('wa-sel').innerHTML=opts;
 }
 
-/* ═══════════════════════════════════════════════
-   WHATSAPP
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   WHATSAPP — CORRECTED TAMIL TEXT
+══════════════════════════════════ */
 function goToWA(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -1060,34 +1092,38 @@ function genWA(){
   if(!id){out.classList.add('hidden');return;}
   const s=sheets.find(x=>x.id===id);
   if(!s){out.classList.add('hidden');return;}
+
   const filled=s.blockStatus.filter(b=>b.status==='filled');
   const pending=s.blockStatus.filter(b=>b.status!=='filled');
-  const pct=Math.round((filled.length/(s.blockStatus.length||1))*100);
+  const pct=Math.round((filled.length/Math.max(s.blockStatus.length,1))*100);
   const days=daysSince(s.createdAt);
   const lnk=s.link||'[இணைப்பு சேர்க்கப்படும்]';
   const pTa=pending.map(b=>BLOCKS[b.idx].ta).join('\n');
   const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
   const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
   const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
+  const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
+  const SIGN_EN='— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai';
 
   const msgs={
     initial:{
-      ta:`🏛 *திருவண்ணாமலை மாவட்ட அலுவலகம்*\n\nமதிப்பிற்குரிய ஒப்பந்த வட்டார அலுவலர்களே,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்கிறோம்.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்கிறோம்.\n\nநன்றி\n— மாவட்ட அலுவலகம், திருவண்ணாமலை`,
-      en:`🏛 *Thiruvannamalai District Office*\n\nDear Block Officers,\n\nKindly fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\nThank you.\n— District Office, Thiruvannamalai`
+      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\nமதிப்பிற்குரிய ஒப்பந்த வட்டார அலுவலர்களே,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
+      en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
     },
     reminder:{
-      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக திறந்துள்ளது · ${pct}% முடிந்தது\n\nதயவுசெய்து உடனடியாக நிரப்புங்கள்.\n— மாவட்ட அலுவலகம்`,
-      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Open ${days} day${days!==1?'s':''} · ${pct}% done\n\nKindly fill immediately.\n— District Office, Thiruvannamalai`
+      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது · ${pct}% முடிந்தது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
+      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
     },
     final:{
-      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nமாவட்ட அறிக்கை சமர்ப்பிக்க கீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\n*உடனடியாக நிரப்பவும்!*\n— மாவட்ட அலுவலகம், திருவண்ணாமலை`,
-      en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report CANNOT be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\n*Please fill IMMEDIATELY!*\n— District Office, Thiruvannamalai`
+      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nமாவட்ட அறிக்கை சமர்ப்பிக்க கீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
+      en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report cannot be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are requested to fill IMMEDIATELY.\n${SIGN_EN}`
     },
     thanks:{
-      ta:`✅ *நன்றி — ${s.title}*\n\nஅனைத்து ${s.blockStatus.length} வட்டாரங்களும் தரவுகளை நிரப்பியதற்கு மிக்க நன்றி! 🙏\n\nமாவட்ட தரவுகள் தொகுக்கப்பட்டு மாநில அலுவலகத்திற்கு அனுப்பப்படும்.\n— மாவட்ட அலுவலகம், திருவண்ணாமலை`,
-      en:`✅ *Thank You — ${s.title}*\n\nAll ${s.blockStatus.length} block officers have submitted data! 🙏\n\nData will be compiled and submitted to State Head Office.\n— District Office, Thiruvannamalai`
+      ta:`✅ *நன்றி — ${s.title}*\n\nஅனைத்து ${s.blockStatus.length} வட்டாரங்களும் தரவுகளை நிரப்பியதற்கு மிக்க நன்றி! 🙏\n\nமாவட்ட தரவுகள் தொகுக்கப்பட்டு மாநில அலுவலகத்திற்கு அனுப்பப்படும்.\n${SIGN_TA}`,
+      en:`✅ *Thank You — ${s.title}*\n\nAll ${s.blockStatus.length} block officers have submitted data! 🙏\n\nData will be compiled and submitted to State Head Office.\n${SIGN_EN}`
     }
   };
+
   const m=msgs[type];
   let txt='';
   if(lang==='ta')txt=m.ta;
@@ -1098,13 +1134,13 @@ function genWA(){
 }
 function copyWA(){
   navigator.clipboard.writeText(document.getElementById('wa-text').textContent)
-    .then(()=>alert('✅ செய்தி நகலெடுக்கப்பட்டது!\nMessage copied to clipboard!'));
+    .then(()=>alert('✅ செய்தி நகலெடுக்கப்பட்டது!\nMessage copied!'));
 }
 
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════
    REPOSITORY
-═══════════════════════════════════════════════ */
-function setRepoFilter(f){repoFilter=f;renderRepo();}
+══════════════════════════════════ */
+function setRF(f){repoFilter=f;renderRepo();}
 function renderRepo(){
   let list=sheets;
   if(repoFilter==='state')list=sheets.filter(s=>s.type==='state');
@@ -1115,19 +1151,16 @@ function renderRepo(){
   if(!list.length){el.innerHTML='<div class="alert a-info">No sheets found.</div>';return;}
   el.innerHTML=list.map(s=>{
     const f=s.blockStatus.filter(b=>b.status==='filled').length;
-    const t=s.blockStatus.length||1;
-    const pct=Math.round((f/t)*100);
+    const pct=Math.round((f/Math.max(s.blockStatus.length,1))*100);
     const col=pct>=100?'green':pct>0?'amber':'red';
-    return `<div class="repo-item">
+    return `<div class="sheet-item" style="margin-bottom:8px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div style="flex:1">
           <div style="font-size:13px;font-weight:700">${s.title}</div>
-          <div style="font-size:11px;color:var(--gray);margin-top:2px;line-height:1.6">
-            ${s.type==='state'?'🏛 State Sheet':'📁 My Sheet'} · ${s.createdAt} · Deadline: ${s.deadline||'—'}
-            ${s.lastRead?`· நேரடி: ${s.lastRead}`:''}
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
-            ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">District Sheet ↗</a>`:''}
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Deadline: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+            ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
+            ${s.link?`<button class="btn-sm" style="font-size:11px;padding:3px 8px" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Copied!'))">📋 Copy</button>`:''}
             ${s.stateLink?`<a href="${s.stateLink}" target="_blank" class="link-sm" style="color:var(--gray)">State Sheet ↗</a>`:''}
           </div>
           ${s.notes?`<div style="font-size:11px;color:var(--gray);margin-top:4px;font-style:italic">${s.notes}</div>`:''}
@@ -1135,16 +1168,38 @@ function renderRepo(){
         <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
           <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
           <span class="badge b-${s.status==='active'?'blue':'gray'}">${s.status==='active'?'Active':'Done'}</span>
-          ${s.status==='active'?`<button class="btn-sm-o" onclick="archiveSheet(${s.id})" style="font-size:11px">Archive</button>`:''}
+          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})" style="font-size:11px">🗑 Delete</button>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
-/* ═══════════════════════════════════════════════
-   BLOCK CHIPS & LANG
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════
+   TRASH
+══════════════════════════════════ */
+function renderTrash(){
+  const el=document.getElementById('trash-list');
+  if(!trashedSheets.length){el.innerHTML='<div class="alert a-info">Trash is empty.</div>';return;}
+  el.innerHTML=trashedSheets.map(s=>`
+    <div class="trash-item">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600">${s.title}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt}</div>
+          ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="restoreSheet(${s.id})">↩ Restore</button>
+          <button class="btn btn-red" style="font-size:12px;padding:5px 10px" onclick="permDelete(${s.id})">Delete Forever</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════
+   CHIPS & LANG
+══════════════════════════════════ */
 function setLang(l){
   blockLang=l;
   document.getElementById('lt-ta').classList.toggle('on',l==='ta');
