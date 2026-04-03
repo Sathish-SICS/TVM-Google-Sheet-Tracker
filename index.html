@@ -724,12 +724,20 @@ function isRealData(fmtCell, fmlCell){
 }
 
 function matchBlock(row){
+  /* Pass 1: exact match only — fastest and safest */
   for(const cell of row){
     if(!cell)continue;
     const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
     if(ALIASES[norm]!==undefined)return ALIASES[norm];
+  }
+  /* Pass 2: partial match — only for cells with 4+ chars and NOT pure numbers */
+  for(const cell of row){
+    if(!cell)continue;
+    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
+    if(norm.length<4)continue;          // skip "1","2","3" etc
+    if(/^\d+(\.\d+)?$/.test(norm))continue; // skip pure numbers like "43","51800"
     for(const [alias,idx] of Object.entries(ALIASES)){
-      if(norm===alias||norm.includes(alias)||alias.includes(norm))return idx;
+      if(norm.includes(alias)||alias.includes(norm))return idx;
     }
   }
   return -1;
