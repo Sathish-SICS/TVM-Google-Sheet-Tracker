@@ -1098,11 +1098,11 @@ function genWA(){
   const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
   const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
   const SIGN_TA='— துணைப்பதிவாளர் (போவிதி) அலுவலகம், திருவண்ணாமலை';
-  const SIGN_EN='— Deputy Registrar (PDS) Office, Thiruvannamalai';
+  const SIGN_EN='— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai';
 
   const msgs={
     initial:{
-      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\n வட்டார அலுவலர்கள் கவனத்திற்கு,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
+      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\nமதிப்பிற்குரிய ஒப்பந்த வட்டார அலுவலர்களே,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
       en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
     },
     reminder:{
@@ -1110,7 +1110,7 @@ function genWA(){
       en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
     },
     final:{
-      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nமாவட்ட அறிக்கை சமர்ப்பிக்க கீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் பதிவாளர் அலுவலகத்திற்கு அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
+      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nமாவட்ட அறிக்கை சமர்ப்பிக்க கீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
       en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report cannot be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are requested to fill IMMEDIATELY.\n${SIGN_EN}`
     },
     thanks:{
