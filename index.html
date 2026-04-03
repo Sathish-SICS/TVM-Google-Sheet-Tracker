@@ -704,22 +704,29 @@ async function autoRefreshAll(){
       OR a non-numeric non-empty string
 ══════════════════════════════════ */
 /* isRealData(formattedVal, formulaVal)
-   formulaVal: if cell has a formula, this starts with '='
-   If formula exists and formatted result is 0/empty → unfilled
-   If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
+   Rules:
+   1. Empty → unfilled
+   2. Formula error (#DIV/0! #REF! #VALUE! etc.) → unfilled (no real data)
+   3. Formula returning 0/0.00/0% → unfilled
+   4. Formula returning real non-zero number → filled
+   5. User-typed anything (including 0, -, 0.00) → filled */
+const FORMULA_ERRORS=new Set(['#div/0!','#ref!','#value!','#n/a!','#name?','#null!','#num!','#error!']);
 function isRealData(fmtCell, fmlCell){
   const fmt=String(fmtCell||'').trim();
   const fml=String(fmlCell||'').trim();
-  if(fmt==='')return false; // empty = unfilled regardless
+  if(fmt==='')return false;
+  // Formula errors are never real data
+  if(FORMULA_ERRORS.has(fmt.toLowerCase()))return false;
   const hasFormula=fml.startsWith('=');
   if(hasFormula){
-    // Formula cell: only filled if result is meaningful non-zero
-    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
-    const n=parseFloat(fmt);
+    // Formula: only real if result is non-zero meaningful number or non-empty text
+    const plain=fmt.replace(/%$/,'').replace(/,/g,''); // strip % and commas
+    if(plain==='0'||plain==='0.0'||plain==='0.00'||plain==='0.000')return false;
+    const n=parseFloat(plain);
     if(!isNaN(n))return n>0;
     return fmt.length>0;
   }
-  // User typed: any non-empty value counts as filled
+  // User typed: any non-empty value = filled
   return fmt.length>0;
 }
 
@@ -779,7 +786,8 @@ async function readSheetData(s){
       const fmlRow=fmlRows[ri]||[];
       let score=0;
       row.forEach((cell,ci)=>{
-        if(ci===blockCol)return;
+        if(ci===0)return;        // skip S.No column (col A)
+        if(ci===blockCol)return; // skip block name column
         if(isRealData(cell, fmlRow[ci]))score++;
       });
       if(!blockScore[bIdx]){blockScore[bIdx]={score:0,tabs:[]};}
@@ -793,7 +801,7 @@ async function readSheetData(s){
     const bs=blockScore[i];
     let status='unfilled';
     if(bs){
-      if(bs.score>=4)status='filled';
+      if(bs.score>=2)status='filled';
       else if(bs.score>=1)status='partial';
     }
     return{idx:i,status,tabs:bs?bs.tabs:[],updatedAt:today()};
