@@ -156,7 +156,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
   <div class="topbar">
     <div class="topbar-brand">
       <strong>🏛 Thiruvannamalai — Sheet Tracker</strong>
-      <span>திருவண்ணாமலை மாவட்டம் | 21 ஒப்பந்த வட்டாரங்கள்</span>
+      <span>திருவண்ணாமலை மாவட்டம் | 21 வட்டாரங்கள்</span>
     </div>
     <div class="topbar-right">
       <div class="cring">
@@ -165,6 +165,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         <span>auto</span>
       </div>
       <button class="btn-sm" onclick="manualRefresh()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">🔄 Refresh</button>
+      <button class="btn-sm" id="stop-btn" onclick="toggleAutoRefresh()" style="background:rgba(255,100,100,.3);color:#fff;border-color:rgba(255,255,255,.3)">⏸ Stop</button>
       <img class="topbar-avatar" id="user-avatar" src="" alt="">
       <span class="topbar-uname" id="user-name"></span>
       <button class="btn-sm" onclick="doSignOut()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">Sign Out</button>
@@ -173,7 +174,8 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 
   <div class="tabs">
     <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
-    <div class="tab" data-tab="create">➕ Add Sheet</div>
+    <div class="tab" data-tab="create">📄 New Sheet</div>
+    <div class="tab" data-tab="track">📥 Track Sheet</div>
     <div class="tab" data-tab="monitor">🔍 Monitor Live</div>
     <div class="tab" data-tab="whatsapp">💬 WhatsApp</div>
     <div class="tab" data-tab="repo">🗄 Repository</div>
@@ -236,22 +238,11 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         </div>
       </div>
 
-      <!-- OPTION A: IMPORT EXISTING -->
-      <div class="card" style="border-left:4px solid var(--blue)">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px">📥 Option A — Import existing sheet (already posted)</div>
-        <label class="flbl">Paste your District Google Sheet link</label>
-        <input class="finput" id="ns-existing-link" placeholder="https://docs.google.com/spreadsheets/d/...">
-        <div style="font-size:11px;color:var(--gray);margin-top:3px">Sheet must be shared as "Anyone with link can view"</div>
-        <label class="flbl" style="margin-top:10px">State Head Office Sheet Link (if any)</label>
-        <input class="finput" id="ns-state-link" placeholder="https://docs.google.com/spreadsheets/d/...">
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="importSheet()">📥 Import & Read Now</button>
-        </div>
-      </div>
+
 
       <!-- OPTION B: CREATE FROM STATE SHEET -->
       <div class="card" style="border-left:4px solid var(--green)">
-        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">📄 Option B — Create district sheet from State sheet</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">📄 Create district sheet from State Head Office sheet</div>
         <div class="alert a-info" style="margin-bottom:10px;font-size:12px">
           The State sheet will be copied exactly. Only the Region/District names (in column B or C) will be replaced with your 21 block names. All headings, formulas, and formatting will remain intact.
         </div>
@@ -280,6 +271,53 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             <a id="new-link-open" href="#" target="_blank" style="font-size:12px;white-space:nowrap">Open ↗</a>
           </div>
         </div>
+      </div>
+    </div>
+
+
+    <!-- ═══ TRACK SHEET ═══ -->
+    <div class="panel" id="panel-track">
+      <div class="sec-title">Track Sheet</div>
+      <div class="sec-sub">Import an already-posted Google Sheet link to monitor block fill status and save to repository.</div>
+      <div class="card" style="border-left:4px solid var(--blue)">
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">📥 Import Existing Sheet</div>
+        <div class="frow">
+          <div>
+            <label class="flbl">Sheet Title *</label>
+            <input class="finput" id="tr-title" placeholder="e.g. PDL-1 மார்ச் 2025">
+          </div>
+          <div>
+            <label class="flbl">Type</label>
+            <select class="fselect" id="tr-type">
+              <option value="state">State Sheet — Head Office அனுப்பியது</option>
+              <option value="own">Own Sheet — நான் உருவாக்கியது</option>
+            </select>
+          </div>
+        </div>
+        <div class="frow">
+          <div>
+            <label class="flbl">District Sheet Link (already posted) *</label>
+            <input class="finput" id="tr-link" placeholder="https://docs.google.com/spreadsheets/d/...">
+          </div>
+          <div>
+            <label class="flbl">State Head Office Sheet Link (if any)</label>
+            <input class="finput" id="tr-state-link" placeholder="https://docs.google.com/spreadsheets/d/...">
+          </div>
+        </div>
+        <div class="frow">
+          <div>
+            <label class="flbl">Deadline</label>
+            <input class="finput" type="date" id="tr-deadline">
+          </div>
+          <div>
+            <label class="flbl">Notes</label>
+            <input class="finput" id="tr-notes" placeholder="குறிப்புகள்...">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="trackImportSheet()">📥 Import & Read Now</button>
+        </div>
+        <div id="tr-msg" class="hidden" style="margin-top:10px"></div>
       </div>
     </div>
 
@@ -440,6 +478,16 @@ const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapi
 const DISC=['https://sheets.googleapis.com/$discovery/rest?version=v4','https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
 const DB_TITLE='TVM Tracker DB';
 
+/* ── FILL DETECTION
+   We fetch data TWICE:
+   1. FORMATTED_VALUE  → what the cell shows
+   2. FORMULA          → raw formula if cell has one
+   A cell is "real data" if:
+   - Has a formula → the formula result is non-zero (>0)
+   - Has no formula (user typed) → any non-empty value including 0, -, 0.00
+   This way manually typed 0 = filled, formula-returned 0 = unfilled
+── */
+
 /* Direct fetch helpers — bypass gapi.client which sometimes drops scopes */
 async function gFetch(url,method,body){
   method=method||'GET';
@@ -453,6 +501,8 @@ async function gFetch(url,method,body){
 async function sheetsGetMeta(sid){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'?fields=sheets.properties');}
 async function sheetsGetRange(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueRenderOption=FORMATTED_VALUE');}
 async function sheetsBatchGet(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMATTED_VALUE');}
+async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
+async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
 async function sheetsBatchUpdate(sid,requests){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+':batchUpdate','POST',{requests:requests});}
 async function sheetsValuesClear(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+':clear','POST',{});}
 async function sheetsValuesUpdate(sid,range,values){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW','PUT',{values:values});}
@@ -531,10 +581,17 @@ async function initApp(){
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
       t.classList.add('active');
-      document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+      const panelId='panel-'+t.dataset.tab;
+      const panel=document.getElementById(panelId);
+      if(panel)panel.classList.add('active');
       refreshDropdowns();
       if(t.dataset.tab==='repo')renderRepo();
       if(t.dataset.tab==='trash')renderTrash();
+      if(t.dataset.tab==='track'){
+        // set default deadline
+        const d=new Date();d.setDate(d.getDate()+7);
+        document.getElementById('tr-deadline').value=d.toISOString().slice(0,10);
+      }
     });
   });
   await ensureDb();
@@ -552,15 +609,23 @@ async function ensureDb(){
   const r=await driveSearch("name='"+DB_TITLE+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
   const files=(r.files||[]);
   if(files.length>0){dbSheetId=files[0].id;return;}
-  const cr=await sheetsCreate({properties:{title:DB_TITLE},sheets:[{properties:{title:'data'}}]});
+  const cr=await sheetsCreate({properties:{title:DB_TITLE},sheets:[{properties:{title:'TVMData'}}]});
   dbSheetId=cr.spreadsheetId;
-  await sheetsValuesUpdate(dbSheetId,'data!A1',[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]);
+  dbTabName='TVMData';
+  await sheetsValuesUpdate(dbSheetId,'TVMData!A1',[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]);
 }
 
 function sj(s){try{return JSON.parse(s);}catch{return [];}}
 
+let dbTabName='Sheet1'; // will be detected on load
+
 async function loadFromDb(){
-  const r=await sheetsGetRange(dbSheetId,'data!A2:N2000');
+  // Detect actual tab name
+  try{
+    const meta=await sheetsGetMeta(dbSheetId);
+    dbTabName=meta.sheets[0].properties.title;
+  }catch(e){}
+  const r=await sheetsGetRange(dbSheetId,dbTabName+'!A2:N2000');
   const rows=(r.values||[]).filter(r=>r[0]);
   sheets=rows.filter(r=>r[13]!=='1').map(r=>({
     id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
@@ -577,17 +642,36 @@ async function loadFromDb(){
 async function saveToDb(){
   const all=[...sheets,...trashedSheets];
   const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
-  await sheetsValuesClear(dbSheetId,'data!A2:N2000');
-  if(rows.length>0){await sheetsValuesUpdate(dbSheetId,'data!A2',rows);}
+  await sheetsValuesClear(dbSheetId,dbTabName+'!A2:N2000');
+  if(rows.length>0){await sheetsValuesUpdate(dbSheetId,dbTabName+'!A2',rows);}
 }
 
 /* ══════════════════════════════════
    COUNTDOWN
 ══════════════════════════════════ */
+let autoRunning=true;
+function toggleAutoRefresh(){
+  autoRunning=!autoRunning;
+  const btn=document.getElementById('stop-btn');
+  if(autoRunning){
+    btn.textContent='⏸ Stop';
+    btn.style.background='rgba(255,100,100,.3)';
+    startCountdown();
+  }else{
+    clearInterval(cdTimer);
+    btn.textContent='▶ Start';
+    btn.style.background='rgba(100,255,100,.3)';
+    document.getElementById('cd-text').textContent='Paused';
+  }
+}
 function startCountdown(){
   clearInterval(cdTimer);
   cdSec=300;updateCd();
-  cdTimer=setInterval(async()=>{cdSec--;updateCd();if(cdSec<=0){cdSec=300;await autoRefreshAll();}},1000);
+  cdTimer=setInterval(async()=>{
+    if(!autoRunning)return;
+    cdSec--;updateCd();
+    if(cdSec<=0){cdSec=300;await autoRefreshAll();}
+  },1000);
 }
 function updateCd(){
   const m=Math.floor(cdSec/60),s=cdSec%60;
@@ -598,8 +682,12 @@ async function manualRefresh(){
   await autoRefreshAll();cdSec=300;updateCd();
 }
 async function autoRefreshAll(){
+  if(!dbSheetId)return;
   const active=sheets.filter(s=>s.status==='active'&&s.sheetId);
-  for(const s of active){try{await readSheetData(s);}catch(e){console.warn(s.title,e);}}
+  for(const s of active){
+    try{await readSheetData(s);}
+    catch(e){console.warn('Read failed:',s.title,e.message);}
+  }
   if(active.length)await saveToDb();
   document.getElementById('last-refresh').textContent='Last refreshed: '+nowStr();
   renderDashboard();refreshDropdowns();
@@ -615,15 +703,24 @@ async function autoRefreshAll(){
    3. Value must be a meaningful number >0
       OR a non-numeric non-empty string
 ══════════════════════════════════ */
-function isRealData(cell){
-  if(cell===null||cell===undefined)return false;
-  const s=String(cell).trim();
-  if(s===''||s==='-'||s==='—'||s==='0'||s==='0.0'||s==='0.00'||s==='0.000')return false;
-  // If numeric, must be >0
-  const n=parseFloat(s);
-  if(!isNaN(n))return n>0;
-  // Non-numeric non-empty = real data (text labels)
-  return s.length>0;
+/* isRealData(formattedVal, formulaVal)
+   formulaVal: if cell has a formula, this starts with '='
+   If formula exists and formatted result is 0/empty → unfilled
+   If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
+function isRealData(fmtCell, fmlCell){
+  const fmt=String(fmtCell||'').trim();
+  const fml=String(fmlCell||'').trim();
+  if(fmt==='')return false; // empty = unfilled regardless
+  const hasFormula=fml.startsWith('=');
+  if(hasFormula){
+    // Formula cell: only filled if result is meaningful non-zero
+    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
+    const n=parseFloat(fmt);
+    if(!isNaN(n))return n>0;
+    return fmt.length>0;
+  }
+  // User typed: any non-empty value counts as filled
+  return fmt.length>0;
 }
 
 function matchBlock(row){
@@ -645,16 +742,20 @@ function matchBlock(row){
 async function readSheetData(s){
   const meta=await sheetsGetMeta(s.sheetId);
   const tabs=meta.sheets.map(sh=>sh.properties.title);
-  const dataResp=await sheetsBatchGet(s.sheetId,tabs.map(t=>"'"+t+"'!A:Z"));
+  const ranges=tabs.map(t=>"'"+t+"'!A:Z");
+  // Fetch both formatted values and formula values in parallel
+  const [fmtResp, fmlResp]=await Promise.all([
+    sheetsBatchGet(s.sheetId,ranges),
+    sheetsBatchGetFormula(s.sheetId,ranges)
+  ]);
 
-  // blockScore[idx] = {score, tabs}
   const blockScore={};
 
-  (dataResp.valueRanges||[]).forEach((vr,ti)=>{
+  (fmtResp.valueRanges||[]).forEach((vr,ti)=>{
     const tabName=tabs[ti];
     const rows=vr.values||[];
+    const fmlRows=(fmlResp.valueRanges&&fmlResp.valueRanges[ti]&&fmlResp.valueRanges[ti].values)||[];
 
-    // Find which column contains block names (scan first 10 rows)
     let blockCol=-1;
     for(let ri=0;ri<Math.min(rows.length,10);ri++){
       for(let ci=0;ci<(rows[ri]||[]).length;ci++){
@@ -664,18 +765,15 @@ async function readSheetData(s){
     }
 
     rows.forEach((row,ri)=>{
-      // Skip completely empty rows
       if(!row||row.length===0)return;
       const bIdx=matchBlock(row);
       if(bIdx<0)return;
-
-      // Count real data cells in this row, excluding the block name cell
+      const fmlRow=fmlRows[ri]||[];
       let score=0;
       row.forEach((cell,ci)=>{
-        if(ci===blockCol)return; // skip block name column
-        if(isRealData(cell))score++;
+        if(ci===blockCol)return;
+        if(isRealData(cell, fmlRow[ci]))score++;
       });
-
       if(!blockScore[bIdx]){blockScore[bIdx]={score:0,tabs:[]};}
       blockScore[bIdx].score+=score;
       if(!blockScore[bIdx].tabs.includes(tabName))blockScore[bIdx].tabs.push(tabName);
@@ -718,7 +816,8 @@ async function importSheet(){
   showCMsg('<span class="spin spin-b"></span> Reading sheet cells...','info');
   try{
     await readSheetData(rec);
-    sheets.unshift(rec);
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
+    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
     await saveToDb();
     renderDashboard();refreshDropdowns();renderRepo();
     showCMsg('✅ Sheet imported and read successfully!','ok');
@@ -726,12 +825,52 @@ async function importSheet(){
     document.getElementById('ns-existing-link').value='';
     document.getElementById('ns-state-link').value='';
   }catch(e){
-    sheets.unshift(rec);await saveToDb();
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);await saveToDb();}
     renderDashboard();refreshDropdowns();renderRepo();
     showCMsg('⚠️ Sheet saved. Could not read cells: '+e.message,'warn');
   }
 }
 
+
+/* ══════════════════════════════════
+   TRACK IMPORT SHEET (Track Sheet tab)
+══════════════════════════════════ */
+async function trackImportSheet(){
+  const title=document.getElementById('tr-title').value.trim();
+  const link=document.getElementById('tr-link').value.trim();
+  if(!title){alert('Please enter a sheet title.');return;}
+  if(!link){alert('Please paste a Google Sheet link.');return;}
+  const sid=sidFromUrl(link);
+  if(!sid){alert('Invalid Google Sheet link.');return;}
+  const msgEl=document.getElementById('tr-msg');
+  msgEl.className='alert a-info';msgEl.innerHTML='<span class="spin spin-b"></span> Reading sheet cells...';msgEl.classList.remove('hidden');
+  const rec={
+    id:Date.now(),
+    title,
+    type:document.getElementById('tr-type').value,
+    link,sheetId:sid,
+    stateLink:document.getElementById('tr-state-link').value.trim(),
+    deadline:document.getElementById('tr-deadline').value,
+    notes:document.getElementById('tr-notes').value.trim(),
+    createdAt:today(),status:'active',lang:'ta',
+    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+    lastRead:'',trashed:false
+  };
+  try{
+    await readSheetData(rec);
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
+    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
+    await saveToDb();
+    renderDashboard();refreshDropdowns();renderRepo();
+    msgEl.className='alert a-ok';msgEl.innerHTML='✅ Sheet imported and read successfully! Check Dashboard.';
+    document.getElementById('tr-title').value='';
+    document.getElementById('tr-link').value='';
+    document.getElementById('tr-state-link').value='';
+    document.getElementById('tr-notes').value='';
+  }catch(e){
+    msgEl.className='alert a-warn';msgEl.innerHTML='⚠️ '+e.message;
+  }
+}
 /* ══════════════════════════════════
    CREATE FROM STATE SHEET
    Steps:
@@ -859,7 +998,7 @@ async function createFromStateSheet(){
       blockStatus:selIdx.map(i=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
       lastRead:'',trashed:false
     };
-    sheets.unshift(rec);
+    if(!sheets.find(x=>x.sheetId===newSid)){sheets.unshift(rec);}
     await saveToDb();
     renderDashboard();refreshDropdowns();renderRepo();
 
@@ -963,9 +1102,10 @@ function renderDashboard(){
   const active=sheets.filter(s=>s.status==='active');
   let fc=0,pc=0,nc=0;
   active.forEach(s=>{
-    const f=s.blockStatus.filter(b=>b.status==='filled').length;
-    const p=s.blockStatus.filter(b=>b.status==='partial').length;
-    const t=s.blockStatus.length;
+    const bs=s.blockStatus||[];
+    const f=bs.filter(b=>b.status==='filled').length;
+    const p=bs.filter(b=>b.status==='partial').length;
+    const t=bs.length;
     if(f===t&&t>0)fc++;else if(f>0||p>0)pc++;else nc++;
   });
   document.getElementById('st-total').textContent=active.length;
@@ -1097,7 +1237,7 @@ function genWA(){
   const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
   const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
   const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
-  const SIGN_TA='— துணைப்பதிவாளர் (போவிதி) அலுவலகம், திருவண்ணாமலை';
+  const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
   const SIGN_EN='— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai';
 
   const msgs={
@@ -1110,7 +1250,7 @@ function genWA(){
       en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
     },
     final:{
-      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nமாவட்ட அறிக்கை சமர்ப்பிக்க கீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
+      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nகீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
       en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report cannot be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are requested to fill IMMEDIATELY.\n${SIGN_EN}`
     },
     thanks:{
