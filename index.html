@@ -436,10 +436,30 @@ let cdSec=300;
 let cdTimer=null;
 let newCreatedLink='';
 
-const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive';
-const DISC=['https://sheets.googleapis.com/$discovery/rest?version=v4',
-            'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
+const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file';
+const DISC=['https://sheets.googleapis.com/$discovery/rest?version=v4','https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
 const DB_TITLE='TVM Tracker DB';
+
+/* Direct fetch helpers — bypass gapi.client which sometimes drops scopes */
+async function gFetch(url,method,body){
+  method=method||'GET';
+  const opts={method,headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(url,opts);
+  const j=await r.json();
+  if(!r.ok)throw new Error((j.error&&j.error.message)?j.error.message:JSON.stringify(j));
+  return j;
+}
+async function sheetsGetMeta(sid){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'?fields=sheets.properties');}
+async function sheetsGetRange(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueRenderOption=FORMATTED_VALUE');}
+async function sheetsBatchGet(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMATTED_VALUE');}
+async function sheetsBatchUpdate(sid,requests){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+':batchUpdate','POST',{requests:requests});}
+async function sheetsValuesClear(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+':clear','POST',{});}
+async function sheetsValuesUpdate(sid,range,values){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW','PUT',{values:values});}
+async function sheetsCreate(body){return gFetch('https://sheets.googleapis.com/v4/spreadsheets','POST',body);}
+async function driveCopy(sid,name){return gFetch('https://www.googleapis.com/drive/v3/files/'+sid+'/copy','POST',{name:name});}
+async function driveSearch(q){return gFetch('https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id,name)');}
+async function drivePermission(sid){return gFetch('https://www.googleapis.com/drive/v3/files/'+sid+'/permissions','POST',{role:'writer',type:'anyone'});}
 
 function today(){return new Date().toISOString().slice(0,10)}
 function nowStr(){return new Date().toLocaleString('en-IN')}
@@ -529,20 +549,19 @@ async function initApp(){
    Columns: id|title|type|link|sheetId|stateLink|deadline|notes|createdAt|status|lang|blockStatusJSON|lastRead|trashed
 ══════════════════════════════════ */
 async function ensureDb(){
-  const r=await gapi.client.request({path:'https://www.googleapis.com/drive/v3/files',params:{q:`name='${DB_TITLE}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:'files(id)'}});
-  const files=(r.result.files||[]);
+  const r=await driveSearch("name='"+DB_TITLE+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+  const files=(r.files||[]);
   if(files.length>0){dbSheetId=files[0].id;return;}
-  const cr=await gapi.client.sheets.spreadsheets.create({resource:{properties:{title:DB_TITLE},sheets:[{properties:{title:'data'}}]}});
-  dbSheetId=cr.result.spreadsheetId;
-  await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:dbSheetId,range:'data!A1',valueInputOption:'RAW',
-    resource:{values:[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]}});
+  const cr=await sheetsCreate({properties:{title:DB_TITLE},sheets:[{properties:{title:'data'}}]});
+  dbSheetId=cr.spreadsheetId;
+  await sheetsValuesUpdate(dbSheetId,'data!A1',[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]);
 }
 
 function sj(s){try{return JSON.parse(s);}catch{return [];}}
 
 async function loadFromDb(){
-  const r=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:dbSheetId,range:'data!A2:N2000'});
-  const rows=(r.result.values||[]).filter(r=>r[0]);
+  const r=await sheetsGetRange(dbSheetId,'data!A2:N2000');
+  const rows=(r.values||[]).filter(r=>r[0]);
   sheets=rows.filter(r=>r[13]!=='1').map(r=>({
     id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
     stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
@@ -558,10 +577,8 @@ async function loadFromDb(){
 async function saveToDb(){
   const all=[...sheets,...trashedSheets];
   const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
-  await gapi.client.sheets.spreadsheets.values.clear({spreadsheetId:dbSheetId,range:'data!A2:N2000'});
-  if(rows.length>0){
-    await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:dbSheetId,range:'data!A2',valueInputOption:'RAW',resource:{values:rows}});
-  }
+  await sheetsValuesClear(dbSheetId,'data!A2:N2000');
+  if(rows.length>0){await sheetsValuesUpdate(dbSheetId,'data!A2',rows);}
 }
 
 /* ══════════════════════════════════
@@ -626,19 +643,14 @@ function matchBlock(row){
    accumulates real data score per block
 ══════════════════════════════════ */
 async function readSheetData(s){
-  const meta=await gapi.client.sheets.spreadsheets.get({spreadsheetId:s.sheetId});
-  const tabs=meta.result.sheets.map(sh=>sh.properties.title);
-  // Use FORMULA_VALUE to get actual values, not formulas
-  const dataResp=await gapi.client.sheets.spreadsheets.values.batchGet({
-    spreadsheetId:s.sheetId,
-    ranges:tabs.map(t=>`'${t}'!A:Z`),
-    valueRenderOption:'FORMATTED_VALUE'
-  });
+  const meta=await sheetsGetMeta(s.sheetId);
+  const tabs=meta.sheets.map(sh=>sh.properties.title);
+  const dataResp=await sheetsBatchGet(s.sheetId,tabs.map(t=>"'"+t+"'!A:Z"));
 
   // blockScore[idx] = {score, tabs}
   const blockScore={};
 
-  dataResp.result.valueRanges.forEach((vr,ti)=>{
+  (dataResp.valueRanges||[]).forEach((vr,ti)=>{
     const tabName=tabs[ti];
     const rows=vr.values||[];
 
@@ -748,19 +760,15 @@ async function createFromStateSheet(){
 
   try{
     // STEP 1: Copy the entire spreadsheet via Drive API
-    const copyResp=await gapi.client.request({
-      path:`https://www.googleapis.com/drive/v3/files/${stateSid}/copy`,
-      method:'POST',
-      body:{name:newTitle}
-    });
-    const newSid=copyResp.result.id;
+    const copyResp=await driveCopy(stateSid,newTitle);
+    const newSid=copyResp.id;
     const newUrl=`https://docs.google.com/spreadsheets/d/${newSid}/edit`;
 
     showCMsg('Step 2/4: Reading sheet structure...','info');
 
     // STEP 2: Get all tabs and their data
-    const meta=await gapi.client.sheets.spreadsheets.get({spreadsheetId:newSid});
-    const tabSheets=meta.result.sheets;
+    const meta=await sheetsGetMeta(newSid);
+    const tabSheets=meta.sheets;
 
     showCMsg('Step 3/4: Replacing region names with block names...','info');
 
@@ -770,12 +778,8 @@ async function createFromStateSheet(){
       const tabId=tabSheet.properties.sheetId;
 
       // Read the tab data
-      const dataResp=await gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId:newSid,
-        range:`'${tabTitle}'!A:Z`,
-        valueRenderOption:'FORMATTED_VALUE'
-      });
-      const rows=dataResp.result.values||[];
+      const dataResp=await sheetsGetRange(newSid,"'"+tabTitle+"'!A:Z");
+      const rows=dataResp.values||[];
       if(rows.length===0)continue;
 
       // Find the column that has district/region names
@@ -836,22 +840,13 @@ async function createFromStateSheet(){
         });
       }
 
-      if(requests.length>0){
-        await gapi.client.sheets.spreadsheets.batchUpdate({
-          spreadsheetId:newSid,
-          resource:{requests}
-        });
-      }
+      if(requests.length>0){await sheetsBatchUpdate(newSid,requests);}
     }
 
     showCMsg('Step 4/4: Sharing sheet publicly...','info');
 
     // STEP 4: Share publicly (anyone with link can edit)
-    await gapi.client.request({
-      path:`https://www.googleapis.com/drive/v3/files/${newSid}/permissions`,
-      method:'POST',
-      body:{role:'writer',type:'anyone'}
-    });
+    await drivePermission(newSid);
 
     // Save to tracker
     const rec={
@@ -1102,12 +1097,12 @@ function genWA(){
   const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
   const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
   const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
-  const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
-  const SIGN_EN='— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai';
+  const SIGN_TA='— துணைப்பதிவாளர் (போவிதி) அலுவலகம், திருவண்ணாமலை';
+  const SIGN_EN='— Deputy Registrar (PDS) Office, Thiruvannamalai';
 
   const msgs={
     initial:{
-      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\nமதிப்பிற்குரிய ஒப்பந்த வட்டார அலுவலர்களே,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
+      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\n வட்டார அலுவலர்கள் கவனத்திற்கு,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
       en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
     },
     reminder:{
@@ -1115,7 +1110,7 @@ function genWA(){
       en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
     },
     final:{
-      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nமாவட்ட அறிக்கை சமர்ப்பிக்க கீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
+      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nமாவட்ட அறிக்கை சமர்ப்பிக்க கீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் பதிவாளர் அலுவலகத்திற்கு அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
       en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report cannot be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are requested to fill IMMEDIATELY.\n${SIGN_EN}`
     },
     thanks:{
