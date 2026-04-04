@@ -4,8 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Thiruvannamalai — Sheet Tracker</title>
-<script src="https://apis.google.com/js/api.js"></script>
-<script src="https://accounts.google.com/gsi/client"></script>
+<script>
+/* Load gapi and gsi scripts dynamically so we can detect when they are ready */
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=src;s.async=true;
+    s.onload=resolve;s.onerror=()=>reject(new Error('Failed to load: '+src));
+    document.head.appendChild(s);
+  });
+}
+/* gapiReady resolves when both scripts are loaded */
+window._gapiReady=Promise.all([
+  loadScript('https://apis.google.com/js/api.js'),
+  loadScript('https://accounts.google.com/gsi/client')
+]);
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;min-height:100vh;font-size:14px}
@@ -108,6 +122,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
 .trash-item{background:#fff8f8;border:1px solid #f5c6c6;border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
 .hidden{display:none!important}
 a{color:var(--blue)}.link-sm{font-size:12px}
+.repo-search{width:100%;padding:9px 14px 9px 36px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;background:var(--card);color:var(--color-text-primary,#1a1a1a);margin-bottom:12px;font-family:inherit}
+.repo-search:focus{outline:none;border-color:var(--blue)}
+.repo-search-wrap{position:relative;margin-bottom:12px}
+.repo-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
 </style>
 </head>
 <body>
@@ -387,12 +405,17 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     <div class="panel" id="panel-repo">
       <div class="sec-title">Repository</div>
       <div class="sec-sub">All tracked sheets — state and own, active and completed</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('all')">All</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('state')">State Sheets</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('own')">My Sheets</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('active')">Active</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('done')">Completed</button>
+      </div>
+      <div class="repo-search-wrap">
+        <span class="repo-search-icon">🔍</span>
+        <input class="repo-search" id="repo-search" type="text" placeholder="Search sheets by title, date, notes..."
+          oninput="renderRepo()" onkeydown="if(event.key==='Escape')this.value='',renderRepo()">
       </div>
       <div id="repo-list"></div>
     </div>
@@ -529,6 +552,8 @@ window.addEventListener('load',()=>{
     document.getElementById('step-cid').classList.add('hidden');
     document.getElementById('step-signin').classList.remove('hidden');
   }
+  // Pre-load gapi scripts in background
+  window._gapiReady.catch(()=>{});
 });
 function saveClientId(){
   const v=document.getElementById('cid-input').value.trim();
@@ -541,8 +566,11 @@ function resetCid(){
   document.getElementById('step-signin').classList.add('hidden');
   document.getElementById('step-cid').classList.remove('hidden');
 }
-function doSignIn(){
+async function doSignIn(){
   if(!CLIENT_ID){alert('Set Client ID first.');return;}
+  showSignMsg('Loading Google APIs...');
+  try{await window._gapiReady;}catch(e){showSignMsg('Failed to load Google APIs. Check your internet connection.');return;}
+  showSignMsg('');
   gapi.load('client',async()=>{
     try{
       await gapi.client.init({discoveryDocs:DISC});
@@ -779,10 +807,10 @@ async function readSheetData(s){
       row.forEach((cell,ci)=>{
         if(ci===0)return;         // skip col A (serial number)
         if(ci===blockCol)return;  // skip block name column
-        const fml=(fmlRow[ci]||'').trim();
+        const fml=String(fmlRow[ci]||'').trim();
         if(!fml.startsWith('=')){
           fillable++;             // this is a user-fillable column
-          if(isRealData(cell,fml?'':cell))score++;
+          if(isRealData(cell,''))score++;
         }
         // formula columns: count filled if formula returns real value
         else if(isRealData(cell,fml))score++;
@@ -995,7 +1023,7 @@ async function createFromStateSheet(){
         // - other cols: if formula → keep formula, if user-typed → clear to empty
         const cellValues=[];
         for(let ci=1;ci<maxCols;ci++){ // start from 1 to skip col A
-          const formula=(fmlDataRow[ci]||'').trim();
+          const formula=String(fmlDataRow[ci]||'').trim();
           if(ci===nameCol){
             // Set block name in Tamil
             cellValues.push({userEnteredValue:{stringValue:selBlocks[bi].ta}});
@@ -1334,8 +1362,22 @@ function renderRepo(){
   else if(repoFilter==='own')list=sheets.filter(s=>s.type==='own');
   else if(repoFilter==='active')list=sheets.filter(s=>s.status==='active');
   else if(repoFilter==='done')list=sheets.filter(s=>s.status==='done');
+  // Apply search filter
+  const searchEl=document.getElementById('repo-search');
+  const q=(searchEl?searchEl.value:'').trim().toLowerCase();
+  if(q){
+    list=list.filter(s=>{
+      const haystack=[s.title,s.createdAt,s.deadline,s.notes,s.type,s.status,s.lastRead].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }
   const el=document.getElementById('repo-list');
-  if(!list.length){el.innerHTML='<div class="alert a-info">No sheets found.</div>';return;}
+  if(!list.length){
+    el.innerHTML=q
+      ?`<div class="alert a-info">No sheets match "<b>${q}</b>". <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="document.getElementById('repo-search').value='';renderRepo()">Clear Search</button></div>`
+      :'<div class="alert a-info">No sheets found.</div>';
+    return;
+  }
   el.innerHTML=list.map(s=>{
     const f=s.blockStatus.filter(b=>b.status==='filled').length;
     const pct=Math.round((f/Math.max(s.blockStatus.length,1))*100);
