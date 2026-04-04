@@ -739,21 +739,29 @@ async function autoRefreshAll(){
    formulaVal: if cell has a formula, this starts with '='
    If formula exists and formatted result is 0/empty → unfilled
    If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
-function isRealData(fmtCell, fmlCell){
-  const fmt=String(fmtCell||'').trim();
-  const fml=String(fmlCell||'').trim();
-  if(fmt==='')return false; // empty = unfilled regardless
-  const hasFormula=fml.startsWith('=');
-  if(hasFormula){
-    // Formula cell: only filled if result is meaningful non-zero
-    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
-    const n=parseFloat(fmt);
+const FORMULA_ERRORS=new Set(['#div/0!','#ref!','#value!','#n/a!','#name?','#null!','#num!','#error!']);
+
+/* isCellFilled — ground truth using raw FORMULA API value
+   rawFml comes directly from FORMULA API:
+   - undefined / '' = empty cell = UNFILLED
+   - starts with '=' = formula = filled only if result non-zero and no error
+   - any other value = user typed = FILLED (even 0, dash, 0.00)
+*/
+function isCellFilled(fmtCell, rawFml){
+  const fml=String(rawFml===undefined||rawFml===null?'':rawFml).trim();
+  const fmt=String(fmtCell===undefined||fmtCell===null?'':fmtCell).trim();
+  if(fml==='')return false;
+  if(fml.startsWith('=')){
+    if(fmt===''||FORMULA_ERRORS.has(fmt.toLowerCase()))return false;
+    const plain=fmt.replace(/%$/,'').replace(/,/g,'');
+    if(plain==='0'||plain==='0.0'||plain==='0.00'||plain==='0.000')return false;
+    const n=parseFloat(plain);
     if(!isNaN(n))return n>0;
     return fmt.length>0;
   }
-  // User typed: any non-empty value counts as filled
-  return fmt.length>0;
+  return true;
 }
+function isRealData(fmt,fml){return isCellFilled(fmt,fml);}
 
 function matchBlock(row){
   for(const cell of row){
@@ -802,18 +810,18 @@ async function readSheetData(s){
       if(bIdx<0)return;
       const fmlRow=fmlRows[ri]||[];
       let score=0;
-      // Also track how many columns COULD be filled (user-typed, not serial, not block name)
       let fillable=0;
       row.forEach((cell,ci)=>{
-        if(ci===0)return;         // skip col A (serial number)
-        if(ci===blockCol)return;  // skip block name column
-        const fml=String(fmlRow[ci]||'').trim();
-        if(!fml.startsWith('=')){
-          fillable++;             // this is a user-fillable column
-          if(isRealData(cell,''))score++;
+        if(ci===0)return;
+        if(ci===blockCol)return;
+        const rawFml=fmlRow[ci];
+        const fmlStr=String(rawFml===undefined||rawFml===null?'':rawFml).trim();
+        if(fmlStr.startsWith('=')){
+          if(isCellFilled(cell,rawFml))score++;
+        }else{
+          fillable++;
+          if(isCellFilled(cell,rawFml))score++;
         }
-        // formula columns: count filled if formula returns real value
-        else if(isRealData(cell,fml))score++;
       });
       if(!blockScore[bIdx]){blockScore[bIdx]={score:0,maxFillable:0,tabs:[]};}
       blockScore[bIdx].score+=score;
@@ -1031,8 +1039,11 @@ async function createFromStateSheet(){
             // Keep formula intact
             cellValues.push({userEnteredValue:{formulaValue:formula}});
           } else {
-            // User-typed data → clear it
-            cellValues.push({userEnteredValue:{}});
+            // User-typed data → clear value AND background color
+            cellValues.push({
+              userEnteredValue:{},
+              userEnteredFormat:{backgroundColor:{red:1,green:1,blue:1}}
+            });
           }
         }
 
@@ -1041,11 +1052,19 @@ async function createFromStateSheet(){
             range:{
               sheetId:tabId,
               startRowIndex:rowIdx,endRowIndex:rowIdx+1,
-              startColumnIndex:1, // start from col B (skip col A serial)
+              startColumnIndex:1,
               endColumnIndex:maxCols
             },
             rows:[{values:cellValues}],
-            fields:'userEnteredValue'
+            fields:'userEnteredValue,userEnteredFormat.backgroundColor'
+          }
+        });
+        // Clear background color on block name cell specifically
+        requests.push({
+          repeatCell:{
+            range:{sheetId:tabId,startRowIndex:rowIdx,endRowIndex:rowIdx+1,startColumnIndex:nameCol,endColumnIndex:nameCol+1},
+            cell:{userEnteredFormat:{backgroundColor:{red:1,green:1,blue:1}}},
+            fields:'userEnteredFormat.backgroundColor'
           }
         });
       }
