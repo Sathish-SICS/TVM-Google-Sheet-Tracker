@@ -491,17 +491,21 @@ const DB_TITLE='TVM Tracker DB';
 /* Direct fetch helpers — bypass gapi.client which sometimes drops scopes */
 async function gFetch(url,method,body){
   method=method||'GET';
-  const opts={method,headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}};
+  const opts={
+    method,
+    headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+    cache:'no-store'  /* always fetch fresh — bypasses browser cache */
+  };
   if(body)opts.body=JSON.stringify(body);
   const r=await fetch(url,opts);
   const j=await r.json();
   if(!r.ok)throw new Error((j.error&&j.error.message)?j.error.message:JSON.stringify(j));
   return j;
 }
-async function sheetsGetMeta(sid){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'?fields=sheets.properties&_ts='+Date.now());}
+async function sheetsGetMeta(sid){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'?fields=sheets.properties');}
 async function sheetsGetRange(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueRenderOption=FORMATTED_VALUE');}
-async function sheetsBatchGet(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');const ts='&_ts='+Date.now();return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMATTED_VALUE'+ts);}
-async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');const ts='&_ts='+Date.now();return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA'+ts);}
+async function sheetsBatchGet(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMATTED_VALUE');}
+async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
 async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
 async function sheetsBatchUpdate(sid,requests){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+':batchUpdate','POST',{requests:requests});}
 async function sheetsValuesClear(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+':clear','POST',{});}
@@ -933,7 +937,7 @@ async function createFromStateSheet(){
       // Read the tab data — both formatted values AND formulas
       const [dataResp, fmlDataResp]=await Promise.all([
         sheetsGetRange(newSid,"'"+tabTitle+"'!A:Z"),
-        gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+newSid+'/values/'+encodeURIComponent("'"+tabTitle+"'!A:Z")+'?valueRenderOption=FORMULA&_ts='+Date.now())
+        gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+newSid+'/values/'+encodeURIComponent("'"+tabTitle+"'!A:Z")+'?valueRenderOption=FORMULA')
       ]);
       const rows=dataResp.values||[];
       const fmlRows=fmlDataResp.values||[];
