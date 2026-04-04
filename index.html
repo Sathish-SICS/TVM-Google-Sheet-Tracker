@@ -830,21 +830,88 @@ async function readSheetData(s){
     });
   });
 
-  // Convert score to status using actual max fillable columns
+  // ── INTELLIGENT STATUS DETERMINATION ─────────────────────────
+  // Layer 1: Raw score and fillable column count
+  // Layer 2: Filling ratio — what % of fillable columns are filled
+  // Layer 3: Cross-block comparison — compare each block against the
+  //          best-filled block in the same sheet to detect spoofing
+  //          (a block that filled only 1 col while others filled 8 is suspicious)
+  // Layer 4: Minimum meaningful threshold — must fill at least
+  //          a significant portion of what others filled
+
+  // Step A: Find the "reference max" — the highest score any block got
+  //         This represents a "fully filled" block's score
+  const allScores=Object.values(blockScore).map(bs=>bs.score).filter(s=>s>0);
+  const referenceMax=allScores.length>0?Math.max(...allScores):0;
+  // Also find the median score (to avoid outliers skewing judgment)
+  const sorted=[...allScores].sort((a,b)=>a-b);
+  const medianScore=sorted.length>0?sorted[Math.floor(sorted.length/2)]:0;
+  // Reference = average of top-half scores (represents "fully filled" expectation)
+  const topHalf=sorted.slice(Math.floor(sorted.length/2));
+  const topAvg=topHalf.length>0?topHalf.reduce((a,b)=>a+b,0)/topHalf.length:0;
+
   s.blockStatus=BLOCKS.map((_,i)=>{
     const bs=blockScore[i];
+    if(!bs||bs.score===0){
+      return{idx:i,status:'unfilled',score:0,fillPct:0,tabs:[],updatedAt:today()};
+    }
+
+    const score=bs.score;
+    const maxFill=bs.maxFillable*(bs.tabs.length||1);
+
+    // Layer 1: Direct fill percentage (score vs max fillable cols)
+    const directPct=maxFill>0?(score/maxFill)*100:0;
+
+    // Layer 2: Relative fill percentage (score vs best filled block)
+    // How does this block compare to the best-filled block?
+    const relativePct=referenceMax>0?(score/referenceMax)*100:0;
+
+    // Layer 3: Absolute threshold check
+    // Even if relativePct is high, need minimum absolute score
+    const minMeaningfulScore=Math.max(2, Math.ceil((topAvg||referenceMax)*0.30));
+    const meetsMinimum=score>=minMeaningfulScore;
+
+    // Layer 4: Determine status
     let status='unfilled';
-    if(bs&&bs.score>0){
-      const maxPossible=bs.maxFillable*(bs.tabs.length||1);
-      if(maxPossible>0&&bs.score>=maxPossible){
-        status='filled';   // ALL fillable columns have data
+
+    if(score===0){
+      status='unfilled';
+    } else if(!meetsMinimum){
+      // Score is too low compared to what others filled — likely spoofing
+      // Only 1-2 cells filled while others filled 8-10 → keep as unfilled
+      status='unfilled';
+    } else {
+      // Use the stricter of direct% and relative% to determine filled/partial
+      // A block is "filled" only if:
+      //   - It filled >= 80% of its own fillable columns, OR
+      //   - Its score is >= 85% of the reference (best-filled block)
+      // A block is "partial" if:
+      //   - It filled >= 30% of reference AND meets minimum threshold
+      const isFullyFilled=(directPct>=80)||(relativePct>=85&&directPct>=50);
+      const isMeaningfulPartial=relativePct>=30&&meetsMinimum;
+
+      if(isFullyFilled){
+        status='filled';
+      } else if(isMeaningfulPartial){
+        status='partial';
       } else {
-        status='partial';  // at least 1 filled but not all
+        // Low relative fill — likely only touched 1-2 cells
+        status='unfilled';
       }
     }
-    return{idx:i,status,tabs:bs?bs.tabs:[],updatedAt:today()};
+
+    return{
+      idx:i,status,
+      score,maxFill,
+      fillPct:Math.round(directPct),
+      relativePct:Math.round(relativePct),
+      tabs:bs.tabs||[],
+      updatedAt:today()
+    };
   });
   s.lastRead=nowStr();
+  // Store reference stats for display
+  s.sheetStats={referenceMax,medianScore,topAvg:Math.round(topAvg)};
 }
 
 /* ══════════════════════════════════
@@ -1182,7 +1249,10 @@ function renderMonTable(s){
       <td style="color:var(--gray);font-size:11px">${i+1}</td>
       <td style="font-weight:600">${b.ta}</td>
       <td style="font-size:12px;color:var(--gray)">${b.en}</td>
-      <td><span class="badge ${sc}">${sl}</span></td>
+      <td>
+        <span class="badge ${sc}">${sl}</span>
+        ${bs.fillPct!==undefined?`<span style="font-size:10px;color:var(--gray);display:block;margin-top:2px">${bs.fillPct}% direct · ${bs.relativePct||0}% vs best</span>`:''}
+      </td>
       <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
       <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
     </tr>`;
@@ -1253,6 +1323,7 @@ function renderDashboard(){
         <span style="color:var(--gray)">${t} மொத்தம்</span>
       </div>
       ${n>0?`<div style="margin-top:7px;font-size:12px;color:var(--red);line-height:1.6">⏳ நிலுவை: ${pendTa.join(', ')}</div>`:''}
+      ${s.sheetStats?`<div style="font-size:11px;color:var(--gry);margin-top:4px">📊 Sheet stats: Reference max=${s.sheetStats.referenceMax} cells · Median=${s.sheetStats.medianScore} · Top avg=${s.sheetStats.topAvg}</div>`:''}
       <div class="btn-row" style="margin-top:8px">
         <button class="btn-sm-g" onclick="goToWA(${s.id})">💬 WhatsApp</button>
       </div>
