@@ -4,22 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Thiruvannamalai — Sheet Tracker</title>
-<script>
-/* Load gapi and gsi scripts dynamically so we can detect when they are ready */
-function loadScript(src){
-  return new Promise((resolve,reject)=>{
-    const s=document.createElement('script');
-    s.src=src;s.async=true;
-    s.onload=resolve;s.onerror=()=>reject(new Error('Failed to load: '+src));
-    document.head.appendChild(s);
-  });
-}
-/* gapiReady resolves when both scripts are loaded */
-window._gapiReady=Promise.all([
-  loadScript('https://apis.google.com/js/api.js'),
-  loadScript('https://accounts.google.com/gsi/client')
-]);
-</script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;min-height:100vh;font-size:14px}
@@ -122,10 +108,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
 .trash-item{background:#fff8f8;border:1px solid #f5c6c6;border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
 .hidden{display:none!important}
 a{color:var(--blue)}.link-sm{font-size:12px}
-.repo-search{width:100%;padding:9px 14px 9px 36px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;background:var(--card);color:var(--color-text-primary,#1a1a1a);margin-bottom:12px;font-family:inherit}
-.repo-search:focus{outline:none;border-color:var(--blue)}
-.repo-search-wrap{position:relative;margin-bottom:12px}
-.repo-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
 </style>
 </head>
 <body>
@@ -405,17 +387,12 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     <div class="panel" id="panel-repo">
       <div class="sec-title">Repository</div>
       <div class="sec-sub">All tracked sheets — state and own, active and completed</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('all')">All</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('state')">State Sheets</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('own')">My Sheets</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('active')">Active</button>
         <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('done')">Completed</button>
-      </div>
-      <div class="repo-search-wrap">
-        <span class="repo-search-icon">🔍</span>
-        <input class="repo-search" id="repo-search" type="text" placeholder="Search sheets by title, date, notes..."
-          oninput="renderRepo()" onkeydown="if(event.key==='Escape')this.value='',renderRepo()">
       </div>
       <div id="repo-list"></div>
     </div>
@@ -514,11 +491,7 @@ const DB_TITLE='TVM Tracker DB';
 /* Direct fetch helpers — bypass gapi.client which sometimes drops scopes */
 async function gFetch(url,method,body){
   method=method||'GET';
-  const opts={
-    method,
-    headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
-    cache:'no-store'  /* always fetch fresh — bypasses browser cache */
-  };
+  const opts={method,headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}};
   if(body)opts.body=JSON.stringify(body);
   const r=await fetch(url,opts);
   const j=await r.json();
@@ -552,8 +525,6 @@ window.addEventListener('load',()=>{
     document.getElementById('step-cid').classList.add('hidden');
     document.getElementById('step-signin').classList.remove('hidden');
   }
-  // Pre-load gapi scripts in background
-  window._gapiReady.catch(()=>{});
 });
 function saveClientId(){
   const v=document.getElementById('cid-input').value.trim();
@@ -566,11 +537,8 @@ function resetCid(){
   document.getElementById('step-signin').classList.add('hidden');
   document.getElementById('step-cid').classList.remove('hidden');
 }
-async function doSignIn(){
+function doSignIn(){
   if(!CLIENT_ID){alert('Set Client ID first.');return;}
-  showSignMsg('Loading Google APIs...');
-  try{await window._gapiReady;}catch(e){showSignMsg('Failed to load Google APIs. Check your internet connection.');return;}
-  showSignMsg('');
   gapi.load('client',async()=>{
     try{
       await gapi.client.init({discoveryDocs:DISC});
@@ -739,29 +707,21 @@ async function autoRefreshAll(){
    formulaVal: if cell has a formula, this starts with '='
    If formula exists and formatted result is 0/empty → unfilled
    If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
-const FORMULA_ERRORS=new Set(['#div/0!','#ref!','#value!','#n/a!','#name?','#null!','#num!','#error!']);
-
-/* isCellFilled — ground truth using raw FORMULA API value
-   rawFml comes directly from FORMULA API:
-   - undefined / '' = empty cell = UNFILLED
-   - starts with '=' = formula = filled only if result non-zero and no error
-   - any other value = user typed = FILLED (even 0, dash, 0.00)
-*/
-function isCellFilled(fmtCell, rawFml){
-  const fml=String(rawFml===undefined||rawFml===null?'':rawFml).trim();
-  const fmt=String(fmtCell===undefined||fmtCell===null?'':fmtCell).trim();
-  if(fml==='')return false;
-  if(fml.startsWith('=')){
-    if(fmt===''||FORMULA_ERRORS.has(fmt.toLowerCase()))return false;
-    const plain=fmt.replace(/%$/,'').replace(/,/g,'');
-    if(plain==='0'||plain==='0.0'||plain==='0.00'||plain==='0.000')return false;
-    const n=parseFloat(plain);
+function isRealData(fmtCell, fmlCell){
+  const fmt=String(fmtCell||'').trim();
+  const fml=String(fmlCell||'').trim();
+  if(fmt==='')return false; // empty = unfilled regardless
+  const hasFormula=fml.startsWith('=');
+  if(hasFormula){
+    // Formula cell: only filled if result is meaningful non-zero
+    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
+    const n=parseFloat(fmt);
     if(!isNaN(n))return n>0;
     return fmt.length>0;
   }
-  return true;
+  // User typed: any non-empty value counts as filled
+  return fmt.length>0;
 }
-function isRealData(fmt,fml){return isCellFilled(fmt,fml);}
 
 function matchBlock(row){
   for(const cell of row){
@@ -779,139 +739,108 @@ function matchBlock(row){
    READ SHEET — scans all tabs,
    accumulates real data score per block
 ══════════════════════════════════ */
+/* ── FILL STATUS using your logic ────────────────────────────────
+   filledV = user-typed [V] fields with real data
+   totalV  = total user-fillable columns (not serial, not name, not formula)
+*/
+function calcFillStatus(filledV,totalV){
+  if(totalV===0)return{status:'unfilled',reason:'No fillable fields'};
+  const remaining=totalV-filledV;
+  const pct=Math.round(filledV/totalV*100);
+  if(totalV<=5){
+    if(filledV===totalV)return{status:'filled',reason:'All '+totalV+' fields filled'};
+    return{status:'unfilled',reason:filledV+'/'+totalV+' fields filled — all required'};
+  }
+  if(totalV<=10){
+    if(filledV===totalV)return{status:'filled',reason:'All '+totalV+' fields filled'};
+    if(filledV>=3){
+      const note=remaining===1?' — 1 field yet to be filled':'';
+      return{status:'partial',reason:filledV+'/'+totalV+' fields filled'+note};
+    }
+    return{status:'unfilled',reason:'Only '+filledV+'/'+totalV+' fields filled'};
+  }
+  const minP=Math.max(6,Math.ceil(totalV*0.30));
+  const nearC=Math.ceil(totalV*0.10);
+  if(filledV===totalV)return{status:'filled',reason:'All '+totalV+' fields filled'};
+  if(filledV>=minP){
+    let note='';
+    if(remaining>0&&remaining<=nearC)note=' — only '+remaining+' field'+(remaining>1?'s':'')+' yet to be filled';
+    return{status:'partial',reason:filledV+'/'+totalV+' fields filled ('+pct+'%)'+note};
+  }
+  return{status:'unfilled',reason:'Only '+filledV+'/'+totalV+' fields filled ('+pct+'%) — below minimum'};
+}
+
 async function readSheetData(s){
   const meta=await sheetsGetMeta(s.sheetId);
   const tabs=meta.sheets.map(sh=>sh.properties.title);
   const ranges=tabs.map(t=>"'"+t+"'!A:Z");
-  // Fetch both formatted values and formula values in parallel
-  const [fmtResp, fmlResp]=await Promise.all([
+  const [fmtResp,fmlResp]=await Promise.all([
     sheetsBatchGet(s.sheetId,ranges),
     sheetsBatchGetFormula(s.sheetId,ranges)
   ]);
 
-  const blockScore={};
+  const blockData={};
 
   (fmtResp.valueRanges||[]).forEach((vr,ti)=>{
     const tabName=tabs[ti];
-    const rows=vr.values||[];
-    const fmlRows=(fmlResp.valueRanges&&fmlResp.valueRanges[ti]&&fmlResp.valueRanges[ti].values)||[];
+    const fmtRows=vr.values||[];
+    const fmlRows=((fmlResp.valueRanges||[])[ti]||{}).values||[];
 
+    /* Find max width across all rows — fixes HQ problem where
+       empty columns in the middle cause API to truncate the row array.
+       We pad every row to maxCols so data after empty gaps is included. */
+    const maxCols=fmtRows.reduce((mx,r)=>Math.max(mx,(r||[]).length),0);
+    if(maxCols===0)return;
+
+    /* Find block name column by scanning first 15 rows */
     let blockCol=-1;
-    for(let ri=0;ri<Math.min(rows.length,10);ri++){
-      for(let ci=0;ci<(rows[ri]||[]).length;ci++){
-        if(matchBlock([rows[ri][ci]])>=0){blockCol=ci;break;}
-      }
-      if(blockCol>=0)break;
+    for(let ri=0;ri<Math.min(fmtRows.length,15)&&blockCol<0;ri++){
+      (fmtRows[ri]||[]).forEach((cell,ci)=>{
+        if(blockCol<0&&matchBlock([cell])>=0)blockCol=ci;
+      });
     }
+    if(blockCol<0)return;
 
-    rows.forEach((row,ri)=>{
-      if(!row||row.length===0)return;
+    fmtRows.forEach((rawRow,ri)=>{
+      /* Pad row to maxCols — critical for blocks like HQ where
+         empty columns break the row array mid-row */
+      const row=[];
+      for(let ci=0;ci<maxCols;ci++)row.push(rawRow[ci]!==undefined?rawRow[ci]:'');
+      const rawFml=fmlRows[ri]||[];
+      const fmlRow=[];
+      for(let ci=0;ci<maxCols;ci++)fmlRow.push(rawFml[ci]!==undefined?rawFml[ci]:'');
+
       const bIdx=matchBlock(row);
       if(bIdx<0)return;
-      const fmlRow=fmlRows[ri]||[];
-      let score=0;
-      let fillable=0;
-      row.forEach((cell,ci)=>{
-        if(ci===0)return;
-        if(ci===blockCol)return;
-        const rawFml=fmlRow[ci];
-        const fmlStr=String(rawFml===undefined||rawFml===null?'':rawFml).trim();
-        if(fmlStr.startsWith('=')){
-          if(isCellFilled(cell,rawFml))score++;
-        }else{
-          fillable++;
-          if(isCellFilled(cell,rawFml))score++;
-        }
-      });
-      if(!blockScore[bIdx]){blockScore[bIdx]={score:0,maxFillable:0,tabs:[]};}
-      blockScore[bIdx].score+=score;
-      if(fillable>blockScore[bIdx].maxFillable)blockScore[bIdx].maxFillable=fillable;
-      if(!blockScore[bIdx].tabs.includes(tabName))blockScore[bIdx].tabs.push(tabName);
+
+      let filledV=0,totalV=0;
+      for(let ci=0;ci<maxCols;ci++){
+        if(ci===0||ci===blockCol)continue; // skip serial & block name
+        const fmlStr=String(fmlRow[ci]).trim();
+        if(fmlStr.startsWith('='))continue; // formula column — skip from totalV
+        totalV++;
+        const fmt=String(row[ci]).trim();
+        /* A field is filled if:
+           - fmlStr is non-empty (user typed something — FORMULA API returns the typed value)
+           - AND the formatted value is also non-empty */
+        if(fmlStr!==''&&fmt!=='')filledV++;
+      }
+
+      if(!blockData[bIdx])blockData[bIdx]={filledV:0,totalV:0,tabs:[]};
+      blockData[bIdx].filledV+=filledV;
+      /* totalV: use max across tabs so multi-tab sheets count correctly */
+      if(totalV>blockData[bIdx].totalV)blockData[bIdx].totalV=totalV;
+      if(!blockData[bIdx].tabs.includes(tabName))blockData[bIdx].tabs.push(tabName);
     });
   });
 
-  // ── INTELLIGENT STATUS DETERMINATION ─────────────────────────
-  // Layer 1: Raw score and fillable column count
-  // Layer 2: Filling ratio — what % of fillable columns are filled
-  // Layer 3: Cross-block comparison — compare each block against the
-  //          best-filled block in the same sheet to detect spoofing
-  //          (a block that filled only 1 col while others filled 8 is suspicious)
-  // Layer 4: Minimum meaningful threshold — must fill at least
-  //          a significant portion of what others filled
-
-  // Step A: Find the "reference max" — the highest score any block got
-  //         This represents a "fully filled" block's score
-  const allScores=Object.values(blockScore).map(bs=>bs.score).filter(s=>s>0);
-  const referenceMax=allScores.length>0?Math.max(...allScores):0;
-  // Also find the median score (to avoid outliers skewing judgment)
-  const sorted=[...allScores].sort((a,b)=>a-b);
-  const medianScore=sorted.length>0?sorted[Math.floor(sorted.length/2)]:0;
-  // Reference = average of top-half scores (represents "fully filled" expectation)
-  const topHalf=sorted.slice(Math.floor(sorted.length/2));
-  const topAvg=topHalf.length>0?topHalf.reduce((a,b)=>a+b,0)/topHalf.length:0;
-
   s.blockStatus=BLOCKS.map((_,i)=>{
-    const bs=blockScore[i];
-    if(!bs||bs.score===0){
-      return{idx:i,status:'unfilled',score:0,fillPct:0,tabs:[],updatedAt:today()};
-    }
-
-    const score=bs.score;
-    const maxFill=bs.maxFillable*(bs.tabs.length||1);
-
-    // Layer 1: Direct fill percentage (score vs max fillable cols)
-    const directPct=maxFill>0?(score/maxFill)*100:0;
-
-    // Layer 2: Relative fill percentage (score vs best filled block)
-    // How does this block compare to the best-filled block?
-    const relativePct=referenceMax>0?(score/referenceMax)*100:0;
-
-    // Layer 3: Absolute threshold check
-    // Even if relativePct is high, need minimum absolute score
-    const minMeaningfulScore=Math.max(2, Math.ceil((topAvg||referenceMax)*0.30));
-    const meetsMinimum=score>=minMeaningfulScore;
-
-    // Layer 4: Determine status
-    let status='unfilled';
-
-    if(score===0){
-      status='unfilled';
-    } else if(!meetsMinimum){
-      // Score is too low compared to what others filled — likely spoofing
-      // Only 1-2 cells filled while others filled 8-10 → keep as unfilled
-      status='unfilled';
-    } else {
-      // Use the stricter of direct% and relative% to determine filled/partial
-      // A block is "filled" only if:
-      //   - It filled >= 80% of its own fillable columns, OR
-      //   - Its score is >= 85% of the reference (best-filled block)
-      // A block is "partial" if:
-      //   - It filled >= 30% of reference AND meets minimum threshold
-      const isFullyFilled=(directPct>=80)||(relativePct>=85&&directPct>=50);
-      const isMeaningfulPartial=relativePct>=30&&meetsMinimum;
-
-      if(isFullyFilled){
-        status='filled';
-      } else if(isMeaningfulPartial){
-        status='partial';
-      } else {
-        // Low relative fill — likely only touched 1-2 cells
-        status='unfilled';
-      }
-    }
-
-    return{
-      idx:i,status,
-      score,maxFill,
-      fillPct:Math.round(directPct),
-      relativePct:Math.round(relativePct),
-      tabs:bs.tabs||[],
-      updatedAt:today()
-    };
+    const bd=blockData[i];
+    if(!bd||bd.totalV===0)return{idx:i,status:'unfilled',reason:'Block not found in sheet',tabs:[],updatedAt:today()};
+    const{status,reason}=calcFillStatus(bd.filledV,bd.totalV);
+    return{idx:i,status,reason,tabs:bd.tabs,filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
   });
   s.lastRead=nowStr();
-  // Store reference stats for display
-  s.sheetStats={referenceMax,medianScore,topAvg:Math.round(topAvg)};
 }
 
 /* ══════════════════════════════════
@@ -1037,13 +966,9 @@ async function createFromStateSheet(){
       const tabTitle=tabSheet.properties.title;
       const tabId=tabSheet.properties.sheetId;
 
-      // Read the tab data — both formatted values AND formulas
-      const [dataResp, fmlDataResp]=await Promise.all([
-        sheetsGetRange(newSid,"'"+tabTitle+"'!A:Z"),
-        gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+newSid+'/values/'+encodeURIComponent("'"+tabTitle+"'!A:Z")+'?valueRenderOption=FORMULA')
-      ]);
+      // Read the tab data
+      const dataResp=await sheetsGetRange(newSid,"'"+tabTitle+"'!A:Z");
       const rows=dataResp.values||[];
-      const fmlRows=fmlDataResp.values||[];
       if(rows.length===0)continue;
 
       // Find the column that has district/region names
@@ -1082,56 +1007,15 @@ async function createFromStateSheet(){
       // Build requests: update block names in nameCol
       const requests=[];
 
-      // Replace each district name with block name AND clear all user-typed data
-      // Process each data row: set block name + clear all non-formula data cells
+      // Replace each district name with block name (rows firstDataRow to firstDataRow+selBlocks.length-1)
       for(let bi=0;bi<selBlocks.length;bi++){
         const rowIdx=firstDataRow+bi;
         if(rowIdx>=rows.length)break;
-        const dataRow=rows[rowIdx]||[];
-        const fmlDataRow=(fmlRows||[])[rowIdx]||[];
-        // Find max column extent (use header row or data row width)
-        const maxCols=Math.max(dataRow.length, rows[firstDataRow-1]?rows[firstDataRow-1].length:0, 26);
-
-        // Build cell values for entire row:
-        // - col A (serial): keep as-is (don't touch)
-        // - nameCol: replace with block name
-        // - other cols: if formula → keep formula, if user-typed → clear to empty
-        const cellValues=[];
-        for(let ci=1;ci<maxCols;ci++){ // start from 1 to skip col A
-          const formula=String(fmlDataRow[ci]||'').trim();
-          if(ci===nameCol){
-            // Set block name in Tamil
-            cellValues.push({userEnteredValue:{stringValue:selBlocks[bi].ta}});
-          } else if(formula.startsWith('=')){
-            // Keep formula intact
-            cellValues.push({userEnteredValue:{formulaValue:formula}});
-          } else {
-            // User-typed data → clear value AND background color
-            cellValues.push({
-              userEnteredValue:{},
-              userEnteredFormat:{backgroundColor:{red:1,green:1,blue:1}}
-            });
-          }
-        }
-
         requests.push({
           updateCells:{
-            range:{
-              sheetId:tabId,
-              startRowIndex:rowIdx,endRowIndex:rowIdx+1,
-              startColumnIndex:1,
-              endColumnIndex:maxCols
-            },
-            rows:[{values:cellValues}],
-            fields:'userEnteredValue,userEnteredFormat.backgroundColor'
-          }
-        });
-        // Clear background color on block name cell specifically
-        requests.push({
-          repeatCell:{
             range:{sheetId:tabId,startRowIndex:rowIdx,endRowIndex:rowIdx+1,startColumnIndex:nameCol,endColumnIndex:nameCol+1},
-            cell:{userEnteredFormat:{backgroundColor:{red:1,green:1,blue:1}}},
-            fields:'userEnteredFormat.backgroundColor'
+            rows:[{values:[{userEnteredValue:{stringValue:selBlocks[bi].ta}}]}],
+            fields:'userEnteredValue'
           }
         });
       }
@@ -1250,9 +1134,9 @@ function renderMonTable(s){
       <td style="font-weight:600">${b.ta}</td>
       <td style="font-size:12px;color:var(--gray)">${b.en}</td>
       <td>
-        <span class="badge ${sc}">${sl}</span>
-        ${bs.fillPct!==undefined?`<span style="font-size:10px;color:var(--gray);display:block;margin-top:2px">${bs.fillPct}% direct · ${bs.relativePct||0}% vs best</span>`:''}
-      </td>
+            <span class="badge ${sc}">${sl}</span>
+            ${bs.reason?`<span style="font-size:10px;color:var(--gray);display:block;margin-top:2px">${bs.reason}</span>`:''}
+          </td>
       <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
       <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
     </tr>`;
@@ -1323,7 +1207,6 @@ function renderDashboard(){
         <span style="color:var(--gray)">${t} மொத்தம்</span>
       </div>
       ${n>0?`<div style="margin-top:7px;font-size:12px;color:var(--red);line-height:1.6">⏳ நிலுவை: ${pendTa.join(', ')}</div>`:''}
-      ${s.sheetStats?`<div style="font-size:11px;color:var(--gry);margin-top:4px">📊 Sheet stats: Reference max=${s.sheetStats.referenceMax} cells · Median=${s.sheetStats.medianScore} · Top avg=${s.sheetStats.topAvg}</div>`:''}
       <div class="btn-row" style="margin-top:8px">
         <button class="btn-sm-g" onclick="goToWA(${s.id})">💬 WhatsApp</button>
       </div>
@@ -1452,22 +1335,8 @@ function renderRepo(){
   else if(repoFilter==='own')list=sheets.filter(s=>s.type==='own');
   else if(repoFilter==='active')list=sheets.filter(s=>s.status==='active');
   else if(repoFilter==='done')list=sheets.filter(s=>s.status==='done');
-  // Apply search filter
-  const searchEl=document.getElementById('repo-search');
-  const q=(searchEl?searchEl.value:'').trim().toLowerCase();
-  if(q){
-    list=list.filter(s=>{
-      const haystack=[s.title,s.createdAt,s.deadline,s.notes,s.type,s.status,s.lastRead].join(' ').toLowerCase();
-      return haystack.includes(q);
-    });
-  }
   const el=document.getElementById('repo-list');
-  if(!list.length){
-    el.innerHTML=q
-      ?`<div class="alert a-info">No sheets match "<b>${q}</b>". <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="document.getElementById('repo-search').value='';renderRepo()">Clear Search</button></div>`
-      :'<div class="alert a-info">No sheets found.</div>';
-    return;
-  }
+  if(!list.length){el.innerHTML='<div class="alert a-info">No sheets found.</div>';return;}
   el.innerHTML=list.map(s=>{
     const f=s.blockStatus.filter(b=>b.status==='filled').length;
     const pct=Math.round((f/Math.max(s.blockStatus.length,1))*100);
