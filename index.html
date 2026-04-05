@@ -816,14 +816,36 @@ async function readSheetData(s){
       let filledV=0,totalV=0;
       for(let ci=0;ci<maxCols;ci++){
         if(ci===0||ci===blockCol)continue; // skip serial & block name
+
         const fmlStr=String(fmlRow[ci]).trim();
-        if(fmlStr.startsWith('='))continue; // formula column — skip from totalV
-        totalV++;
         const fmt=String(row[ci]).trim();
-        /* A field is filled if:
-           - fmlStr is non-empty (user typed something — FORMULA API returns the typed value)
-           - AND the formatted value is also non-empty */
-        if(fmlStr!==''&&fmt!=='')filledV++;
+
+        if(fmlStr.startsWith('=')){
+          /* Formula column — NOT counted in totalV (block officers don't fill these).
+             But we still check if the formula returns a useful non-zero value
+             so formula-computed totals don't skew the count. */
+          continue;
+        }
+
+        /* User-fillable column */
+        totalV++;
+
+        /* KEY FIX: The FORMULA API truncates rows at the last formula/typed cell.
+           For blocks like HQ where typed data is in far-right columns with empty
+           columns in between, the FORMULA API row is SHORT and fmlStr = '' for
+           those far-right cells even though the user typed values there.
+           SOLUTION: Use FORMATTED_VALUE (fmt) as ground truth.
+           A cell is filled if fmt is non-empty AND is not a formula error AND
+           the fmlStr does NOT start with '=' (already handled above). */
+        if(fmt===''||fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000'){
+          /* Check fmlStr as secondary signal — if FORMULA API returned something
+             non-empty here, the user did type it (even if fmt looks like 0) */
+          if(fmlStr!==''&&!fmlStr.startsWith('='))filledV++;
+          /* Otherwise: empty or formula-zero -> not filled */
+        } else {
+          /* fmt has a real non-zero, non-empty value -> definitely filled */
+          filledV++;
+        }
       }
 
       if(!blockData[bIdx])blockData[bIdx]={filledV:0,totalV:0,tabs:[]};
