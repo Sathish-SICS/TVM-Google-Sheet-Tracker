@@ -334,17 +334,36 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             </select>
           </div>
           <div style="display:flex;align-items:flex-end">
-            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="readOneSheet()">
-              <span id="read-spin" class="hidden"><span class="spin"></span></span>
-              🔄 Read Sheet Now
-            </button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="readOneSheet()">
+                <span id="read-spin" class="hidden"><span class="spin"></span></span>
+                Read Sheet Now
+              </button>
+              <button id="preview-btn" class="btn btn-outline" onclick="togglePreview()" style="display:none;flex-shrink:0">
+                Preview
+              </button>
+            </div>
           </div>
         </div>
         <div id="mon-link-row" class="hidden">
           <a id="mon-link" href="#" target="_blank" class="link-sm">Open in Google Sheets ↗</a>
         </div>
       </div>
-      <div id="mon-result"></div>
+      <!-- Split screen: left=result, right=iframe preview -->
+      <div id="mon-split" style="display:none;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+          <div id="mon-result" style="max-height:620px;overflow-y:auto"></div>
+          <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:sticky;top:60px">
+            <div style="background:var(--blue-dk);color:#fff;padding:7px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between">
+              <span>Sheet Preview</span>
+              <button onclick="togglePreview()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">Close X</button>
+            </div>
+            <iframe id="mon-iframe" src="" style="width:100%;height:580px;border:none"></iframe>
+          </div>
+        </div>
+      </div>
+      <!-- Normal single column view -->
+      <div id="mon-result-single"></div>
     </div>
 
     <!-- ═══ WHATSAPP ═══ -->
@@ -436,27 +455,56 @@ const BLOCKS=[
 ];
 
 const ALIASES={
-  'திருவண்ணாமலை hq':0,'tiruvannamalai hq':0,'tvmalai hq':0,
-  'திருவண்ணாமலை 1':1,'tiruvannamalai-1':1,'tiruvannamalai 1':1,
-  'திருவண்ணாமலை 2':2,'tiruvannamalai-2':2,'tiruvannamalai 2':2,
-  'துரிஞ்சாபுரம்':3,'thurinjapuram':3,
-  'கீழ்பென்னாத்தூர்':4,'kilpennathur':4,'kilpennathur':4,
-  'செங்கம்':5,'chengam':5,
-  'புதுப்பாளையம்':6,'pudhupalayam':6,
-  'தண்டராம்பட்டு':7,'thandrampet':7,'thandrampattu':7,
-  'கலசபாக்கம்':8,'kalasapakkam':8,
-  'போளூர்':9,'polur':9,
-  'ஜமுனாமரத்தூர்':10,'jamunamarathur':10,'yamunamarathur':10,
-  'சேத்பட்':11,'chetpet':11,
-  'ஆரணி (கிழக்கு)':12,'arani east':12,'ஆரணி கிழக்கு':12,
-  'ஆரணி (மேற்கு)':13,'arani west':13,'ஆரணி மேற்கு':13,
-  'செய்யார்':14,'cheyyar':14,
-  'அனக்காவூர்':15,'anakavoor':15,
-  'வெம்பாக்கம் 1':16,'vembakkam 1':16,'vembakkam-1':16,
-  'வெம்பாக்கம் 2':17,'vembakkam 2':17,'vembakkam-2':17,
-  'வந்தவாசி':18,'vandavasi':18,
-  'பெரணமல்லூர்':19,'pernamallur':19,
-  'தெள்ளார்':20,'thellar':20
+  /* 0 Tiruvannamalai HQ */
+  'tiruvannamalai-hq':0,'thiruvannamalai-hq':0,'tiruvannamalai hq':0,'thiruvannamalai hq':0,
+  'tiruvannamalai  hq':0,'tvm hq':0,'tvmalai hq':0,
+  'ତிருவண்ணாமலை hq':0,'ତிருவண்ணாமலை-hq':0,
+  /* 1 Tiruvannamalai-1 */
+  'tiruvannamalai-1':1,'thiruvannamalai-1':1,'tiruvannamalai 1':1,'thiruvannamalai 1':1,
+  'ତிருவண்ணாமலை-1':1,'ତிருவண்ணாமலை 1':1,
+  /* 2 Tiruvannamalai-2 */
+  'tiruvannamalai-2':2,'thiruvannamalai-2':2,'tiruvannamalai 2':2,'thiruvannamalai 2':2,
+  'ତிருவண்ணாமலை-2':2,'ତிருவண்ணாமலை 2':2,
+  /* 3 Thurinjapuram */
+  'thurinjapuram':3,'thurinchapuram':3,'துரிஞ்சாபுரம்':3,
+  /* 4 Kilpennathur */
+  'kilpennathur':4,'கீழ்பென்னாத்தூர்':4,
+  /* 5 Chengam */
+  'chengam':5,'செங்கம்':5,
+  /* 6 Pudhupalayam */
+  'pudhupalayam':6,'pudupalayam':6,'புதுப்பாளையம்':6,
+  /* 7 Thandrampet */
+  'thandrampet':7,'thandrampattu':7,'தண்டராம்பட்டு':7,
+  /* 8 Kalasapakkam */
+  'kalasapakkam':8,'கலசபாக்கம்':8,
+  /* 9 Polur */
+  'polur':9,'போளூர்':9,
+  /* 10 Jamunamarathur */
+  'jamunamarathur':10,'yamunamarathur':10,'jamuna marathur':10,'ஜமுனாமரத்தூர்':10,
+  /* 11 Chetpet */
+  'chetpet':11,'சேத்பட்':11,
+  /* 12 Arani East */
+  'arani east':12,'arani (east)':12,'arani-east':12,
+  'ஆரணி (கிழக்கு)':12,'ஆரணி கிழக்கு':12,'ஆரணி(கிழக்கு)':12,
+  /* 13 Arani West */
+  'arani west':13,'arani (west)':13,'arani-west':13,
+  'ஆரணி (மேற்கு)':13,'ஆரணி மேற்கு':13,'ஆரணி(மேற்கு)':13,
+  /* 14 Cheyyar */
+  'cheyyar':14,'செய்யார்':14,
+  /* 15 Anakavoor */
+  'anakavoor':15,'அனக்காவூர்':15,
+  /* 16 Vembakkam 1 */
+  'vembakkam-1':16,'vembakkam 1':16,'vembakkam1':16,
+  'வெம்பாக்கம் 1':16,'வெம்பாக்கம்-1':16,
+  /* 17 Vembakkam 2 */
+  'vembakkam-2':17,'vembakkam 2':17,'vembakkam2':17,
+  'வெம்பாக்கம் 2':17,'வெம்பாக்கம்-2':17,
+  /* 18 Vandavasi */
+  'vandavasi':18,'வந்தவாசி':18,
+  /* 19 Pernamallur */
+  'pernamallur':19,'pernamalur':19,'பெரணமல்லூர்':19,
+  /* 20 Thellar */
+  'thellar':20,'தெள்ளார்':20
 };
 
 /* ══════════════════════════════════
@@ -723,13 +771,36 @@ function isRealData(fmtCell, fmlCell){
   return fmt.length>0;
 }
 
+function normalizeCell(v){
+  return String(v||'').trim().toLowerCase()
+    .replace(/\s+/g,' ').replace(/[-_]/g,' ').replace(/[()]/g,'').replace(/\s+/g,' ').trim();
+}
 function matchBlock(row){
+  // Pass 1: exact match with normalization
   for(const cell of row){
-    if(!cell)continue;
-    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
-    if(ALIASES[norm]!==undefined)return ALIASES[norm];
+    if(cell===undefined||cell===null||cell==='')continue;
+    const n=normalizeCell(cell);
+    if(ALIASES[n]!==undefined)return ALIASES[n];
+    // try with dashes kept
+    const nd=String(cell).trim().toLowerCase().replace(/\s+/g,' ');
+    if(ALIASES[nd]!==undefined)return ALIASES[nd];
+    // Tiru/Thiru normalization
+    const nt=n.replace('thiruvannamalai','tiruvannamalai');
+    if(ALIASES[nt]!==undefined)return ALIASES[nt];
+  }
+  // Pass 2: fuzzy - skip short/numeric cells
+  for(const cell of row){
+    if(cell===undefined||cell===null||cell==='')continue;
+    const n=normalizeCell(cell);
+    if(n.length<4)continue;
+    if(/^[\d,.\s]+$/.test(n))continue;
+    if(/^[\d]+$/.test(n.replace(/ /g,'')))continue;
+    const nt=n.replace('thiruvannamalai','tiruvannamalai');
     for(const [alias,idx] of Object.entries(ALIASES)){
-      if(norm===alias||norm.includes(alias)||alias.includes(norm))return idx;
+      const an=normalizeCell(alias);
+      const ant=an.replace('thiruvannamalai','tiruvannamalai');
+      if(nt===ant)return idx;
+      if(n.length>=5&&an.length>=5&&(nt.includes(ant)||ant.includes(nt)))return idx;
     }
   }
   return -1;
@@ -739,35 +810,30 @@ function matchBlock(row){
    READ SHEET — scans all tabs,
    accumulates real data score per block
 ══════════════════════════════════ */
-/* ── FILL STATUS using your logic ────────────────────────────────
-   filledV = user-typed [V] fields with real data
-   totalV  = total user-fillable columns (not serial, not name, not formula)
-*/
-function calcFillStatus(filledV,totalV){
-  if(totalV===0)return{status:'unfilled',reason:'No fillable fields'};
-  const remaining=totalV-filledV;
-  const pct=Math.round(filledV/totalV*100);
-  if(totalV<=5){
-    if(filledV===totalV)return{status:'filled',reason:'All '+totalV+' fields filled'};
-    return{status:'unfilled',reason:filledV+'/'+totalV+' fields filled — all required'};
+
+function calcFillStatus(fV,tV){
+  if(tV===0)return{status:'unfilled',reason:'No fillable fields'};
+  const rem=tV-fV, pct=Math.round(fV/tV*100);
+  if(tV<=5){
+    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+    return{status:'unfilled',reason:fV+'/'+tV+' fields filled - all required'};
   }
-  if(totalV<=10){
-    if(filledV===totalV)return{status:'filled',reason:'All '+totalV+' fields filled'};
-    if(filledV>=3){
-      const note=remaining===1?' — 1 field yet to be filled':'';
-      return{status:'partial',reason:filledV+'/'+totalV+' fields filled'+note};
+  if(tV<=10){
+    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+    if(fV>=3){
+      const note=rem===1?' - 1 field yet to be filled':'';
+      return{status:'partial',reason:fV+'/'+tV+' fields filled'+note};
     }
-    return{status:'unfilled',reason:'Only '+filledV+'/'+totalV+' fields filled'};
+    return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields filled'};
   }
-  const minP=Math.max(6,Math.ceil(totalV*0.30));
-  const nearC=Math.ceil(totalV*0.10);
-  if(filledV===totalV)return{status:'filled',reason:'All '+totalV+' fields filled'};
-  if(filledV>=minP){
-    let note='';
-    if(remaining>0&&remaining<=nearC)note=' — only '+remaining+' field'+(remaining>1?'s':'')+' yet to be filled';
-    return{status:'partial',reason:filledV+'/'+totalV+' fields filled ('+pct+'%)'+note};
+  const minP=Math.max(6,Math.ceil(tV*0.30));
+  const nearC=Math.ceil(tV*0.10);
+  if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+  if(fV>=minP){
+    const note=(rem>0&&rem<=nearC)?' - only '+rem+' field'+(rem>1?'s':'')+' yet to be filled':'';
+    return{status:'partial',reason:fV+'/'+tV+' fields ('+pct+'%) filled'+note};
   }
-  return{status:'unfilled',reason:'Only '+filledV+'/'+totalV+' fields filled ('+pct+'%) — below minimum'};
+  return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields ('+pct+'%) - below minimum'};
 }
 
 async function readSheetData(s){
@@ -785,75 +851,69 @@ async function readSheetData(s){
     const tabName=tabs[ti];
     const fmtRows=vr.values||[];
     const fmlRows=((fmlResp.valueRanges||[])[ti]||{}).values||[];
+    if(!fmtRows.length)return;
 
-    /* Find max width across all rows — fixes HQ problem where
-       empty columns in the middle cause API to truncate the row array.
-       We pad every row to maxCols so data after empty gaps is included. */
+    // Max cols across all rows - fixes HQ truncation bug
     const maxCols=fmtRows.reduce((mx,r)=>Math.max(mx,(r||[]).length),0);
-    if(maxCols===0)return;
+    if(!maxCols)return;
 
-    /* Find block name column by scanning first 15 rows */
-    let blockCol=-1;
-    for(let ri=0;ri<Math.min(fmtRows.length,15)&&blockCol<0;ri++){
-      (fmtRows[ri]||[]).forEach((cell,ci)=>{
-        if(blockCol<0&&matchBlock([cell])>=0)blockCol=ci;
-      });
+    // Find blockCol AND firstDataRow (Fix 3)
+    let blockCol=-1,firstDataRow=-1;
+    for(let ri=0;ri<fmtRows.length&&(blockCol<0||firstDataRow<0);ri++){
+      const row=fmtRows[ri]||[];
+      for(let ci=0;ci<row.length;ci++){
+        if(matchBlock([row[ci]])>=0){
+          if(blockCol<0)blockCol=ci;
+          if(firstDataRow<0)firstDataRow=ri;
+          break;
+        }
+      }
     }
-    if(blockCol<0)return;
+    if(blockCol<0||firstDataRow<0)return;
 
-    fmtRows.forEach((rawRow,ri)=>{
-      /* Pad row to maxCols — critical for blocks like HQ where
-         empty columns break the row array mid-row */
-      const row=[];
-      for(let ci=0;ci<maxCols;ci++)row.push(rawRow[ci]!==undefined?rawRow[ci]:'');
-      const rawFml=fmlRows[ri]||[];
-      const fmlRow=[];
-      for(let ci=0;ci<maxCols;ci++)fmlRow.push(rawFml[ci]!==undefined?rawFml[ci]:'');
+    // Fix 4: only count columns RIGHT of blockCol
+    const dataColStart=blockCol+1;
+
+    // Fix 5: tabMaxV = max user-fillable columns in this tab
+    let tabMaxV=0;
+    for(let ri=firstDataRow;ri<fmtRows.length;ri++){
+      const row=Array.from({length:maxCols},(_,ci)=>(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'');
+      if(matchBlock(row)<0)continue;
+      const fRow=Array.from({length:maxCols},(_,ci)=>(fmlRows[ri]||[])[ci]!==undefined?(fmlRows[ri]||[])[ci]:'');
+      let cnt=0;
+      for(let ci=dataColStart;ci<maxCols;ci++){
+        if(!String(fRow[ci]).trim().startsWith('='))cnt++;
+      }
+      if(cnt>tabMaxV)tabMaxV=cnt;
+    }
+
+    for(let ri=firstDataRow;ri<fmtRows.length;ri++){
+      // Pad rows to maxCols (HQ fix)
+      const row=Array.from({length:maxCols},(_,ci)=>(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'');
+      const fRow=Array.from({length:maxCols},(_,ci)=>(fmlRows[ri]||[])[ci]!==undefined?(fmlRows[ri]||[])[ci]:'');
 
       const bIdx=matchBlock(row);
-      if(bIdx<0)return;
+      if(bIdx<0)continue;
 
       let filledV=0,totalV=0;
-      for(let ci=0;ci<maxCols;ci++){
-        if(ci===0||ci===blockCol)continue; // skip serial & block name
-
-        const fmlStr=String(fmlRow[ci]).trim();
+      for(let ci=dataColStart;ci<maxCols;ci++){
+        const fmlStr=String(fRow[ci]).trim();
         const fmt=String(row[ci]).trim();
-
-        if(fmlStr.startsWith('=')){
-          /* Formula column — NOT counted in totalV (block officers don't fill these).
-             But we still check if the formula returns a useful non-zero value
-             so formula-computed totals don't skew the count. */
-          continue;
-        }
-
-        /* User-fillable column */
+        if(fmlStr.startsWith('='))continue; // formula col - skip
         totalV++;
-
-        /* KEY FIX: The FORMULA API truncates rows at the last formula/typed cell.
-           For blocks like HQ where typed data is in far-right columns with empty
-           columns in between, the FORMULA API row is SHORT and fmlStr = '' for
-           those far-right cells even though the user typed values there.
-           SOLUTION: Use FORMATTED_VALUE (fmt) as ground truth.
-           A cell is filled if fmt is non-empty AND is not a formula error AND
-           the fmlStr does NOT start with '=' (already handled above). */
+        // Use fmt as ground truth (FORMULA API truncates for user-typed cells)
         if(fmt===''||fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000'){
-          /* Check fmlStr as secondary signal — if FORMULA API returned something
-             non-empty here, the user did type it (even if fmt looks like 0) */
           if(fmlStr!==''&&!fmlStr.startsWith('='))filledV++;
-          /* Otherwise: empty or formula-zero -> not filled */
         } else {
-          /* fmt has a real non-zero, non-empty value -> definitely filled */
           filledV++;
         }
       }
 
       if(!blockData[bIdx])blockData[bIdx]={filledV:0,totalV:0,tabs:[]};
       blockData[bIdx].filledV+=filledV;
-      /* totalV: use max across tabs so multi-tab sheets count correctly */
-      if(totalV>blockData[bIdx].totalV)blockData[bIdx].totalV=totalV;
+      blockData[bIdx].totalV+=tabMaxV; // Fix 5: sum across tabs
       if(!blockData[bIdx].tabs.includes(tabName))blockData[bIdx].tabs.push(tabName);
-    });
+    }
   });
 
   s.blockStatus=BLOCKS.map((_,i)=>{
@@ -1105,26 +1165,55 @@ function showCMsg(html,type){
 function onMonChange(){
   const id=parseInt(document.getElementById('mon-sel').value);
   const s=sheets.find(x=>x.id===id);
-  if(s&&s.link){document.getElementById('mon-link').href=s.link;document.getElementById('mon-link-row').classList.remove('hidden');}
-  else document.getElementById('mon-link-row').classList.add('hidden');
-  document.getElementById('mon-result').innerHTML='';
-}
-async function readOneSheet(){
-  const id=parseInt(document.getElementById('mon-sel').value);
-  if(!id){alert('Select a sheet first.');return;}
-  const s=sheets.find(x=>x.id===id);
-  if(!s)return;
-  document.getElementById('read-spin').classList.remove('hidden');
-  document.getElementById('mon-result').innerHTML='<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells...</div>';
-  try{
-    await readSheetData(s);await saveToDb();
-    renderDashboard();refreshDropdowns();
-    renderMonTable(s);
-  }catch(e){
-    document.getElementById('mon-result').innerHTML=`<div class="alert a-err">❌ Error: ${e.message}<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>`;
+  const lr=document.getElementById('mon-link-row');
+  const pb=document.getElementById('preview-btn');
+  if(s&&s.link){
+    document.getElementById('mon-link').href=s.link;
+    lr.classList.remove('hidden');
+    if(pb)pb.style.display='';
+  } else {
+    lr.classList.add('hidden');
+    if(pb)pb.style.display='none';
   }
-  document.getElementById('read-spin').classList.add('hidden');
+  document.getElementById('mon-result').innerHTML='';
+  document.getElementById('mon-result-single').innerHTML='';
+  if(window._previewOpen){window._previewOpen=false;_applyPreviewState();}
 }
+
+function _applyPreviewState(){
+  const sp=document.getElementById('mon-split');
+  const sg=document.getElementById('mon-result-single');
+  const pb=document.getElementById('preview-btn');
+  if(window._previewOpen){
+    sp.style.display='block';sg.style.display='none';
+    if(pb)pb.textContent='Close Preview';
+  } else {
+    sp.style.display='none';sg.style.display='block';
+    if(pb)pb.textContent='Preview';
+  }
+}
+
+function togglePreview(){
+  const id=parseInt(document.getElementById('mon-sel').value);
+  const s=sheets.find(x=>x.id===id);
+  window._previewOpen=!window._previewOpen;
+  if(window._previewOpen&&s&&s.link){
+    const m=s.link.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if(m)document.getElementById('mon-iframe').src='https://docs.google.com/spreadsheets/d/'+m[1]+'/preview';
+    document.getElementById('mon-result').innerHTML=document.getElementById('mon-result-single').innerHTML;
+  } else {
+    window._previewOpen=false;
+    document.getElementById('mon-result-single').innerHTML=document.getElementById('mon-result').innerHTML;
+  }
+  _applyPreviewState();
+}
+
+function _writeMonResult(html){
+  document.getElementById('mon-result').innerHTML=html;
+  document.getElementById('mon-result-single').innerHTML=html;
+  _applyPreviewState();
+}
+
 
 function renderMonTable(s){
   const f=s.blockStatus.filter(b=>b.status==='filled').length;
@@ -1145,7 +1234,7 @@ function renderMonTable(s){
     <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
     <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Last read: ${s.lastRead||'—'} · ${pct}% complete</div>
     <div style="overflow-x:auto"><table class="tbl">
-    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
+    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை / காரணம்</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
   s.blockStatus.forEach((bs,i)=>{
     const b=BLOCKS[bs.idx];
     const sc=bs.status==='filled'?'b-green':bs.status==='partial'?'b-amber':'b-red';
@@ -1156,9 +1245,9 @@ function renderMonTable(s){
       <td style="font-weight:600">${b.ta}</td>
       <td style="font-size:12px;color:var(--gray)">${b.en}</td>
       <td>
-            <span class="badge ${sc}">${sl}</span>
-            ${bs.reason?`<span style="font-size:10px;color:var(--gray);display:block;margin-top:2px">${bs.reason}</span>`:''}
-          </td>
+        <span class="badge ${sc}">${sl}</span>
+        ${bs.reason?`<span style="display:block;font-size:10px;color:var(--gray);margin-top:2px">${bs.reason}</span>`:''}
+      </td>
       <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
       <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
     </tr>`;
@@ -1167,7 +1256,7 @@ function renderMonTable(s){
     <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-outline" style="font-size:12px" onclick="goToWA(${s.id})">📤 Generate WhatsApp Message</button>
     </div></div>`;
-  document.getElementById('mon-result').innerHTML=html;
+  _writeMonResult(html);
 }
 
 /* ══════════════════════════════════
