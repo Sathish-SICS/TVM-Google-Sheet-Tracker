@@ -1214,6 +1214,26 @@ function _writeMonResult(html){
   _applyPreviewState();
 }
 
+async function readOneSheet(){
+  const id=parseInt(document.getElementById('mon-sel').value);
+  if(!id){alert('Select a sheet first.');return;}
+  const s=sheets.find(x=>x.id===id);
+  if(!s)return;
+  /* Show loading */
+  document.getElementById('read-spin').classList.remove('hidden');
+  _writeMonResult('<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells... Please wait.</div>');
+  try{
+    await readSheetData(s);
+    await saveToDb();
+    renderDashboard();
+    refreshDropdowns();
+    renderMonTable(s);
+  }catch(e){
+    _writeMonResult('<div class="alert a-err">&#10060; Error: '+e.message+'<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>');
+  }
+  document.getElementById('read-spin').classList.add('hidden');
+}
+
 
 function renderMonTable(s){
   const f=s.blockStatus.filter(b=>b.status==='filled').length;
