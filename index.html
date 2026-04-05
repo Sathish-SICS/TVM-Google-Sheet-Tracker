@@ -1502,8 +1502,27 @@ function genWA(){
   const pct=Math.round((filled.length/Math.max(s.blockStatus.length,1))*100);
   const days=daysSince(s.createdAt);
   const lnk=s.link||'[இணைப்பு சேர்க்கப்படும்]';
-  const pTa=pending.map(b=>BLOCKS[b.idx].ta).join('\n');
-  const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
+
+  /* For partial blocks with >10 fields, append field count note from reason */
+  const pTa=pending.map(b=>{
+    let name=BLOCKS[b.idx].ta;
+    if(b.status==='partial'&&b.totalV>10&&b.reason){
+      /* Extract "only X fields yet to be filled" from reason if present */
+      const m=b.reason.match(/only (\d+ fields? yet to be filled)/i);
+      if(m)name+=` (${m[1]})`;
+    }
+    return name;
+  }).join('\n');
+
+  const pEn=pending.map(b=>{
+    let name=BLOCKS[b.idx].en;
+    if(b.status==='partial'&&b.totalV>10&&b.reason){
+      const m=b.reason.match(/only (\d+ fields? yet to be filled)/i);
+      if(m)name+=` (${m[1]})`;
+    }
+    return name;
+  }).join('\n');
+
   const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
   const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
   const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
