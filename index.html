@@ -306,7 +306,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         </div>
         <div class="frow">
           <div>
-            <label class="flbl">Deadline</label>
+            <label class="flbl">Date of Posting</label>
             <input class="finput" type="date" id="tr-deadline">
           </div>
           <div>
@@ -662,8 +662,8 @@ async function initApp(){
       if(t.dataset.tab==='repo')renderRepo();
       if(t.dataset.tab==='trash')renderTrash();
       if(t.dataset.tab==='track'){
-        // set default deadline
-        const d=new Date();d.setDate(d.getDate()+7);
+        // default to today as date of posting
+        const d=new Date();
         document.getElementById('tr-deadline').value=d.toISOString().slice(0,10);
       }
     });
@@ -1500,7 +1500,8 @@ function genWA(){
   const filled=s.blockStatus.filter(b=>b.status==='filled');
   const pending=s.blockStatus.filter(b=>b.status!=='filled');
   const pct=Math.round((filled.length/Math.max(s.blockStatus.length,1))*100);
-  const days=daysSince(s.createdAt);
+  /* Use date of posting (deadline field) if set, else creation date */
+  const days=s.deadline?daysSince(s.deadline):daysSince(s.createdAt);
   const lnk=s.link||'[இணைப்பு சேர்க்கப்படும்]';
 
   /* For partial blocks with >10 fields, append field count note from reason */
@@ -1534,8 +1535,8 @@ function genWA(){
       en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
     },
     reminder:{
-      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது · ${pct}% முடிந்தது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
-      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
+      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
+      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''}\n\nYou are requested to fill immediately.\n${SIGN_EN}`
     },
     final:{
       ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nகீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
@@ -1580,7 +1581,7 @@ function renderRepo(){
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div style="flex:1">
           <div style="font-size:13px;font-weight:700">${s.title}</div>
-          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Deadline: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Posted: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
             ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
             ${s.link?`<button class="btn-sm" style="font-size:11px;padding:3px 8px" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Copied!'))">📋 Copy</button>`:''}
