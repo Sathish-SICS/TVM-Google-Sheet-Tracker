@@ -1106,19 +1106,54 @@ async function autoRefreshAll(){
    If formula exists and formatted result is 0/empty → unfilled
    If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
 function isRealData(fmtCell, fmlCell){
+  /* Final rule (confirmed by real-world testing):
+     - Empty cell            → NOT FILLED
+     - Formula error         → NOT FILLED
+     - Everything else       → FILLED
+       (user typed 0, formula returning 0, any value = FILLED) */
   const fmt=String(fmtCell||'').trim();
-  const fml=String(fmlCell||'').trim();
-  if(fmt==='')return false; // empty = unfilled regardless
-  const hasFormula=fml.startsWith('=');
-  if(hasFormula){
-    // Formula cell: only filled if result is meaningful non-zero
-    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
-    const n=parseFloat(fmt);
-    if(!isNaN(n))return n>0;
-    return fmt.length>0;
+  if(fmt==='')return false;
+  const ERRORS=new Set(['#div/0!','#ref!','#value!','#name?','#n/a!','#null!','#num!','#error!']);
+  if(ERRORS.has(fmt.toLowerCase()))return false;
+  return true;
+}
+
+/* ChatGPT-recommended robust column detection functions */
+function detectLastDataColumn(fmtCols, fmlCols){
+  /* Scan first 20 rows of all fetched columns to find true last column.
+     This handles empty gaps and FORMULA API truncation correctly. */
+  let lastCol=0;
+  const totalCols=Math.max(fmtCols.length, fmlCols.length);
+  for(let ci=0;ci<totalCols;ci++){
+    const fmtCol=fmtCols[ci]||[];
+    const fmlCol=fmlCols[ci]||[];
+    for(let ri=0;ri<20;ri++){
+      const fmt=String((fmtCol[ri]||[])[0]!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      const fml=String((fmlCol[ri]||[])[0]!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      if(isRealData(fmt,fml)){lastCol=ci;break;}
+    }
   }
-  // User typed: any non-empty value counts as filled
-  return fmt.length>0;
+  return lastCol;
+}
+
+function detectManualColumns(fmtCols, fmlCols, startCol, lastCol){
+  /* A column is MANUAL if: value exists AND no formula (fml==='')
+     A column is FORMULA if: formula string exists (starts with =)
+     Scans first 20 rows of each column for reliability. */
+  const isManualCol=[];
+  for(let ci=startCol;ci<=lastCol;ci++){
+    const colIdx=ci-startCol;
+    const fmtCol=fmtCols[colIdx]||[];
+    const fmlCol=fmlCols[colIdx]||[];
+    let manualFound=false;
+    for(let ri=0;ri<20;ri++){
+      const fmt=String((fmtCol[ri]||[])[0]!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      const fml=String((fmlCol[ri]||[])[0]!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      if(fmt!==''&&fml===''){manualFound=true;break;}
+    }
+    isManualCol[ci]=manualFound;
+  }
+  return isManualCol;
 }
 
 function normalizeCell(v){
@@ -1198,11 +1233,11 @@ async function readSheetData(s){
   const meta=await sheetsGetMeta(s.sheetId);
   const tabs=meta.sheets.map(sh=>sh.properties.title);
   const blockData={};
-  const FERRORS=new Set(['#div/0!','#ref!','#value!','#n/a!','#name?','#null!','#num!','#error!']);
 
   for(const tabName of tabs){
-    /* ── STEP 1: Read full tab to find block structure ── */
     const enc=t=>"'"+t+"'";
+
+    /* ── STEP 1: Read full tab to find block structure ── */
     const fmtFull=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
       '/values/'+encodeURIComponent(enc(tabName)+'!A:Z')+'?valueRenderOption=FORMATTED_VALUE');
     const fmtRows=fmtFull.values||[];
@@ -1222,61 +1257,52 @@ async function readSheetData(s){
     if(blockCol<0||firstDataRow<0)continue;
 
     const dataColStart=blockCol+1;
-
-    /* Find last non-empty column in first data row */
-    const firstDataRowCells=fmtRows[firstDataRow]||[];
-    let lastCol=firstDataRowCells.length-1;
-    /* Also check a few more data rows to find true extent */
-    for(let ri=firstDataRow;ri<Math.min(firstDataRow+5,fmtRows.length);ri++){
-      const rowLen=(fmtRows[ri]||[]).length;
-      if(rowLen-1>lastCol)lastCol=rowLen-1;
-    }
-    if(lastCol<dataColStart)continue;
-
-    /* ── STEP 2: Fetch each data column individually (avoids truncation) ── */
     const colLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    /* ── STEP 2: Fetch all data columns individually ──
+       First pass: fetch up to col Z, then use detectLastDataColumn
+       to find true extent (handles gaps and truncation) */
+    const maxPossibleCol=25; /* Z */
     const colRanges=[];
-    for(let ci=dataColStart;ci<=lastCol;ci++){
+    for(let ci=dataColStart;ci<=maxPossibleCol;ci++){
       colRanges.push(enc(tabName)+'!'+colLetters[ci]+':'+colLetters[ci]);
     }
 
-    /* Batch fetch all columns in one batchGet call — formatted and formula */
-    const batchFmt=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
-      '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
-      '&valueRenderOption=FORMATTED_VALUE');
-    const batchFml=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
-      '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
-      '&valueRenderOption=FORMULA');
+    const [batchFmt,batchFml]=await Promise.all([
+      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
+        '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
+        '&valueRenderOption=FORMATTED_VALUE'),
+      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
+        '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
+        '&valueRenderOption=FORMULA')
+    ]);
 
     const fmtCols=(batchFmt.valueRanges||[]).map(vr=>vr.values||[]);
     const fmlCols=(batchFml.valueRanges||[]).map(vr=>vr.values||[]);
 
-    /* ── STEP 3: Classify each column as manual or formula ── */
-    /* A column is a FORMULA column if ANY data row has a formula in it */
-    const isManualCol=[];
-    for(let ci=0;ci<fmtCols.length;ci++){
-      const fmlColData=fmlCols[ci]||[];
-      let hasFormula=false;
-      for(let ri=firstDataRow;ri<fmtRows.length;ri++){
-        const cellVal=String((fmlColData[ri]||[])[0]!==undefined?(fmlColData[ri]||[])[0]:'').trim();
-        if(cellVal.startsWith('=')){hasFormula=true;break;}
-      }
-      isManualCol.push(!hasFormula);
-    }
+    /* ── STEP 3: Detect true last column and manual columns ──
+       Using ChatGPT-recommended robust functions that scan
+       multiple rows and handle gaps correctly */
+    const lastColRelative=detectLastDataColumn(fmtCols,fmlCols);
+    const lastCol=dataColStart+lastColRelative;
+    if(lastColRelative<0)continue;
 
-    const tabMaxV=isManualCol.filter(Boolean).length;
+    const isManualCol=detectManualColumns(fmtCols,fmlCols,0,lastColRelative);
+
+    /* tabMaxV = count of manual columns for this tab (same for all blocks) */
+    const tabMaxV=Object.values(isManualCol).filter(Boolean).length;
     if(tabMaxV===0)continue;
 
-    /* ── STEP 4: Score each block row using only manual columns ── */
+    /* ── STEP 4: Score each block row ── */
     const tabBlockBest={};
 
     for(let ri=firstDataRow;ri<fmtRows.length;ri++){
-      /* Reconstruct this row from per-column data */
+      /* Reconstruct full row from per-column fetches */
       const row=Array.from({length:lastCol+1},(_,ci)=>{
         if(ci<dataColStart)return(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'';
         const colIdx=ci-dataColStart;
-        const colData=fmtCols[colIdx]||[];
-        return(colData[ri]||[])[0]!==undefined?(colData[ri]||[])[0]:'';
+        return((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?
+          ((fmtCols[colIdx]||[])[ri]||[])[0]:'';
       });
 
       const bIdx=matchBlock(row);
@@ -1286,11 +1312,16 @@ async function readSheetData(s){
       if(/total|மொத்தம்/.test(row.join(' ').toLowerCase()))continue;
 
       let filledV=0;
-      for(let ci=0;ci<fmtCols.length;ci++){
-        if(!isManualCol[ci])continue; /* skip formula columns */
-        const colData=fmtCols[ci]||[];
-        const fmt=String((colData[ri]||[])[0]!==undefined?(colData[ri]||[])[0]:'').trim();
-        if(fmt!==''&&!FERRORS.has(fmt.toLowerCase()))filledV++;
+      for(let colIdx=0;colIdx<=lastColRelative;colIdx++){
+        if(!isManualCol[colIdx])continue; /* skip formula columns */
+
+        const fmt=String(((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?
+          ((fmtCols[colIdx]||[])[ri]||[])[0]:'').trim();
+        const fml=String(((fmlCols[colIdx]||[])[ri]||[])[0]!==undefined?
+          ((fmlCols[colIdx]||[])[ri]||[])[0]:'').trim();
+
+        /* Use isRealData — the single source of truth for fill detection */
+        if(isRealData(fmt,fml))filledV++;
       }
 
       if(tabBlockBest[bIdx]===undefined||filledV>tabBlockBest[bIdx]){
