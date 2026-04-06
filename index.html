@@ -447,13 +447,15 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 
           <!-- LEFT: BLOCK OFFICERS -->
           <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:13px;font-weight:700;color:var(--blue)">
-                21 வட்டார அலுவலர்கள்
-                <span style="font-size:11px;font-weight:400;color:var(--gray)">(இலக்கு: 45)</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--blue-dk)" id="insp-report-title">
+                  கண்காணிப்பு இலக்கு நிறைவேற்றம்
+                </div>
+                <div style="font-size:11px;color:var(--gray)">21 வட்டார அலுவலர்கள் &nbsp;·&nbsp; இலக்கு: 45 கடைகள்</div>
               </div>
               <button class="btn btn-outline" onclick="screenshotBlocks()" style="font-size:11px;padding:4px 10px">
-                📸 Screenshot
+                📸 Clipboard
               </button>
             </div>
             <div id="insp-blocks-wrap" style="background:#fff;border:1px solid var(--border);border-radius:var(--r)">
@@ -768,6 +770,15 @@ function processInspection(){
   }
   showInspMsg('<span class="spin spin-b"></span> படிக்கிறது...','info');
   const squadDate=document.getElementById('insp-squad-date').value;
+  /* Generate report title from file name or current month */
+  const fileName=(fileEl.files[0]||{}).name||'';
+  const now=new Date();
+  const tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்',
+    'ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
+  const monthTa=tamilMonths[now.getMonth()];
+  const year=now.getFullYear();
+  const titleEl=document.getElementById('insp-report-title');
+  if(titleEl)titleEl.textContent=monthTa+' '+year+' — கண்காணிப்பு இலக்கு நிறைவேற்றம்';
   const reader=new FileReader();
   reader.onload=function(e){
     try{
@@ -911,9 +922,8 @@ async function screenshotBlocks(){
   const wrap=document.getElementById('insp-blocks-wrap');
   if(!wrap){alert('No data to screenshot.');return;}
   try{
-    /* Use html2canvas if available, else show instructions */
+    /* Load html2canvas if not already loaded */
     if(typeof html2canvas==='undefined'){
-      /* Load html2canvas dynamically */
       await new Promise((res,rej)=>{
         const s=document.createElement('script');
         s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
@@ -927,14 +937,24 @@ async function screenshotBlocks(){
       useCORS:true,
       logging:false
     });
-    /* Download as PNG */
-    const link=document.createElement('a');
-    link.download='inspection_report.png';
-    link.href=canvas.toDataURL('image/png');
-    link.click();
+    /* Copy image to clipboard */
+    canvas.toBlob(async(blob)=>{
+      try{
+        await navigator.clipboard.write([
+          new ClipboardItem({'image/png':blob})
+        ]);
+        alert('✅ Screenshot copied to clipboard!\nPaste directly in WhatsApp or anywhere.');
+      }catch(clipErr){
+        /* Clipboard API failed — fallback to download */
+        const link=document.createElement('a');
+        link.download='inspection_report.png';
+        link.href=canvas.toDataURL('image/png');
+        link.click();
+        alert('Clipboard not supported in this browser.\nImage downloaded instead.');
+      }
+    },'image/png');
   }catch(e){
-    alert('Screenshot failed: '+e.message+
-      '\n\nAlternatively, press Ctrl+Shift+S (Windows) or use browser screenshot tool.');
+    alert('Screenshot failed: '+e.message);
   }
 }
 
