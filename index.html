@@ -436,39 +436,63 @@ a{color:var(--blue)}.link-sm{font-size:12px}
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="processInspection()">
-            📊 Generate Report
-          </button>
-          <button class="btn btn-outline" onclick="resetInspection()">
-            🔄 Reset
-          </button>
+          <button class="btn btn-primary" onclick="processInspection()">📊 Generate Report</button>
+          <button class="btn btn-outline" onclick="resetInspection()">🔄 Reset</button>
         </div>
         <div id="insp-msg" class="hidden" style="margin-top:10px"></div>
       </div>
 
       <div id="insp-result" class="hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
 
-        <!-- OFFICERS (small box on top) -->
-        <div class="card" style="margin-bottom:12px">
-          <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">அலுவலர்கள் — Officers</div>
-          <div id="insp-officers" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        </div>
-
-        <!-- BLOCK OFFICERS — compact grid -->
-        <div class="card" style="padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-            <div>
-              <span style="font-size:13px;font-weight:700;color:var(--blue)">21 வட்டார அலுவலர்கள்</span>
-              <span style="font-size:11px;color:var(--gray);margin-left:6px">(இலக்கு: 45 கடைகள்)</span>
+          <!-- LEFT: BLOCK OFFICERS -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="font-size:13px;font-weight:700;color:var(--blue)">
+                21 வட்டார அலுவலர்கள்
+                <span style="font-size:11px;font-weight:400;color:var(--gray)">(இலக்கு: 45)</span>
+              </div>
+              <button class="btn btn-outline" onclick="screenshotBlocks()" style="font-size:11px;padding:4px 10px">
+                📸 Screenshot
+              </button>
             </div>
-            <button class="btn btn-outline" onclick="copyInspToClipboard()" style="font-size:12px;padding:5px 12px">
-              📋 Copy for WhatsApp
-            </button>
+            <div id="insp-blocks-wrap" style="background:#fff;border:1px solid var(--border);border-radius:var(--r)">
+              <table style="width:100%;border-collapse:collapse;font-size:13px" id="insp-blocks-tbl">
+                <thead>
+                  <tr style="background:var(--blue-dk);color:#fff">
+                    <th style="padding:8px 10px;text-align:left;font-weight:600;border-radius:var(--r) 0 0 0">#</th>
+                    <th style="padding:8px 10px;text-align:left;font-weight:600">வட்டாரம்</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">கண்காணிப்பு</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600;border-radius:0 var(--r) 0 0">நிலுவை</th>
+                  </tr>
+                </thead>
+                <tbody id="insp-blocks"></tbody>
+              </table>
+              <div id="insp-summary" style="padding:8px 10px;font-size:12px;color:var(--gray);border-top:1px solid var(--border);background:var(--gray-lt);border-radius:0 0 var(--r) var(--r)"></div>
+            </div>
           </div>
-          <div id="insp-blocks" style="display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
-          <div id="insp-summary" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--gray)"></div>
-        </div>
 
+          <!-- RIGHT: OFFICERS -->
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">
+              அலுவலர்கள் — Officers
+            </div>
+            <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r)">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:var(--green-dk,#064432);color:#fff">
+                    <th style="padding:8px 10px;text-align:left;font-weight:600">பதவி</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">கண்காணிப்பு</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">இலக்கு</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">நிலுவை</th>
+                  </tr>
+                </thead>
+                <tbody id="insp-officers"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -825,67 +849,95 @@ function processInspection(){
 }
 
 function renderInspResults(blocks,officers,squadDate){
-  /* Compact block card for 2-column grid */
-  function makeBlockCard(e){
-    const done=e.adjusted>=e.target;
-    const pct=Math.round(e.adjusted/e.target*100);
-    const bg=done?'var(--green-lt)':e.adjusted>=Math.ceil(e.target*0.75)?'var(--amber-lt)':'var(--red-lt)';
-    const col=done?'var(--green)':e.adjusted>=Math.ceil(e.target*0.75)?'var(--amber)':'var(--red)';
-    const pending=e.pending>0?`<span style="font-size:10px;color:var(--red)">⏳${e.pending} நிலுவை</span>`:'';
-    const tick=done?'<span style="font-size:10px;color:var(--green)">✓ முடிந்தது</span>':'';
-    const squad=squadDate&&e.squadCount>0?`<span style="font-size:9px;color:var(--gray)">(${e.total}-${e.squadCount})</span>`:'';
-    return `<div style="background:${bg};border-radius:6px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px">
-      <div style="min-width:0">
-        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
-        <div>${pending}${tick}${squad}</div>
-      </div>
-      <div style="font-size:22px;font-weight:800;color:${col};flex-shrink:0">${e.adjusted}</div>
-    </div>`;
+  const FERRORS_=new Set();
+
+  /* ── Block officers table rows (sorted least→highest) ── */
+  const tbody=document.getElementById('insp-blocks');
+  if(tbody){
+    tbody.innerHTML=blocks.map((e,i)=>{
+      const done=e.adjusted>=e.target;
+      const near=!done&&e.adjusted>=Math.ceil(e.target*0.75);
+      const rowBg=done?'#e4f5ee':near?'#fff3e0':'#fdecea';
+      const countCol=done?'var(--green)':near?'var(--amber)':'var(--red)';
+      const pendText=done?'<span style="color:var(--green);font-weight:700">✓</span>':
+        `<span style="color:var(--red);font-weight:700">${e.pending}</span>`;
+      const squadNote=squadDate&&e.squadCount>0?
+        `<div style="font-size:10px;color:var(--gray)">(${e.total} - ${e.squadCount} squad)</div>`:'';
+      return `<tr style="background:${rowBg};border-bottom:1px solid rgba(0,0,0,.07)">
+        <td style="padding:7px 10px;color:var(--gray);font-size:12px;text-align:center">${i+1}</td>
+        <td style="padding:7px 10px;font-weight:600">${e.name}${squadNote}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:17px;font-weight:800;color:${countCol}">${e.adjusted}</td>
+        <td style="padding:7px 10px;text-align:center">${pendText}</td>
+      </tr>`;
+    }).join('');
   }
 
-  /* Officer pill */
-  function makeOfficerPill(e){
-    if(e.target===null)return '';
-    const done=e.adjusted>=e.target;
-    const col=done?'var(--green)':'var(--red)';
-    const bg=done?'var(--green-lt)':'var(--red-lt)';
-    return `<div style="background:${bg};border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:8px">
-      <span style="font-size:12px;font-weight:600">${e.name}</span>
-      <span style="font-size:18px;font-weight:800;color:${col}">${e.adjusted}</span>
-      <span style="font-size:11px;color:var(--gray)">/ ${e.target}</span>
-      ${done?'<span style="font-size:11px;color:var(--green)">✓</span>':`<span style="font-size:11px;color:var(--red)">(${e.pending} நிலுவை)</span>`}
-    </div>`;
+  /* ── Officers table rows ── */
+  const otbody=document.getElementById('insp-officers');
+  if(otbody){
+    otbody.innerHTML=officers.map(e=>{
+      if(e.target===null){
+        return `<tr style="border-bottom:1px solid rgba(0,0,0,.07)">
+          <td style="padding:7px 10px;font-weight:600">${e.name}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:17px;font-weight:800;color:var(--blue)">${e.adjusted}</td>
+          <td style="padding:7px 10px;text-align:center;color:var(--gray)">—</td>
+          <td style="padding:7px 10px;text-align:center;color:var(--gray)">—</td>
+        </tr>`;
+      }
+      const done=e.adjusted>=e.target;
+      const rowBg=done?'#e4f5ee':'#fdecea';
+      const col=done?'var(--green)':'var(--red)';
+      return `<tr style="background:${rowBg};border-bottom:1px solid rgba(0,0,0,.07)">
+        <td style="padding:7px 10px;font-weight:600">${e.name}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:17px;font-weight:800;color:${col}">${e.adjusted}</td>
+        <td style="padding:7px 10px;text-align:center;color:var(--gray)">${e.target}</td>
+        <td style="padding:7px 10px;text-align:center">${done?
+          '<span style="color:var(--green);font-weight:700">✓</span>':
+          `<span style="color:var(--red);font-weight:700">${e.pending}</span>`}</td>
+      </tr>`;
+    }).join('');
   }
 
-  document.getElementById('insp-blocks').innerHTML=blocks.map(makeBlockCard).join('');
-  document.getElementById('insp-officers').innerHTML=officers.map(makeOfficerPill).join('');
-
-  /* Summary line */
+  /* ── Summary line ── */
   const done=blocks.filter(b=>b.adjusted>=b.target).length;
   const partial=blocks.filter(b=>b.adjusted>0&&b.adjusted<b.target).length;
   const none=blocks.filter(b=>b.adjusted===0).length;
-  const el=document.getElementById('insp-summary');
-  if(el)el.innerHTML=`✅ ${done} முடிந்தது &nbsp;|&nbsp; ⏳ ${partial} நடைபெறுகிறது &nbsp;|&nbsp; ❌ ${none} தொடங்கவில்லை`;
+  const sum=document.getElementById('insp-summary');
+  if(sum)sum.innerHTML=
+    `✅ ${done} முடிந்தது &nbsp;·&nbsp; ⏳ ${partial} நடைபெறுகிறது &nbsp;·&nbsp; ❌ ${none} தொடங்கவில்லை`;
 }
 
-function copyInspToClipboard(){
-  const blocks=document.getElementById('insp-blocks');
-  if(!blocks)return;
-  /* Build text representation for WhatsApp */
-  const cards=blocks.querySelectorAll('div[style*="border-radius:6px"]');
-  let lines=['*திருவண்ணாமலை மாவட்டம் — கண்காணிப்பு நிலை*',''];
-  cards.forEach(card=>{
-    const name=card.querySelector('div[style*="font-size:12px"]')?.textContent?.trim()||'';
-    const count=card.querySelector('div[style*="font-size:22px"]')?.textContent?.trim()||'';
-    const status=card.querySelector('span[style*="font-size:10px"]')?.textContent?.trim()||'';
-    const tick=status.includes('முடிந்தது')?'✅':'⏳';
-    lines.push(`${tick} ${name}: ${count}/45 ${status}`);
-  });
-  const sumEl=document.getElementById('insp-summary');
-  if(sumEl)lines.push('',sumEl.textContent.trim());
-  lines.push('','— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை');
-  navigator.clipboard.writeText(lines.join('\n')).then(()=>alert('Copied to clipboard! Paste in WhatsApp.'));
+async function screenshotBlocks(){
+  const wrap=document.getElementById('insp-blocks-wrap');
+  if(!wrap){alert('No data to screenshot.');return;}
+  try{
+    /* Use html2canvas if available, else show instructions */
+    if(typeof html2canvas==='undefined'){
+      /* Load html2canvas dynamically */
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload=res;s.onerror=rej;
+        document.head.appendChild(s);
+      });
+    }
+    const canvas=await html2canvas(wrap,{
+      backgroundColor:'#ffffff',
+      scale:2,
+      useCORS:true,
+      logging:false
+    });
+    /* Download as PNG */
+    const link=document.createElement('a');
+    link.download='inspection_report.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(e){
+    alert('Screenshot failed: '+e.message+
+      '\n\nAlternatively, press Ctrl+Shift+S (Windows) or use browser screenshot tool.');
+  }
 }
+
 
 function showInspMsg(msg,type){
   const el=document.getElementById('insp-msg');
@@ -1125,140 +1177,129 @@ function calcFillStatus(fV,tV){
 async function readSheetData(s){
   const meta=await sheetsGetMeta(s.sheetId);
   const tabs=meta.sheets.map(sh=>sh.properties.title);
-  const ranges=tabs.map(t=>"'"+t+"'!A:Z");
-  const [fmtResp,fmlResp]=await Promise.all([
-    sheetsBatchGet(s.sheetId,ranges),
-    sheetsBatchGetFormula(s.sheetId,ranges)
-  ]);
-
   const blockData={};
+  const FERRORS=new Set(['#div/0!','#ref!','#value!','#n/a!','#name?','#null!','#num!','#error!']);
 
-  (fmtResp.valueRanges||[]).forEach((vr,ti)=>{
-    const tabName=tabs[ti];
-    const fmtRows=vr.values||[];
-    const fmlRows=((fmlResp.valueRanges||[])[ti]||{}).values||[];
-    if(!fmtRows.length)return;
+  for(const tabName of tabs){
+    /* ── STEP 1: Read full tab to find block structure ── */
+    const enc=t=>"'"+t+"'";
+    const fmtFull=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
+      '/values/'+encodeURIComponent(enc(tabName)+'!A:Z')+'?valueRenderOption=FORMATTED_VALUE');
+    const fmtRows=fmtFull.values||[];
+    if(!fmtRows.length)continue;
 
-    /* Pad all rows to maxCols so truncated rows (like HQ) get full width */
-    const maxCols=fmtRows.reduce((mx,r)=>Math.max(mx,(r||[]).length),0);
-    if(!maxCols)return;
-
-    /* Find blockCol AND firstDataRow by scanning rows */
+    /* Find blockCol and firstDataRow */
     let blockCol=-1,firstDataRow=-1;
     for(let ri=0;ri<fmtRows.length&&(blockCol<0||firstDataRow<0);ri++){
-      const row=fmtRows[ri]||[];
-      for(let ci=0;ci<row.length;ci++){
-        /* Pass the full row (not just single cell) so matchBlock can use
-           context from surrounding cells if needed */
-        if(matchBlock([String(row[ci]||'').trim()])>=0){
+      for(let ci=0;ci<(fmtRows[ri]||[]).length;ci++){
+        if(matchBlock([String((fmtRows[ri]||[])[ci]||'').trim()])>=0){
           if(blockCol<0)blockCol=ci;
           if(firstDataRow<0)firstDataRow=ri;
           break;
         }
       }
     }
-    /* Safety: if blockCol not found via single-cell, try full row scan */
-    if(blockCol<0){
-      for(let ri=0;ri<Math.min(fmtRows.length,20);ri++){
-        const fullRow=(fmtRows[ri]||[]).map(x=>String(x||'').trim());
-        const bIdx=matchBlock(fullRow);
-        if(bIdx>=0){
-          /* find which column in this row matched */
-          for(let ci=0;ci<fullRow.length;ci++){
-            if(matchBlock([fullRow[ci]])>=0){blockCol=ci;break;}
-          }
-          if(firstDataRow<0)firstDataRow=ri;
-          if(blockCol>=0)break;
-        }
+    if(blockCol<0||firstDataRow<0)continue;
+
+    const dataColStart=blockCol+1;
+
+    /* Find last non-empty column in first data row */
+    const firstDataRowCells=fmtRows[firstDataRow]||[];
+    let lastCol=firstDataRowCells.length-1;
+    /* Also check a few more data rows to find true extent */
+    for(let ri=firstDataRow;ri<Math.min(firstDataRow+5,fmtRows.length);ri++){
+      const rowLen=(fmtRows[ri]||[]).length;
+      if(rowLen-1>lastCol)lastCol=rowLen-1;
+    }
+    if(lastCol<dataColStart)continue;
+
+    /* ── STEP 2: Fetch each data column individually (avoids truncation) ── */
+    const colLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const colRanges=[];
+    for(let ci=dataColStart;ci<=lastCol;ci++){
+      colRanges.push(enc(tabName)+'!'+colLetters[ci]+':'+colLetters[ci]);
+    }
+
+    /* Batch fetch all columns in one batchGet call — formatted and formula */
+    const batchFmt=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
+      '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
+      '&valueRenderOption=FORMATTED_VALUE');
+    const batchFml=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
+      '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
+      '&valueRenderOption=FORMULA');
+
+    const fmtCols=(batchFmt.valueRanges||[]).map(vr=>vr.values||[]);
+    const fmlCols=(batchFml.valueRanges||[]).map(vr=>vr.values||[]);
+
+    /* ── STEP 3: Classify each column as manual or formula ── */
+    /* A column is a FORMULA column if ANY data row has a formula in it */
+    const isManualCol=[];
+    for(let ci=0;ci<fmtCols.length;ci++){
+      const fmlColData=fmlCols[ci]||[];
+      let hasFormula=false;
+      for(let ri=firstDataRow;ri<fmtRows.length;ri++){
+        const cellVal=String((fmlColData[ri]||[])[0]!==undefined?(fmlColData[ri]||[])[0]:'').trim();
+        if(cellVal.startsWith('=')){hasFormula=true;break;}
       }
+      isManualCol.push(!hasFormula);
     }
-    if(blockCol<0||firstDataRow<0)return;
 
-    const dataColStart=blockCol+1; /* only columns RIGHT of block name */
+    const tabMaxV=isManualCol.filter(Boolean).length;
+    if(tabMaxV===0)continue;
 
-    /* ── STEP 1: Calculate tabMaxV ────────────────────────────────
-       tabMaxV = total user-fillable columns in this tab.
-       Strategy: collect column counts from all block rows, use the MODE
-       (most common value) to avoid outlier rows inflating the count.
-       A column is "user-fillable" if it is NOT a formula column —
-       determined by checking if ANY block row has a formula there. */
-
-    /* First pass: identify which columns are formula columns */
-    const isFormulaCol=new Array(maxCols).fill(false);
-    for(let ri=firstDataRow;ri<fmtRows.length;ri++){
-      const row=Array.from({length:maxCols},(_,ci)=>(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'');
-      if(matchBlock(row)<0)continue;
-      const rowText=row.join(' ').toLowerCase();
-      if(/total/.test(rowText)&&row.filter(x=>String(x).trim()!=='').length<5)continue;
-      const fRow=Array.from({length:maxCols},(_,ci)=>(fmlRows[ri]||[])[ci]!==undefined?(fmlRows[ri]||[])[ci]:'');
-      for(let ci=dataColStart;ci<maxCols;ci++){
-        if(String(fRow[ci]).trim().startsWith('='))isFormulaCol[ci]=true;
-      }
-    }
-    /* tabMaxV = count of non-formula columns right of blockCol */
-    let tabMaxV=0;
-    for(let ci=dataColStart;ci<maxCols;ci++){
-      if(!isFormulaCol[ci])tabMaxV++;
-    }
-    if(tabMaxV===0)return;
-
-    /* ── STEP 2: Score each block row ─────────────────────────────
-       KEY: Each block should appear ONCE per tab.
-       If a block appears multiple times (header artifacts, subtotals),
-       keep only the row with the HIGHEST filledV (the real data row).
-       tabMaxV is added only ONCE per block per tab. */
-    const FERRORS=new Set(['#div/0!','#ref!','#value!','#n/a!','#name?','#null!','#num!','#error!']);
-    /* tabBlockBest: best filledV seen for each block in this tab */
+    /* ── STEP 4: Score each block row using only manual columns ── */
     const tabBlockBest={};
 
     for(let ri=firstDataRow;ri<fmtRows.length;ri++){
-      const row=Array.from({length:maxCols},(_,ci)=>{
-        const v=(fmtRows[ri]||[])[ci];return v!==undefined?v:'';
-      });
-      const fRow=Array.from({length:maxCols},(_,ci)=>{
-        const v=(fmlRows[ri]||[])[ci];return v!==undefined?v:'';
+      /* Reconstruct this row from per-column data */
+      const row=Array.from({length:lastCol+1},(_,ci)=>{
+        if(ci<dataColStart)return(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'';
+        const colIdx=ci-dataColStart;
+        const colData=fmtCols[colIdx]||[];
+        return(colData[ri]||[])[0]!==undefined?(colData[ri]||[])[0]:'';
       });
 
       const bIdx=matchBlock(row);
       if(bIdx<0)continue;
 
-      /* Skip obvious total/summary rows */
-      const rowText=row.join(' ').toLowerCase();
-      if(/total|குலத்தொகை|மொத்தம்/.test(rowText))continue;
+      /* Skip total/summary rows */
+      if(/total|மொத்தம்/.test(row.join(' ').toLowerCase()))continue;
 
       let filledV=0;
-      for(let ci=dataColStart;ci<maxCols;ci++){
-        if(isFormulaCol[ci])continue; /* skip formula columns */
-        const fmt=String(row[ci]).trim();
+      for(let ci=0;ci<fmtCols.length;ci++){
+        if(!isManualCol[ci])continue; /* skip formula columns */
+        const colData=fmtCols[ci]||[];
+        const fmt=String((colData[ri]||[])[0]!==undefined?(colData[ri]||[])[0]:'').trim();
         if(fmt!==''&&!FERRORS.has(fmt.toLowerCase()))filledV++;
       }
 
-      /* Keep best (highest) filledV for this block in this tab */
       if(tabBlockBest[bIdx]===undefined||filledV>tabBlockBest[bIdx]){
         tabBlockBest[bIdx]=filledV;
       }
     }
 
-    /* Now accumulate into blockData — ONCE per block per tab */
-    Object.entries(tabBlockBest).forEach(([bIdx,filledV])=>{
-      const i=parseInt(bIdx);
-      if(!blockData[i])blockData[i]={filledV:0,totalV:0,tabs:[]};
-      blockData[i].filledV+=filledV;
-      blockData[i].totalV+=tabMaxV; /* same for all blocks */
-      if(!blockData[i].tabs.includes(tabName))blockData[i].tabs.push(tabName);
+    /* ── STEP 5: Accumulate — once per block per tab ── */
+    Object.entries(tabBlockBest).forEach(([bIdxStr,filledV])=>{
+      const bIdx=parseInt(bIdxStr);
+      if(!blockData[bIdx])blockData[bIdx]={filledV:0,totalV:0,tabs:[]};
+      blockData[bIdx].filledV+=filledV;
+      blockData[bIdx].totalV+=tabMaxV;
+      if(!blockData[bIdx].tabs.includes(tabName))
+        blockData[bIdx].tabs.push(tabName);
     });
-  });
+  }
 
   s.blockStatus=BLOCKS.map((_,i)=>{
     const bd=blockData[i];
-    if(!bd||bd.totalV===0){
-      return{idx:i,status:'unfilled',reason:'Block not found in sheet',tabs:[],updatedAt:today()};
-    }
+    if(!bd||bd.totalV===0)return{idx:i,status:'unfilled',
+      reason:'Block not found in sheet',tabs:[],updatedAt:today()};
     const{status,reason}=calcFillStatus(bd.filledV,bd.totalV);
-    return{idx:i,status,reason,tabs:bd.tabs,filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
+    return{idx:i,status,reason,tabs:bd.tabs,
+           filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
   });
   s.lastRead=nowStr();
 }
+
 /* ══════════════════════════════════
    IMPORT EXISTING SHEET
 ══════════════════════════════════ */
