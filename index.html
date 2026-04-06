@@ -447,26 +447,28 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       </div>
 
       <div id="insp-result" class="hidden">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 
-          <!-- BLOCK OFFICERS -->
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--blue-lt)">
-              21 வட்டார அலுவலர்கள் — Block Officers
-              <span style="font-size:11px;font-weight:400;color:var(--gray)">(Target: 45 shops)</span>
-            </div>
-            <div id="insp-blocks"></div>
-          </div>
-
-          <!-- OFFICERS -->
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--green-lt)">
-              அலுவலர்கள் — Officers
-            </div>
-            <div id="insp-officers"></div>
-          </div>
-
+        <!-- OFFICERS (small box on top) -->
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">அலுவலர்கள் — Officers</div>
+          <div id="insp-officers" style="display:flex;gap:8px;flex-wrap:wrap"></div>
         </div>
+
+        <!-- BLOCK OFFICERS — compact grid -->
+        <div class="card" style="padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div>
+              <span style="font-size:13px;font-weight:700;color:var(--blue)">21 வட்டார அலுவலர்கள்</span>
+              <span style="font-size:11px;color:var(--gray);margin-left:6px">(இலக்கு: 45 கடைகள்)</span>
+            </div>
+            <button class="btn btn-outline" onclick="copyInspToClipboard()" style="font-size:12px;padding:5px 12px">
+              📋 Copy for WhatsApp
+            </button>
+          </div>
+          <div id="insp-blocks" style="display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
+          <div id="insp-summary" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--gray)"></div>
+        </div>
+
       </div>
     </div>
 
@@ -823,29 +825,66 @@ function processInspection(){
 }
 
 function renderInspResults(blocks,officers,squadDate){
-  function makeRow(e){
-    const hasTarget=e.target!==null;
-    const col=!hasTarget?'var(--gray)':e.adjusted>=e.target?'var(--green)':e.adjusted>=Math.ceil(e.target*0.75)?'var(--amber)':'var(--red)';
-    const squadNote=squadDate&&e.squadCount>0?
-      `<div style="font-size:10px;color:var(--gray)">மொத்தம்: ${e.total} | Squad: ${e.squadCount} கழிக்கப்பட்டது</div>`:'';
-    const pendNote=hasTarget&&e.pending>0?
-      `<span style="font-size:11px;color:var(--red);margin-left:4px">(${e.pending} நிலுவை)</span>`:'';
-    const doneNote=hasTarget&&e.pending===0?
-      `<span style="font-size:11px;color:var(--green);margin-left:4px">✓</span>`:'';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.06)">
-      <div>
-        <div style="font-size:13px;font-weight:600">${e.name}</div>
-        ${squadNote}
+  /* Compact block card for 2-column grid */
+  function makeBlockCard(e){
+    const done=e.adjusted>=e.target;
+    const pct=Math.round(e.adjusted/e.target*100);
+    const bg=done?'var(--green-lt)':e.adjusted>=Math.ceil(e.target*0.75)?'var(--amber-lt)':'var(--red-lt)';
+    const col=done?'var(--green)':e.adjusted>=Math.ceil(e.target*0.75)?'var(--amber)':'var(--red)';
+    const pending=e.pending>0?`<span style="font-size:10px;color:var(--red)">⏳${e.pending} நிலுவை</span>`:'';
+    const tick=done?'<span style="font-size:10px;color:var(--green)">✓ முடிந்தது</span>':'';
+    const squad=squadDate&&e.squadCount>0?`<span style="font-size:9px;color:var(--gray)">(${e.total}-${e.squadCount})</span>`:'';
+    return `<div style="background:${bg};border-radius:6px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px">
+      <div style="min-width:0">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
+        <div>${pending}${tick}${squad}</div>
       </div>
-      <div style="text-align:right">
-        <span style="font-size:20px;font-weight:700;color:${col}">${e.adjusted}</span>
-        ${hasTarget?`<span style="font-size:11px;color:var(--gray)"> / ${e.target}</span>`:''}
-        ${pendNote}${doneNote}
-      </div>
+      <div style="font-size:22px;font-weight:800;color:${col};flex-shrink:0">${e.adjusted}</div>
     </div>`;
   }
-  document.getElementById('insp-blocks').innerHTML=blocks.map(makeRow).join('');
-  document.getElementById('insp-officers').innerHTML=officers.map(makeRow).join('');
+
+  /* Officer pill */
+  function makeOfficerPill(e){
+    if(e.target===null)return '';
+    const done=e.adjusted>=e.target;
+    const col=done?'var(--green)':'var(--red)';
+    const bg=done?'var(--green-lt)':'var(--red-lt)';
+    return `<div style="background:${bg};border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;font-weight:600">${e.name}</span>
+      <span style="font-size:18px;font-weight:800;color:${col}">${e.adjusted}</span>
+      <span style="font-size:11px;color:var(--gray)">/ ${e.target}</span>
+      ${done?'<span style="font-size:11px;color:var(--green)">✓</span>':`<span style="font-size:11px;color:var(--red)">(${e.pending} நிலுவை)</span>`}
+    </div>`;
+  }
+
+  document.getElementById('insp-blocks').innerHTML=blocks.map(makeBlockCard).join('');
+  document.getElementById('insp-officers').innerHTML=officers.map(makeOfficerPill).join('');
+
+  /* Summary line */
+  const done=blocks.filter(b=>b.adjusted>=b.target).length;
+  const partial=blocks.filter(b=>b.adjusted>0&&b.adjusted<b.target).length;
+  const none=blocks.filter(b=>b.adjusted===0).length;
+  const el=document.getElementById('insp-summary');
+  if(el)el.innerHTML=`✅ ${done} முடிந்தது &nbsp;|&nbsp; ⏳ ${partial} நடைபெறுகிறது &nbsp;|&nbsp; ❌ ${none} தொடங்கவில்லை`;
+}
+
+function copyInspToClipboard(){
+  const blocks=document.getElementById('insp-blocks');
+  if(!blocks)return;
+  /* Build text representation for WhatsApp */
+  const cards=blocks.querySelectorAll('div[style*="border-radius:6px"]');
+  let lines=['*திருவண்ணாமலை மாவட்டம் — கண்காணிப்பு நிலை*',''];
+  cards.forEach(card=>{
+    const name=card.querySelector('div[style*="font-size:12px"]')?.textContent?.trim()||'';
+    const count=card.querySelector('div[style*="font-size:22px"]')?.textContent?.trim()||'';
+    const status=card.querySelector('span[style*="font-size:10px"]')?.textContent?.trim()||'';
+    const tick=status.includes('முடிந்தது')?'✅':'⏳';
+    lines.push(`${tick} ${name}: ${count}/45 ${status}`);
+  });
+  const sumEl=document.getElementById('insp-summary');
+  if(sumEl)lines.push('',sumEl.textContent.trim());
+  lines.push('','— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை');
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>alert('Copied to clipboard! Paste in WhatsApp.'));
 }
 
 function showInspMsg(msg,type){
@@ -1164,15 +1203,14 @@ async function readSheetData(s){
     if(tabMaxV===0)return;
 
     /* ── STEP 2: Score each block row ─────────────────────────────
-       filledV = how many user-fillable columns the officer has typed in.
-       Rules (per your clarification):
-       - Officer MUST fill all columns (even with 0 or -)
-       - User typed anything (0, -, 0.00, any value) = FILLED
-       - Empty cell = NOT FILLED
-       - Formula cell = not counted in totalV (officers don't type formulas)
-       - Formula returning 0 = NOT FILLED (no officer input)
-       - Formula error (#DIV/0! etc) = NOT FILLED */
+       KEY: Each block should appear ONCE per tab.
+       If a block appears multiple times (header artifacts, subtotals),
+       keep only the row with the HIGHEST filledV (the real data row).
+       tabMaxV is added only ONCE per block per tab. */
     const FERRORS=new Set(['#div/0!','#ref!','#value!','#n/a!','#name?','#null!','#num!','#error!']);
+    /* tabBlockBest: best filledV seen for each block in this tab */
+    const tabBlockBest={};
+
     for(let ri=firstDataRow;ri<fmtRows.length;ri++){
       const row=Array.from({length:maxCols},(_,ci)=>{
         const v=(fmtRows[ri]||[])[ci];return v!==undefined?v:'';
@@ -1184,42 +1222,31 @@ async function readSheetData(s){
       const bIdx=matchBlock(row);
       if(bIdx<0)continue;
 
-      /* Skip Total/Grand Total summary rows — they inflate totalV */
+      /* Skip obvious total/summary rows */
       const rowText=row.join(' ').toLowerCase();
-      if(/total|குலத்தொகை|மொத்தம்/.test(rowText)&&
-         row.filter(x=>String(x).trim()!=='').length<5)continue;
+      if(/total|குலத்தொகை|மொத்தம்/.test(rowText))continue;
 
       let filledV=0;
       for(let ci=dataColStart;ci<maxCols;ci++){
-        const fmlStr=String(fRow[ci]).trim();
+        if(isFormulaCol[ci])continue; /* skip formula columns */
         const fmt=String(row[ci]).trim();
-
-        /* Skip formula columns — not officer's responsibility */
-        if(fmlStr.startsWith('='))continue;
-
-        /* User-fillable column.
-           KEY FIX: Trust FORMATTED_VALUE (fmt) as the absolute ground truth.
-           - fmlStr='' means FORMULA API truncated (common when row has empty
-             middle cols followed by user-typed values like HQ with 0s).
-           - If fmt is non-empty AND not a formula error → officer filled it.
-           - This correctly handles user-typed 0, -, 0.00 etc.
-           - Only skip: truly empty (fmt='') or formula errors.
-           We do NOT check fmlStr for zero-skipping here because fmlStr
-           can be '' even for user-typed cells (FORMULA API truncation). */
-        if(fmt===''||FERRORS.has(fmt.toLowerCase())){
-          /* Genuinely empty or error — not filled */
-        } else {
-          /* fmt has any value including 0, -, 0.00 → officer filled it */
-          filledV++;
-        }
+        if(fmt!==''&&!FERRORS.has(fmt.toLowerCase()))filledV++;
       }
 
-      if(!blockData[bIdx])blockData[bIdx]={filledV:0,totalV:0,tabs:[]};
-      blockData[bIdx].filledV+=filledV;
-      /* totalV: same tabMaxV for ALL blocks — every block has same fields to fill */
-      blockData[bIdx].totalV+=tabMaxV;
-      if(!blockData[bIdx].tabs.includes(tabName))blockData[bIdx].tabs.push(tabName);
+      /* Keep best (highest) filledV for this block in this tab */
+      if(tabBlockBest[bIdx]===undefined||filledV>tabBlockBest[bIdx]){
+        tabBlockBest[bIdx]=filledV;
+      }
     }
+
+    /* Now accumulate into blockData — ONCE per block per tab */
+    Object.entries(tabBlockBest).forEach(([bIdx,filledV])=>{
+      const i=parseInt(bIdx);
+      if(!blockData[i])blockData[i]={filledV:0,totalV:0,tabs:[]};
+      blockData[i].filledV+=filledV;
+      blockData[i].totalV+=tabMaxV; /* same for all blocks */
+      if(!blockData[i].tabs.includes(tabName))blockData[i].tabs.push(tabName);
+    });
   });
 
   s.blockStatus=BLOCKS.map((_,i)=>{
