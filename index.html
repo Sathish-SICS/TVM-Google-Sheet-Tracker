@@ -109,6 +109,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
 .hidden{display:none!important}
 a{color:var(--blue)}.link-sm{font-size:12px}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -180,6 +181,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     <div class="tab" data-tab="whatsapp">💬 WhatsApp</div>
     <div class="tab" data-tab="repo">🗄 Repository</div>
     <div class="tab" data-tab="trash">🗑 Trash</div>
+    <div class="tab" data-tab="inspection">🔍 Inspection</div>
   </div>
 
   <div class="main">
@@ -416,6 +418,58 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       <div id="repo-list"></div>
     </div>
 
+    <!-- ═══ INSPECTION ═══ -->
+    <div class="panel" id="panel-inspection">
+      <div class="sec-title">Inspection Report</div>
+      <div class="sec-sub">MIS portal-இல் இருந்து பதிவிறக்கிய Excel கோப்பை இங்கே இழுத்து விடுங்கள்</div>
+
+      <div class="card">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+          <div style="flex:1;min-width:200px">
+            <label class="flbl">Excel File (MIS Inspection Report)</label>
+            <input type="file" id="insp-file" accept=".xlsx,.xls"
+              style="padding:8px;border:2px dashed var(--border);border-radius:var(--r-sm);background:var(--gray-lt);cursor:pointer;width:100%">
+          </div>
+          <div>
+            <label class="flbl">Squad Day Date (if applicable)</label>
+            <input type="date" id="insp-squad-date" class="finput" style="min-width:160px">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="processInspection()">
+            📊 Generate Report
+          </button>
+          <button class="btn btn-outline" onclick="resetInspection()">
+            🔄 Reset
+          </button>
+        </div>
+        <div id="insp-msg" class="hidden" style="margin-top:10px"></div>
+      </div>
+
+      <div id="insp-result" class="hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+          <!-- BLOCK OFFICERS -->
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--blue-lt)">
+              21 வட்டார அலுவலர்கள் — Block Officers
+              <span style="font-size:11px;font-weight:400;color:var(--gray)">(Target: 45 shops)</span>
+            </div>
+            <div id="insp-blocks"></div>
+          </div>
+
+          <!-- OFFICERS -->
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--green-lt)">
+              அலுவலர்கள் — Officers
+            </div>
+            <div id="insp-officers"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ TRASH ═══ -->
     <div class="panel" id="panel-trash">
       <div class="sec-title">🗑 Trash</div>
@@ -642,6 +696,165 @@ function doSignOut(){
   document.getElementById('app').style.display='none';
 }
 function showSignMsg(m){document.getElementById('signin-msg').textContent=m;}
+
+/* ══════════════════════════════════
+   INSPECTION REPORT
+══════════════════════════════════ */
+const INSPECTOR_MAP={
+  '7338749500':{name:'இணைப்பதிவாளர்',type:'officer',target:10},
+  '7338749503':{name:'துணைப்பதிவாளர், செய்யார் சரகம்',type:'officer',target:null},
+  '7338749504':{name:'துணைப்பதிவாளர் (பொவிதி)',type:'officer',target:50},
+  '7338749524':{name:'திருவண்ணாமலை HQ',type:'block',target:45},
+  '7338749525':{name:'திருவண்ணாமலை 1',type:'block',target:45},
+  '7338749526':{name:'கீழ்பென்னாத்தூர்',type:'block',target:45},
+  '7338749527':{name:'செங்கம்',type:'block',target:45},
+  '7338749528':{name:'தண்டராம்பட்டு',type:'block',target:45},
+  '7338749529':{name:'கலசப்பாக்கம்',type:'block',target:45},
+  '7338749530':{name:'போளூர்',type:'block',target:45},
+  '7338749531':{name:'ஜமுனாமரத்தூர் (IC)',type:'block',target:45},
+  '7338749532':{name:'சேத்துபட்டு',type:'block',target:45},
+  '7338749533':{name:'ஆரணி (கிழக்கு)',type:'block',target:45},
+  '7338749534':{name:'செய்யார்',type:'block',target:45},
+  '7338749535':{name:'வெம்பாக்கம் 1',type:'block',target:45},
+  '7338749536':{name:'வந்தவாசி',type:'block',target:45},
+  '7338749537':{name:'பெரணமல்லூர்',type:'block',target:45},
+  '7338749538':{name:'தெள்ளார்',type:'block',target:45},
+  '7338749539':{name:'துரிஞ்சாபுரம்',type:'block',target:45},
+  '7338749540':{name:'புதுப்பாளையம்',type:'block',target:45},
+  '7338749541':{name:'ஆரணி (மேற்கு)',type:'block',target:45},
+  '7458968899':{name:'திருவண்ணாமலை 2',type:'block',target:45},
+  '8457896987':{name:'வெம்பாக்கம் 2',type:'block',target:45},
+  '8541478968':{name:'அனக்காவூர்',type:'block',target:45},
+};
+const SQUAD_COUNT=3;
+
+function resetInspection(){
+  document.getElementById('insp-file').value='';
+  document.getElementById('insp-squad-date').value='';
+  document.getElementById('insp-result').classList.add('hidden');
+  document.getElementById('insp-msg').classList.add('hidden');
+}
+
+function processInspection(){
+  const fileEl=document.getElementById('insp-file');
+  if(!fileEl.files||!fileEl.files[0]){
+    showInspMsg('Excel கோப்பை தேர்ந்தெடுக்கவும்.','err');return;
+  }
+  showInspMsg('<span class="spin spin-b"></span> படிக்கிறது...','info');
+  const squadDate=document.getElementById('insp-squad-date').value;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+      /* Find header row */
+      let headerRow=-1;
+      for(let i=0;i<Math.min(rows.length,15);i++){
+        if(rows[i].some(x=>String(x).includes('Inspector Mobile'))){headerRow=i;break;}
+      }
+      if(headerRow<0){showInspMsg('Header row not found. Ensure this is the MIS inspection report.','err');return;}
+
+      const headers=rows[headerRow].map(h=>String(h).trim());
+      const mobileCol=headers.findIndex(h=>h.includes('Inspector Mobile'));
+      const shopCodeCol=headers.findIndex(h=>h.toLowerCase().includes('fps code')||h.toLowerCase().includes('shop code'));
+      const dateCol=headers.findIndex(h=>h.toLowerCase().includes('date of inspection'));
+
+      if(mobileCol<0){showInspMsg('Inspector Mobile Number column not found.','err');return;}
+      if(shopCodeCol<0){showInspMsg('FPS Code column not found.','err');return;}
+
+      /* Count unique shop codes per inspector mobile */
+      const shopSets={};
+      const squadSets={};
+
+      for(let ri=headerRow+1;ri<rows.length;ri++){
+        const row=rows[ri];
+        const rawMobile=String(row[mobileCol]||'').replace(/\.0+$/,'').trim();
+        const mobile=rawMobile.replace(/[^0-9]/g,'');
+        if(!mobile||mobile.length<10)continue;
+        const shopCode=String(row[shopCodeCol]||'').trim();
+        if(!shopCode)continue;
+
+        if(!shopSets[mobile])shopSets[mobile]=new Set();
+        shopSets[mobile].add(shopCode);
+
+        if(squadDate&&dateCol>=0){
+          let rawDate=row[dateCol];
+          let inspDate='';
+          if(rawDate instanceof Date){
+            inspDate=rawDate.toISOString().slice(0,10);
+          } else {
+            inspDate=String(rawDate).slice(0,10);
+          }
+          if(inspDate===squadDate){
+            if(!squadSets[mobile])squadSets[mobile]=new Set();
+            squadSets[mobile].add(shopCode);
+          }
+        }
+      }
+
+      /* Build results for known inspectors */
+      const blockResults=[];
+      const officerResults=[];
+      Object.entries(INSPECTOR_MAP).forEach(([mobile,info])=>{
+        const total=(shopSets[mobile]||new Set()).size;
+        const squadCount=squadDate?Math.min((squadSets[mobile]||new Set()).size,SQUAD_COUNT):0;
+        const adjusted=Math.max(0,total-squadCount);
+        const pending=info.target!==null?Math.max(0,info.target-adjusted):null;
+        const entry={mobile,name:info.name,total,squadCount,adjusted,target:info.target,pending};
+        if(info.type==='block')blockResults.push(entry);
+        else officerResults.push(entry);
+      });
+
+      /* Sort least to highest by adjusted count */
+      blockResults.sort((a,b)=>a.adjusted-b.adjusted);
+      officerResults.sort((a,b)=>(a.adjusted||0)-(b.adjusted||0));
+
+      renderInspResults(blockResults,officerResults,squadDate);
+      showInspMsg('','ok');
+      document.getElementById('insp-result').classList.remove('hidden');
+    }catch(err){
+      showInspMsg('Error: '+err.message,'err');
+    }
+  };
+  reader.readAsArrayBuffer(fileEl.files[0]);
+}
+
+function renderInspResults(blocks,officers,squadDate){
+  function makeRow(e){
+    const hasTarget=e.target!==null;
+    const col=!hasTarget?'var(--gray)':e.adjusted>=e.target?'var(--green)':e.adjusted>=Math.ceil(e.target*0.75)?'var(--amber)':'var(--red)';
+    const squadNote=squadDate&&e.squadCount>0?
+      `<div style="font-size:10px;color:var(--gray)">மொத்தம்: ${e.total} | Squad: ${e.squadCount} கழிக்கப்பட்டது</div>`:'';
+    const pendNote=hasTarget&&e.pending>0?
+      `<span style="font-size:11px;color:var(--red);margin-left:4px">(${e.pending} நிலுவை)</span>`:'';
+    const doneNote=hasTarget&&e.pending===0?
+      `<span style="font-size:11px;color:var(--green);margin-left:4px">✓</span>`:'';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,.06)">
+      <div>
+        <div style="font-size:13px;font-weight:600">${e.name}</div>
+        ${squadNote}
+      </div>
+      <div style="text-align:right">
+        <span style="font-size:20px;font-weight:700;color:${col}">${e.adjusted}</span>
+        ${hasTarget?`<span style="font-size:11px;color:var(--gray)"> / ${e.target}</span>`:''}
+        ${pendNote}${doneNote}
+      </div>
+    </div>`;
+  }
+  document.getElementById('insp-blocks').innerHTML=blocks.map(makeRow).join('');
+  document.getElementById('insp-officers').innerHTML=officers.map(makeRow).join('');
+}
+
+function showInspMsg(msg,type){
+  const el=document.getElementById('insp-msg');
+  if(!msg){el.classList.add('hidden');return;}
+  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
+  el.innerHTML=msg;
+  el.classList.remove('hidden');
+}
 
 /* ══════════════════════════════════
    INIT
@@ -926,27 +1139,27 @@ async function readSheetData(s){
 
     /* ── STEP 1: Calculate tabMaxV ────────────────────────────────
        tabMaxV = total user-fillable columns in this tab.
-       ALL blocks have the same columns to fill — even if HQ leaves
-       Hilly/Rural columns empty, they are still REQUIRED to fill them
-       with 0 or dash. So tabMaxV is THE SAME for every block.
-       We calculate it from the formula structure (which columns are
-       formula vs user-input) using the first block row found.
-       Use MAX across all block rows to be safe. */
-    let tabMaxV=0;
+       Strategy: collect column counts from all block rows, use the MODE
+       (most common value) to avoid outlier rows inflating the count.
+       A column is "user-fillable" if it is NOT a formula column —
+       determined by checking if ANY block row has a formula there. */
+
+    /* First pass: identify which columns are formula columns */
+    const isFormulaCol=new Array(maxCols).fill(false);
     for(let ri=firstDataRow;ri<fmtRows.length;ri++){
-      const row=Array.from({length:maxCols},(_,ci)=>{
-        const v=(fmtRows[ri]||[])[ci];return v!==undefined?v:'';
-      });
+      const row=Array.from({length:maxCols},(_,ci)=>(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'');
       if(matchBlock(row)<0)continue;
-      const fRow=Array.from({length:maxCols},(_,ci)=>{
-        const v=(fmlRows[ri]||[])[ci];return v!==undefined?v:'';
-      });
-      let cnt=0;
+      const rowText=row.join(' ').toLowerCase();
+      if(/total/.test(rowText)&&row.filter(x=>String(x).trim()!=='').length<5)continue;
+      const fRow=Array.from({length:maxCols},(_,ci)=>(fmlRows[ri]||[])[ci]!==undefined?(fmlRows[ri]||[])[ci]:'');
       for(let ci=dataColStart;ci<maxCols;ci++){
-        const fmlStr=String(fRow[ci]).trim();
-        if(!fmlStr.startsWith('='))cnt++; /* user-fillable column */
+        if(String(fRow[ci]).trim().startsWith('='))isFormulaCol[ci]=true;
       }
-      if(cnt>tabMaxV)tabMaxV=cnt;
+    }
+    /* tabMaxV = count of non-formula columns right of blockCol */
+    let tabMaxV=0;
+    for(let ci=dataColStart;ci<maxCols;ci++){
+      if(!isFormulaCol[ci])tabMaxV++;
     }
     if(tabMaxV===0)return;
 
@@ -971,6 +1184,11 @@ async function readSheetData(s){
       const bIdx=matchBlock(row);
       if(bIdx<0)continue;
 
+      /* Skip Total/Grand Total summary rows — they inflate totalV */
+      const rowText=row.join(' ').toLowerCase();
+      if(/total|குலத்தொகை|மொத்தம்/.test(rowText)&&
+         row.filter(x=>String(x).trim()!=='').length<5)continue;
+
       let filledV=0;
       for(let ci=dataColStart;ci<maxCols;ci++){
         const fmlStr=String(fRow[ci]).trim();
@@ -979,15 +1197,19 @@ async function readSheetData(s){
         /* Skip formula columns — not officer's responsibility */
         if(fmlStr.startsWith('='))continue;
 
-        /* User-fillable column: check if officer typed something */
+        /* User-fillable column.
+           KEY FIX: Trust FORMATTED_VALUE (fmt) as the absolute ground truth.
+           - fmlStr='' means FORMULA API truncated (common when row has empty
+             middle cols followed by user-typed values like HQ with 0s).
+           - If fmt is non-empty AND not a formula error → officer filled it.
+           - This correctly handles user-typed 0, -, 0.00 etc.
+           - Only skip: truly empty (fmt='') or formula errors.
+           We do NOT check fmlStr for zero-skipping here because fmlStr
+           can be '' even for user-typed cells (FORMULA API truncation). */
         if(fmt===''||FERRORS.has(fmt.toLowerCase())){
-          /* Empty or formula error = NOT filled */
-          /* Secondary: FORMULA API may have value even for user-typed */
-          if(fmlStr!==''&&!fmlStr.startsWith('=')&&!FERRORS.has(fmlStr.toLowerCase())){
-            filledV++; /* officer typed something, fmt just shows differently */
-          }
+          /* Genuinely empty or error — not filled */
         } else {
-          /* Non-empty fmt = officer typed something (0, -, number, text) = FILLED */
+          /* fmt has any value including 0, -, 0.00 → officer filled it */
           filledV++;
         }
       }
