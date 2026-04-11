@@ -717,7 +717,7 @@ const ALIASES={
 /* ══════════════════════════════════
    STATE
 ══════════════════════════════════ */
-let CLIENT_ID=localStorage.getItem('tvm_cid')||'';
+let CLIENT_ID=localStorage.getItem('tvm_cid')||'274648150692-sfhciemsqnq1b8183178bcopmrvhp5pk.apps.googleusercontent.com';
 let accessToken=null;
 let dbSheetId=null;
 let sheets=[];
@@ -775,8 +775,10 @@ function sidFromUrl(u){const m=(u||'').match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m
    AUTH
 ══════════════════════════════════ */
 window.addEventListener('load',()=>{
+  // Client ID is hardcoded — always skip to Sign In step
   if(CLIENT_ID){
-    document.getElementById('cid-input').value=CLIENT_ID;
+    const cidInput=document.getElementById('cid-input');
+    if(cidInput)cidInput.value=CLIENT_ID;
     document.getElementById('step-cid').classList.add('hidden');
     document.getElementById('step-signin').classList.remove('hidden');
   }
