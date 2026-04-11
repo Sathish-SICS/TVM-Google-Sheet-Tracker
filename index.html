@@ -533,7 +533,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       </div>
 
       <!-- ─── GENERATE SQUAD ─── -->
-      <div id="squad-generate" class="squad-spanel active">
+      <div id="squad-generate" class="squad-spanel active" style="display:block">
 
         <div class="card">
           <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">படி 1 — Block &amp; Date</div>
@@ -590,15 +590,15 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             </div>
           </div>
           <div id="sq-stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
-          <div id="sq-table-wrap" style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <div id="sq-table-wrap" style="background:#fff;border:2px solid #1f3864;border-radius:4px;overflow:hidden;font-family:Arial,sans-serif">
             <table style="width:100%;border-collapse:collapse;font-size:13px" id="sq-table">
               <thead>
-                <tr style="background:var(--blue-dk);color:#fff">
-                  <th style="padding:8px 10px;text-align:center;width:45px">வ.எண்</th>
-                  <th style="padding:8px 10px;text-align:left">சங்கத்தின் பெயர்</th>
-                  <th style="padding:8px 10px;text-align:left">கடை குறியிட்டு எண்</th>
-                  <th style="padding:8px 10px;text-align:left">நியாயவிலை கடையின் பெயர்</th>
-                  <th style="padding:8px 10px;text-align:left">ஆய்வு அலுவலர்</th>
+                <tr style="background:#1f3864;color:#fff">
+                  <th style="padding:9px 10px;text-align:center;width:45px;border:1px solid #3a5ea0">வ.எண்</th>
+                  <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">சங்கத்தின் பெயர்</th>
+                  <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">கடை குறியிட்டு எண்</th>
+                  <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">நியாயவிலை கடையின் பெயர்</th>
+                  <th style="padding:9px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு அலுவலர் திருவாளர்கள்/ திருமதி/ செல்வி</th>
                 </tr>
               </thead>
               <tbody id="sq-tbody"></tbody>
@@ -612,7 +612,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       </div>
 
       <!-- ─── STAFF MASTER ─── -->
-      <div id="squad-staff" class="squad-spanel hidden">
+      <div id="squad-staff" class="squad-spanel hidden" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
           <div>
             <div style="font-weight:700;font-size:14px">Staff Master Data</div>
@@ -717,6 +717,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 </div>
 
 <script>
+
 /* ══════════════════════════════════
    BLOCK DATA
 ══════════════════════════════════ */
@@ -1225,18 +1226,27 @@ let sqEditingId = null;
 
 /* ── Sub-tab switcher ───────────────────────────────── */
 function squadStab(el){
+  /* Remove active from all tabs */
   document.querySelectorAll('.squad-stab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.squad-spanel').forEach(p=>p.classList.add('hidden'));
+  /* Hide all squad panels using direct style (avoids CSS specificity conflicts) */
+  ['squad-generate','squad-staff'].forEach(id=>{
+    const p=document.getElementById(id);
+    if(p)p.style.display='none';
+  });
+  /* Activate clicked tab and show its panel */
   el.classList.add('active');
-  const target = el.dataset.stab;
-  const panel = document.getElementById(target);
-  if(panel){ panel.classList.remove('hidden'); panel.classList.add('active'); }
-  if(target==='squad-generate') initSquadGenerate();
-  if(target==='squad-staff') renderStaffMaster();
+  const target=el.dataset.stab;
+  const panel=document.getElementById(target);
+  if(panel)panel.style.display='block';
+  if(target==='squad-generate')initSquadGenerate();
+  if(target==='squad-staff')renderStaffMaster();
 }
 
 /* ── Init Generate panel ────────────────────────────── */
 function initSquadGenerate(){
+  /* Ensure panel is visible (override any CSS conflicts) */
+  const gp=document.getElementById('squad-generate');
+  if(gp)gp.style.display='block';
   /* Render block chips */
   const chips = document.getElementById('sq-block-chips');
   if(chips && !chips.children.length){
@@ -1342,16 +1352,9 @@ function loadSquadStaffForBlocks(){
   if(!blocks.length){ if(card)card.style.display='none'; return; }
   if(card) card.style.display='block';
 
-  /* Gather relevant staff: block's own PDS + circle FOs + officers */
-  const relevant = sqStaffList.filter(s=>{
-    if(s.wing==='officer') return true;
-    if(s.wing==='pds') return blocks.includes(s.blockUnit);
-    if(s.wing==='circle'){
-      /* Include circle FOs whose circle covers selected blocks */
-      return true; /* simplified: show all circle staff */
-    }
-    return false;
-  });
+  /* Show ALL staff from master — every staff member needs a block assigned.
+     Vacant staff still shown so user can mark leave if needed this month. */
+  const relevant = sqStaffList.slice(); /* all staff */
 
   /* Sort: PDS (by block order), then circle, then officers */
   const wingOrder = {pds:0,circle:1,officer:2};
@@ -1536,112 +1539,93 @@ function normalizeBlockName(name){
 }
 
 /* ── Render table ───────────────────────────────────── */
+
 function renderSquadTable(rows, unassigned, date, blocks){
   /* Title */
-  const tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்',
-    'ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
-  const d = new Date(date);
-  const dateStr = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
-  const monthTa = tamilMonths[d.getMonth()];
-  const blockStr = blocks.join(' & ');
-  const title = `${blockStr} — கூட்டுறவு ஆய்வு — ${dateStr}`;
-  const el = document.getElementById('sq-result-title');
-  if(el) el.textContent = title;
+  const tamilMonths=['\u0b9c\u0ba9\u0bb5\u0bb0\u0bbf','\u0baa\u0bbf\u0baa\u0bcd\u0bb0\u0bb5\u0bb0\u0bbf','\u0bae\u0bbe\u0bb0\u0bcd\u0b9a\u0bcd','\u0b8f\u0baa\u0bcd\u0bb0\u0bb2\u0bcd','\u0bae\u0bc7','\u0b9c\u0bc2\u0ba9\u0bcd',
+    '\u0b9c\u0bc2\u0bb2\u0bc8','\u0b86\u0b95\u0bb8\u0bcd\u0b9f\u0bcd','\u0b9a\u0bc6\u0baa\u0bcd\u0b9f\u0bae\u0bcd\u0baa\u0bb0\u0bcd','\u0b85\u0b95\u0bcd\u0b9f\u0bcb\u0baa\u0bb0\u0bcd','\u0ba8\u0bb5\u0bae\u0bcd\u0baa\u0bb0\u0bcd','\u0b9f\u0bbf\u0b9a\u0bae\u0bcd\u0baa\u0bb0\u0bcd'];
+  const d=new Date(date);
+  const dateStr=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+  const blockStr=blocks.join(' & ');
+  const title=blockStr+' \u2014 \u0b95\u0bc2\u0b9f\u0bcd\u0b9f\u0bc1\u0bb1\u0bb5\u0bc1 \u0b86\u0baf\u0bcd\u0bb5\u0bc1 \u2014 '+dateStr;
+  const titleEl=document.getElementById('sq-result-title');
+  if(titleEl)titleEl.textContent=title;
 
   /* Stats */
-  const staffSet = new Set(rows.map(r=>r.inspector));
-  const statsEl = document.getElementById('sq-stats');
-  if(statsEl) statsEl.innerHTML = [
-    `<span class="sq-stat-box" style="background:var(--blue-lt);color:var(--blue-dk)">🏪 ${rows.length} Shops</span>`,
-    `<span class="sq-stat-box" style="background:var(--green-lt);color:var(--green)">👤 ${staffSet.size} Inspectors</span>`,
-    `<span class="sq-stat-box" style="background:var(--amber-lt);color:var(--amber)">${blocks.length} Block${blocks.length>1?'s':''}</span>`,
-    unassigned.length?`<span class="sq-stat-box" style="background:var(--red-lt);color:var(--red)">⚠️ ${unassigned.length} Unassigned</span>`:''
+  const staffSet=new Set(rows.map(r=>r.inspector));
+  const statsEl=document.getElementById('sq-stats');
+  if(statsEl)statsEl.innerHTML=[
+    '<span class="sq-stat-box" style="background:#dbeafe;color:#1e40af">\ud83c\udfea '+rows.length+' Shops</span>',
+    '<span class="sq-stat-box" style="background:#dcfce7;color:#166534">\ud83d\udc64 '+staffSet.size+' Inspectors</span>',
+    '<span class="sq-stat-box" style="background:#fef3c7;color:#92400e">'+blocks.length+' Block'+(blocks.length>1?'s':'')+'</span>',
+    unassigned.length?'<span class="sq-stat-box" style="background:#fee2e2;color:#991b1b">\u26a0\ufe0f '+unassigned.length+' Unassigned</span>':''
   ].join('');
 
-  /* Table rows */
-  const tbody = document.getElementById('sq-tbody');
-  if(!tbody) return;
-  let html = '';
-  let lastInspector = '';
+  /* Group rows by inspector for rowspan */
+  const grouped=[];
+  let curGrp=null;
   rows.forEach(r=>{
-    const newInsp = r.inspector !== lastInspector;
-    const rowBg = newInsp ? '#f0f4ff' : '#fff';
-    const inspCell = newInsp
-      ? `<td rowspan="?" style="padding:8px 10px;font-weight:600;vertical-align:top">${r.inspector}<div style="font-size:10px;color:var(--gray)">${r.desig}</div></td>`
-      : '';
-    html += `<tr style="background:${rowBg};border-bottom:1px solid rgba(0,0,0,.06)">
-      <td style="padding:7px 10px;text-align:center;color:var(--gray);font-size:12px">${r.slNo}</td>
-      <td style="padding:7px 10px">${r.society}</td>
-      <td style="padding:7px 10px;font-family:monospace;font-size:12px">${r.code}</td>
-      <td style="padding:7px 10px">${r.shopName}</td>
-      <td style="padding:7px 10px;font-weight:600">${r.inspector}<div style="font-size:10px;color:var(--gray)">${r.desig}</div></td>
-    </tr>`;
-    lastInspector = r.inspector;
+    if(!curGrp||r.inspector!==curGrp.inspector){
+      curGrp={inspector:r.inspector,desig:r.desig,rows:[r]};
+      grouped.push(curGrp);
+    } else { curGrp.rows.push(r); }
   });
-  tbody.innerHTML = html;
+
+  let html='';
+  grouped.forEach((grp,gi)=>{
+    const rowspan=grp.rows.length;
+    const grpBg=gi%2===0?'#ffffff':'#eef3fb';
+    grp.rows.forEach((r,ri)=>{
+      const inspCell=ri===0
+        ?`<td rowspan="${rowspan}" style="padding:8px 10px;border:1px solid #b8c8e8;vertical-align:middle;font-weight:700;background:${grpBg};text-align:center">${r.inspector||'(\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd)'}<div style="font-size:10px;color:#666;font-weight:400;margin-top:2px">${r.desig||''}</div></td>`
+        :'';
+      html+=`<tr style="background:${grpBg}">
+        <td style="padding:6px 10px;text-align:center;border:1px solid #b8c8e8;color:#666;font-size:12px">${r.slNo}</td>
+        <td style="padding:6px 10px;border:1px solid #b8c8e8">${r.society}</td>
+        <td style="padding:6px 10px;border:1px solid #b8c8e8;font-family:monospace;font-size:12px">${r.code}</td>
+        <td style="padding:6px 10px;border:1px solid #b8c8e8">${r.shopName}</td>
+        ${inspCell}
+      </tr>`;
+    });
+  });
+
+  const tbody=document.getElementById('sq-tbody');
+  if(tbody)tbody.innerHTML=html;
 
   /* Unassigned */
-  const unEl = document.getElementById('sq-unassigned');
-  const unListEl = document.getElementById('sq-unassigned-list');
-  if(unassigned.length && unEl && unListEl){
+  const unEl=document.getElementById('sq-unassigned');
+  const unListEl=document.getElementById('sq-unassigned-list');
+  if(unassigned.length&&unEl&&unListEl){
     unEl.classList.remove('hidden');
-    unListEl.innerHTML = unassigned.slice(0,20).map(s=>
-      `<span style="display:inline-block;margin:2px 4px;padding:2px 8px;background:var(--gray-lt);border-radius:4px;font-size:11px">${s.code} ${s.name}</span>`
+    unListEl.innerHTML=unassigned.slice(0,30).map(s=>
+      `<span style="display:inline-block;margin:2px 4px;padding:2px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">${s.code} ${s.name}</span>`
     ).join('');
-  } else if(unEl){
-    unEl.classList.add('hidden');
-  }
+  } else if(unEl){ unEl.classList.add('hidden'); }
 
   document.getElementById('sq-result').classList.remove('hidden');
 }
 
-/* ── Screenshot ─────────────────────────────────────── */
 function copySquadTable(){
-  /* Select the table element so user can copy and paste into Word */
-  const tbl = document.getElementById('sq-table');
-  if(!tbl){ alert('No table generated yet.'); return; }
-  const range = document.createRange();
+  const tbl=document.getElementById('sq-table');
+  if(!tbl){alert('No table generated yet.');return;}
+  const range=document.createRange();
   range.selectNode(tbl);
-  const sel = window.getSelection();
+  const sel=window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
   try{
     document.execCommand('copy');
     sel.removeAllRanges();
-    alert('✅ Table copied! Now open Word and press Ctrl+V to paste.');
+    alert('\u2705 Table copied! Open Word and press Ctrl+V to paste.');
   }catch(e){
     sel.removeAllRanges();
-    alert('Please manually select the table and copy (Ctrl+C).');
+    alert('Please manually select and copy the table (Ctrl+C).');
   }
 }
 
-async function squadScreenshot(){
-  const wrap = document.getElementById('sq-table-wrap');
-  if(!wrap){ alert('No table to screenshot.'); return; }
-  try{
-    if(typeof html2canvas==='undefined'){
-      await new Promise((res,rej)=>{
-        const s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        s.onload=res;s.onerror=rej;document.head.appendChild(s);
-      });
-    }
-    const canvas = await html2canvas(wrap,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false});
-    canvas.toBlob(async blob=>{
-      try{
-        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-        alert('✅ Screenshot copied to clipboard!');
-      }catch(e){
-        const a=document.createElement('a');a.download='squad_table.png';
-        a.href=canvas.toDataURL('image/png');a.click();
-      }
-    },'image/png');
-  }catch(e){ alert('Screenshot error: '+e.message); }
-}
-
 function resetSquad(){
-  /* Resets current selection and generated table only.
-     Staff master data and shop data are NOT affected. */
+  /* Resets block selection and generated table only.
+     Staff master and shop data are NOT affected. */
   sqChipClear();
   const res=document.getElementById('sq-result');
   if(res)res.classList.add('hidden');
@@ -1658,79 +1642,180 @@ function showSqMsg(msg,type){
   if(!el)return;
   if(!msg){el.classList.add('hidden');return;}
   el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
-  el.innerHTML=msg;el.classList.remove('hidden');
+  el.innerHTML=msg;
+  el.classList.remove('hidden');
 }
 
-/* ══ STAFF MASTER ══════════════════════════════════════ */
-
-/* Squad storage helpers — use window.storage (Claude artifact) or localStorage */
+/* ── Storage helpers (window.storage with localStorage fallback) ── */
 function sqStore(key,val){
   try{
     if(window.storage&&window.storage.set)
       return window.storage.set(key,JSON.stringify(val));
   }catch(e){}
-  try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){}
+  try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}
 }
 function sqLoad(key){
+  const fromLS=()=>{try{const v=localStorage.getItem(key);return Promise.resolve(v?JSON.parse(v):null);}catch(e){return Promise.resolve(null);}};
   try{
     if(window.storage&&window.storage.get){
-      return window.storage.get(key).then(r=>r?JSON.parse(r.value):null).catch(()=>{
-        try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}
-      });
+      return window.storage.get(key)
+        .then(r=>r?JSON.parse(r.value):null)
+        .catch(()=>fromLS());
     }
   }catch(e){}
-  try{const v=localStorage.getItem(key);return Promise.resolve(v?JSON.parse(v):null);}catch(e){return Promise.resolve(null);}
+  return fromLS();
 }
-async function saveSquadStaff(){
-  sqStore('sq:staff', sqStaffList);
+async function saveSquadStaff(){sqStore('sq:staff',sqStaffList);}
+
+async function loadSquadData(){
+  const staff=await sqLoad('sq:staff');
+  sqStaffList=staff||[];
+  const shops=await sqLoad('sq:shopdata');
+  if(shops&&shops.length){
+    sqShopData=shops;
+    const el=document.getElementById('sq-shop-status');
+    if(el)el.textContent='\u2705 '+sqShopData.length+' shops loaded';
+  }
+  loadSquadStaffForBlocks();
+  populateStaffFilterBlock();
 }
 
-function renderStaffMaster(){
-  const wingF = document.getElementById('sq-filter-wing')?.value||'';
-  const blkF  = document.getElementById('sq-filter-block')?.value||'';
+async function loadSquadShopData(input){
+  const file=input.files[0];if(!file)return;
+  const statusEl=document.getElementById('sq-shop-status');
+  if(statusEl)statusEl.textContent='Reading...';
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      let hdr=-1;
+      for(let i=0;i<15;i++){
+        if(rows[i]&&rows[i].some(x=>String(x).includes('\u0b92\u0ba9\u0bcd\u0bb1\u0bbf\u0baf\u0ba4\u0bcd\u0ba4\u0bbf\u0ba9\u0bcd')||String(x).toLowerCase().includes('fps code'))){hdr=i;break;}
+      }
+      if(hdr<0){if(statusEl)statusEl.textContent='\u274c Header not found';return;}
+      const headers=rows[hdr].map(h=>String(h).trim());
+      const cBlock=headers.findIndex(h=>h.includes('\u0b92\u0ba9\u0bcd\u0bb1\u0bbf\u0baf\u0ba4\u0bcd\u0ba4\u0bbf\u0ba9\u0bcd'));
+      const cSoc=headers.findIndex(h=>h.includes('\u0b95\u0bc2\u0b9f\u0bcd\u0b9f\u0bc1\u0bb1\u0bb5\u0bc1')&&h.includes('\u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0ba9\u0ba4\u0bcd\u0ba4\u0bbf\u0ba9\u0bcd'));
+      const cCode=headers.findIndex(h=>h.includes('\u0b95\u0bc1\u0bb1\u0bbf\u0baf\u0bc0\u0b9f\u0bc1')&&!h.includes('\u0bc6\u0ba3\u0bcd.'));
+      const cName=headers.findIndex(h=>h.includes('\u0b95\u0b9f\u0bc8\u0baf\u0bbf\u0ba9\u0bcd \u0baa\u0bc6\u0baf\u0bb0\u0bcd'));
+      const cType=headers.findIndex(h=>h.includes('\u0bae\u0bc1\u0bb4\u0bc1\u0ba8\u0bc7\u0bb0\u0bae\u0bcd'));
+      sqShopData=[];
+      for(let ri=hdr+1;ri<rows.length;ri++){
+        const row=rows[ri];
+        const block=String(row[cBlock]||'').trim();
+        const society=String(row[cSoc]||'').trim();
+        const code=String(row[cCode]||'').trim();
+        const name=String(row[cName]||'').trim();
+        const type=String(row[cType]||'').trim();
+        if(!block||!code)continue;
+        sqShopData.push({block,society,code,name,type});
+      }
+      sqStore('sq:shopdata',sqShopData);
+      if(statusEl)statusEl.textContent='\u2705 '+sqShopData.length+' shops loaded & saved';
+    }catch(err){if(statusEl)statusEl.textContent='\u274c Error: '+err.message;}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function loadSquadStaffForBlocks(){
+  const blocks=getSelectedBlocks();
+  const card=document.getElementById('sq-staff-card');
+  const listEl=document.getElementById('sq-staff-list');
+  if(!listEl)return;
+  if(!blocks.length){if(card)card.style.display='none';return;}
+  if(card)card.style.display='block';
+
+  /* Show ALL staff — sorted PDS then Circle then Officer */
   const wingOrder={pds:0,circle:1,officer:2};
-  const filtered = sqStaffList.filter(s=>{
-    if(wingF && s.wing!==wingF) return false;
-    if(blkF && s.blockUnit!==blkF && s.circle!==blkF) return false;
+  const relevant=sqStaffList.slice();
+  relevant.sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+
+  let html='';let lastSection='';
+  relevant.forEach(s=>{
+    const section=s.wing==='pds'?'PDS WING':s.wing==='circle'?'CIRCLE WING':'OFFICERS';
+    if(section!==lastSection){
+      html+=`<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;padding:6px 12px;background:var(--gray-lt);border-top:1px solid var(--border)">${section}</div>`;
+      lastSection=section;
+    }
+    const vacLeave=s.vacant?'checked':'';
+    const blockOpts=blocks.map(b=>`<option value="${b}">${b}</option>`).join('');
+    html+=`<div class="sq-staff-row" style="flex-wrap:wrap;gap:6px">
+      <div style="flex:1;min-width:160px">
+        <div style="font-size:11px;color:var(--gray)">${s.desig} \u2014 ${s.blockUnit||s.circle||''}</div>
+        <div style="font-size:13px;font-weight:600">${s.name||'<span style="color:var(--red);font-style:italic">\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd</span>'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <select id="sq-assign-block-${s.id}" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:170px">
+          <option value="">Any Block</option>${blockOpts}
+        </select>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--red);white-space:nowrap">
+          <input type="checkbox" id="sq-skip-${s.id}" ${vacLeave} onchange="toggleStaffSkip('${s.id}',this.checked)"> Skip
+        </label>
+      </div>
+    </div>`;
+  });
+  if(!relevant.length){html='<div style="padding:12px;font-size:13px;color:var(--gray)">Staff Master-\u0bb2\u0bcd staff \u0b9a\u0bc7\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.</div>';}
+  listEl.innerHTML=html;
+}
+
+function toggleStaffSkip(id,checked){
+  const s=sqStaffList.find(x=>x.id===id);
+  if(s)s.skipNow=checked;
+}
+
+function normalizeBlockName(name){
+  return String(name||'').trim().toLowerCase()
+    .replace(/\s+/g,' ').replace(/[-_]/g,' ')
+    .replace(/\u00a0/g,' ').replace(/\u200b/g,'');
+}
+
+/* ════ STAFF MASTER ════════════════════════════════════════ */
+function renderStaffMaster(){
+  const wingF=document.getElementById('sq-filter-wing')?.value||'';
+  const blkF=document.getElementById('sq-filter-block')?.value||'';
+  const wingOrder={pds:0,circle:1,officer:2};
+  const filtered=sqStaffList.filter(s=>{
+    if(wingF&&s.wing!==wingF)return false;
+    if(blkF&&s.blockUnit!==blkF&&s.circle!==blkF)return false;
     return true;
   }).sort((a,b)=>{
     const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
     if(wo!==0)return wo;
     return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
   });
-
-  const tbody = document.getElementById('sq-staff-tbody');
-  if(!tbody) return;
+  const tbody=document.getElementById('sq-staff-tbody');
+  if(!tbody)return;
   if(!filtered.length){
-    tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--gray)">Staff இல்லை. "+ Add Staff" கிளிக் செய்யுங்கள்.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--gray)">Staff \u0b87\u0bb2\u0bcd\u0bb2\u0bc8. \u201c+ Add Staff\u201d \u0b95\u0bbf\u0bb3\u0bbf\u0b95\u0bcd \u0b9a\u0bc6\u0baf\u0bcd\u0baf\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd.</td></tr>';
     return;
   }
-  let html=''; let lastWing='';
+  let html='';let lastWing='';
   filtered.forEach(s=>{
     if(s.wing!==lastWing){
       const wLabel={pds:'PDS Wing',circle:'Circle Wing',officer:'Officers'}[s.wing]||s.wing;
-      html+=`<tr><td colspan="6" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--gray);
-        text-transform:uppercase;background:var(--gray-lt);border-top:1px solid var(--border)">${wLabel}</td></tr>`;
+      html+=`<tr><td colspan="6" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;background:var(--gray-lt);border-top:1px solid var(--border)">${wLabel}</td></tr>`;
       lastWing=s.wing;
     }
-    const vacBadge=s.vacant?'<span style="font-size:10px;background:var(--red-lt);color:var(--red);padding:2px 6px;border-radius:4px;margin-left:4px">Vacant</span>':'';
+    const vacBadge=s.vacant?'<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;margin-left:4px">Vacant</span>':'';
+    const wCol={pds:'#dbeafe',circle:'#dcfce7',officer:'#fef3c7'}[s.wing]||'#f3f4f6';
+    const wTxt={pds:'#1e40af',circle:'#166534',officer:'#92400e'}[s.wing]||'#374151';
+    const wLbl={pds:'PDS',circle:'Circle',officer:'Officer'}[s.wing]||s.wing;
     html+=`<tr style="border-bottom:1px solid rgba(0,0,0,.06)">
       <td style="padding:7px 10px;font-size:12px">${s.desig}${vacBadge}</td>
-      <td style="padding:7px 10px;font-size:12px;color:var(--gray)">${s.blockUnit||s.circle||'—'}</td>
-      <td style="padding:7px 10px;font-weight:600">${s.name}</td>
-      <td style="padding:7px 10px;font-size:12px">
-        <span style="padding:2px 8px;border-radius:4px;font-size:11px;
-          background:${{pds:'var(--blue-lt)',circle:'var(--green-lt)',officer:'var(--amber-lt)'}[s.wing]||'var(--gray-lt)'};
-          color:${{pds:'var(--blue-dk)',circle:'var(--green)',officer:'var(--amber)'}[s.wing]||'var(--gray)'}">
-          ${{pds:'PDS',circle:'Circle',officer:'Officer'}[s.wing]||s.wing}
-        </span>
-      </td>
+      <td style="padding:7px 10px;font-size:12px;color:var(--gray)">${s.blockUnit||s.circle||'\u2014'}</td>
+      <td style="padding:7px 10px;font-weight:600">${s.name||''}</td>
+      <td style="padding:7px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;background:${wCol};color:${wTxt}">${wLbl}</span></td>
+      <td style="padding:7px 10px;text-align:center"><input type="checkbox" ${s.vacant?'checked':''} onchange="toggleStaffVacant('${s.id}',this.checked)"></td>
       <td style="padding:7px 10px;text-align:center">
-        <input type="checkbox" ${s.vacant?'checked':''} onchange="toggleStaffVacant('${s.id}',this.checked)">
-      </td>
-      <td style="padding:7px 10px;text-align:center;display:flex;gap:4px;justify-content:center">
-        <button class="btn-sm-g" onclick="editStaff('${s.id}')">✏️</button>
-        <button class="btn-sm-g" style="background:var(--red-lt);color:var(--red)" onclick="deleteStaff('${s.id}')">🗑</button>
+        <button class="btn-sm-g" onclick="editStaff('${s.id}')" style="margin-right:4px">\u270f\ufe0f</button>
+        <button class="btn-sm-g" style="background:#fee2e2;color:#991b1b" onclick="deleteStaff('${s.id}')">\ud83d\uddd1</button>
       </td>
     </tr>`;
   });
@@ -1753,14 +1838,11 @@ async function toggleStaffVacant(id,checked){
 async function deleteStaff(id){
   if(!confirm('Delete this staff?'))return;
   sqStaffList=sqStaffList.filter(s=>s.id!==id);
-  await saveSquadStaff();
-  renderStaffMaster();
-  populateStaffFilterBlock();
+  await saveSquadStaff();renderStaffMaster();populateStaffFilterBlock();
 }
 
 function editStaff(id){
-  const s=sqStaffList.find(x=>x.id===id);
-  if(!s)return;
+  const s=sqStaffList.find(x=>x.id===id);if(!s)return;
   sqEditingId=id;
   document.getElementById('sq-modal-title').textContent='Edit Staff';
   document.getElementById('sm-wing').value=s.wing||'pds';
@@ -1769,11 +1851,7 @@ function editStaff(id){
   document.getElementById('sm-name').value=s.name||'';
   document.getElementById('sm-vacant').checked=!!s.vacant;
   onSmWingChange();
-  /* Set block */
-  setTimeout(()=>{
-    const bsel=document.getElementById('sm-block');
-    if(bsel)bsel.value=s.blockUnit||'';
-  },50);
+  setTimeout(()=>{const b=document.getElementById('sm-block');if(b)b.value=s.blockUnit||'';},50);
   document.getElementById('sq-staff-modal').classList.remove('hidden');
 }
 
@@ -1796,40 +1874,27 @@ function closeStaffModal(){
 
 function onSmWingChange(){
   const wing=document.getElementById('sm-wing').value;
-  const circleWrap=document.getElementById('sm-circle-wrap');
-  const blockWrap=document.getElementById('sm-block-wrap');
-  const desigInput=document.getElementById('sm-desig');
-  /* Show/hide circle selector */
-  if(circleWrap) circleWrap.style.display=wing==='circle'?'':'none';
-  /* Populate block dropdown */
+  const cw=document.getElementById('sm-circle-wrap');
+  const bw=document.getElementById('sm-block-wrap');
+  const di=document.getElementById('sm-desig');
+  if(cw)cw.style.display=wing==='circle'?'':'none';
   const bsel=document.getElementById('sm-block');
   if(bsel){
-    if(wing==='pds'||wing==='circle'){
-      bsel.innerHTML='<option value="">— Select Block —</option>'+
-        BLOCKS_21.map(b=>`<option value="${b}">${b}</option>`).join('');
-      if(blockWrap)blockWrap.style.display='';
-    } else {
-      bsel.innerHTML='<option value="">—</option>';
-      if(blockWrap)blockWrap.style.display='none';
-    }
+    if(wing==='officer'){bsel.innerHTML='<option value="">\u2014</option>';if(bw)bw.style.display='none';}
+    else{bsel.innerHTML='<option value="">\u2014 Select Block \u2014</option>'+BLOCKS_21.map(b=>`<option value="${b}">${b}</option>`).join('');if(bw)bw.style.display='';}
   }
-  /* Preset designation hint */
-  if(wing==='officer' && !desigInput.value){
-    desigInput.placeholder='e.g. இணைப்பதிவாளர்';
-  } else if(wing==='pds'){
-    desigInput.placeholder='e.g. கூசாப/பொவிதி';
-  } else if(wing==='circle'){
-    desigInput.placeholder='e.g. கூசாப/கள அலுவலர்';
+  if(di){
+    di.placeholder=wing==='officer'?'e.g. \u0b87\u0ba3\u0bc8\u0baa\u0bcd\u0baa\u0ba4\u0bbf\u0bb5\u0bbe\u0bb3\u0bb0\u0bcd':wing==='circle'?'e.g. \u0b95\u0bb3 \u0b85\u0bb2\u0bc1\u0bb5\u0bb2\u0bb0\u0bcd':'e.g. \u0b95\u0bc2.\u0b9a\u0bbe.\u0baa/\u0baa\u0bcb\u0bb5\u0bbf\u0ba4\u0bbf';
   }
-}
-function onSmVacantChange(){
-  const isVacant=document.getElementById('sm-vacant').checked;
-  const req=document.getElementById('sm-name-req');
-  const inp=document.getElementById('sm-name');
-  if(req)req.textContent=isVacant?'':' *';
-  if(inp)inp.placeholder=isVacant?'காலியிடம் (பெயர் தேவையில்லை)':'திருவாளர்/ திருமதி/ செல்வி...';
 }
 
+function onSmVacantChange(){
+  const isVac=document.getElementById('sm-vacant').checked;
+  const req=document.getElementById('sm-name-req');
+  const inp=document.getElementById('sm-name');
+  if(req)req.textContent=isVac?'':'*';
+  if(inp)inp.placeholder=isVac?'\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd (\u0baa\u0bc6\u0baf\u0bb0\u0bcd \u0ba4\u0bc7\u0bb5\u0bc8\u0baf\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8)':'\u0ba4\u0bbf\u0bb0\u0bc1\u0bb5\u0bbe\u0bb3\u0bb0\u0bcd/ \u0ba4\u0bbf\u0bb0\u0bc1\u0bae\u0ba4\u0bbf/ \u0b9a\u0bc6\u0bb2\u0bcd\u0bb5\u0bbf...';
+}
 
 async function saveStaffFromModal(){
   const wing=document.getElementById('sm-wing').value;
@@ -1838,171 +1903,147 @@ async function saveStaffFromModal(){
   const block=document.getElementById('sm-block').value;
   const name=document.getElementById('sm-name').value.trim();
   const vacant=document.getElementById('sm-vacant').checked;
-  const isVac=document.getElementById('sm-vacant').checked;
-  if(!desig){ alert('Designation is required.'); return; }
-  if(!name&&!isVac){ alert('Staff Name is required.'); return; }
+  if(!desig){alert('Designation is required.');return;}
+  if(!name&&!vacant){alert('Staff Name is required.');return;}
   if(sqEditingId){
     const s=sqStaffList.find(x=>x.id===sqEditingId);
-    if(s){ s.wing=wing;s.circle=circle;s.desig=desig;s.blockUnit=block;s.name=name;s.vacant=vacant; }
-  } else {
-    sqStaffList.push({
-      id:'s'+Date.now()+Math.random().toString(36).slice(2,6),
-      wing,circle,desig,blockUnit:block,name,vacant,skipNow:false
-    });
+    if(s){s.wing=wing;s.circle=circle;s.desig=desig;s.blockUnit=block;s.name=name;s.vacant=vacant;}
+  }else{
+    sqStaffList.push({id:'s'+Date.now()+Math.random().toString(36).slice(2,6),wing,circle,desig,blockUnit:block,name,vacant,skipNow:false});
   }
-  await saveSquadStaff();
-  closeStaffModal();
-  renderStaffMaster();
-  populateStaffFilterBlock();
+  await saveSquadStaff();closeStaffModal();renderStaffMaster();populateStaffFilterBlock();
 }
 
-/* ── Init on panel open ─────────────────────────────── */
-/* Called when squad panel becomes active via main tab */
+/* ════ SQUAD TAB SWITCHING ═══════════════════════════════ */
+function squadStab(el){
+  document.querySelectorAll('.squad-stab').forEach(t=>t.classList.remove('active'));
+  ['squad-generate','squad-staff'].forEach(id=>{
+    const p=document.getElementById(id);if(p)p.style.display='none';
+  });
+  el.classList.add('active');
+  const target=el.dataset.stab;
+  const panel=document.getElementById(target);
+  if(panel)panel.style.display='block';
+  if(target==='squad-generate')initSquadGenerate();
+  if(target==='squad-staff')renderStaffMaster();
+}
 
-/* ══════════════════════════════════
-   INIT
-══════════════════════════════════ */
-async function initApp(){
-  renderBlockChips();
-  const d=new Date();d.setDate(d.getDate()+7);
-  document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
-  document.querySelectorAll('.tab').forEach(t=>{
-    t.addEventListener('click',()=>{
-      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      const panelId='panel-'+t.dataset.tab;
-      const panel=document.getElementById(panelId);
-      if(panel)panel.classList.add('active');
-      refreshDropdowns();
-      if(t.dataset.tab==='repo')renderRepo();
-      if(t.dataset.tab==='trash')renderTrash();
-      if(t.dataset.tab==='track'){
-        // default to today as date of posting
-        const d=new Date();
-        document.getElementById('tr-deadline').value=d.toISOString().slice(0,10);
+function initSquadGenerate(){
+  const gp=document.getElementById('squad-generate');if(gp)gp.style.display='block';
+  const chips=document.getElementById('sq-block-chips');
+  if(chips&&!chips.children.length){
+    BLOCKS_21.forEach(b=>{
+      const chip=document.createElement('div');
+      chip.className='sq-block-chip';chip.textContent=b;chip.dataset.block=b;
+      chip.onclick=()=>{chip.classList.toggle('selected');loadSquadStaffForBlocks();};
+      chips.appendChild(chip);
+    });
+  }
+  const dateEl=document.getElementById('sq-date');
+  if(dateEl&&!dateEl.value)dateEl.value=new Date().toISOString().slice(0,10);
+  loadSquadData();
+}
+
+function sqChipAll(){document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.add('selected'));loadSquadStaffForBlocks();}
+function sqChipClear(){document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.remove('selected'));loadSquadStaffForBlocks();}
+function getSelectedBlocks(){return[...document.querySelectorAll('.sq-block-chip.selected')].map(c=>c.dataset.block);}
+
+/* ════ GENERATE SQUAD ════════════════════════════════════ */
+function generateSquad(){
+  const blocks=getSelectedBlocks();
+  if(!blocks.length){showSqMsg('\u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd Block \u0ba4\u0bc7\u0bb0\u0bcd\u0ba8\u0bcd\u0ba4\u0bc6\u0b9f\u0bc1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.','err');return;}
+  if(!sqShopData.length){showSqMsg('Shop master data \u0b87\u0bb2\u0bcd\u0bb2\u0bc8. Excel \u0b8f\u0bb1\u0bcd\u0bb1\u0bc1\u0b95.','err');return;}
+  const date=document.getElementById('sq-date').value;
+  if(!date){showSqMsg('Date \u0ba4\u0bc7\u0bb0\u0bcd\u0ba8\u0bcd\u0ba4\u0bc6\u0b9f\u0bc1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.','err');return;}
+  const shopsPerStaff=parseInt(document.getElementById('sq-per-staff').value)||3;
+
+  const wingOrder={pds:0,circle:1,officer:2};
+  const availStaff=sqStaffList.filter(s=>{
+    if(s.vacant)return false;
+    const el=document.getElementById('sq-skip-'+s.id);
+    if(el&&el.checked)return false;
+    return true;
+  }).sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+  if(!availStaff.length){showSqMsg('Available staff \u0b87\u0bb2\u0bcd\u0bb2\u0bc8.','err');return;}
+
+  /* Build shop pool per block — fulltime first, max 1 parttime per society */
+  const blockShops={};
+  blocks.forEach(blk=>{
+    const shops=sqShopData.filter(s=>normalizeBlockName(s.block)===normalizeBlockName(blk));
+    const societies={};
+    shops.forEach(sh=>{
+      if(!societies[sh.society])societies[sh.society]={full:[],part:[]};
+      if(sh.type==='\u0bae\u0bc1\u0bb4\u0bc1\u0ba8\u0bc7\u0bb0\u0bae\u0bcd')societies[sh.society].full.push(sh);
+      else societies[sh.society].part.push(sh);
+    });
+    const flat=[];
+    Object.entries(societies).forEach(([soc,g])=>{
+      g.full.forEach(sh=>flat.push({...sh,_soc:soc}));
+      if(g.part.length)flat.push({...g.part[0],_soc:soc});
+    });
+    blockShops[blk]=flat;
+  });
+
+  let shopPool=[];
+  blocks.forEach(blk=>{shopPool=shopPool.concat(blockShops[blk]||[]);});
+
+  sqAssignments=[];
+  let usedShops=new Set();
+  let slNo=1;
+
+  availStaff.forEach(staff=>{
+    const assignedBlockEl=document.getElementById('sq-assign-block-'+staff.id);
+    const assignedBlock=assignedBlockEl?assignedBlockEl.value:'';
+    let staffPool=assignedBlock
+      ?shopPool.filter(sh=>normalizeBlockName(sh.block)===normalizeBlockName(assignedBlock))
+      :shopPool;
+
+    const assigned=[];
+    /* Find society with most available shops */
+    const socCounts={};
+    staffPool.forEach(sh=>{if(!usedShops.has(sh.code))socCounts[sh._soc]=(socCounts[sh._soc]||0)+1;});
+    const bestSoc=Object.entries(socCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
+    /* Assign from best society first */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code))continue;
+      if(sh._soc===bestSoc){assigned.push(sh);usedShops.add(sh.code);}
+    }
+    /* Fill remaining */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code))continue;
+      assigned.push(sh);usedShops.add(sh.code);
+    }
+    /* Fallback to full pool if assigned block had no shops */
+    if(!assigned.length&&assignedBlock){
+      for(let i=0;i<shopPool.length&&assigned.length<shopsPerStaff;i++){
+        const sh=shopPool[i];
+        if(usedShops.has(sh.code))continue;
+        assigned.push(sh);usedShops.add(sh.code);
       }
+    }
+    if(!assigned.length)return;
+    assigned.forEach(sh=>{
+      sqAssignments.push({slNo:slNo++,society:sh._soc||sh.society,code:sh.code,
+        shopName:sh.name,inspector:staff.name||'(\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd)',
+        desig:staff.desig,block:sh.block,type:sh.type});
     });
   });
-  await ensureDb();
-  await loadFromDb();
-  renderDashboard();renderRepo();refreshDropdowns();
-  await autoRefreshAll();
-  startCountdown();
+
+  const unassigned=shopPool.filter(sh=>!usedShops.has(sh.code));
+  renderSquadTable(sqAssignments,unassigned,date,blocks);
+  showSqMsg('','ok');
 }
 
-/* ══════════════════════════════════
-   DB — TVM Tracker DB Google Sheet
-   Columns: id|title|type|link|sheetId|stateLink|deadline|notes|createdAt|status|lang|blockStatusJSON|lastRead|trashed
-══════════════════════════════════ */
-async function ensureDb(){
-  const r=await driveSearch("name='"+DB_TITLE+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
-  const files=(r.files||[]);
-  if(files.length>0){dbSheetId=files[0].id;return;}
-  const cr=await sheetsCreate({properties:{title:DB_TITLE},sheets:[{properties:{title:'TVMData'}}]});
-  dbSheetId=cr.spreadsheetId;
-  dbTabName='TVMData';
-  await sheetsValuesUpdate(dbSheetId,'TVMData!A1',[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]);
-}
 
-function sj(s){try{return JSON.parse(s);}catch{return [];}}
 
-let dbTabName='Sheet1'; // will be detected on load
-
-async function loadFromDb(){
-  // Detect actual tab name
-  try{
-    const meta=await sheetsGetMeta(dbSheetId);
-    dbTabName=meta.sheets[0].properties.title;
-  }catch(e){}
-  const r=await sheetsGetRange(dbSheetId,dbTabName+'!A2:N2000');
-  const rows=(r.values||[]).filter(r=>r[0]);
-  sheets=rows.filter(r=>r[13]!=='1').map(r=>({
-    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
-    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
-    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:false
-  }));
-  trashedSheets=rows.filter(r=>r[13]==='1').map(r=>({
-    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
-    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
-    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:true
-  }));
-}
-
-async function saveToDb(){
-  const all=[...sheets,...trashedSheets];
-  const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
-  await sheetsValuesClear(dbSheetId,dbTabName+'!A2:N2000');
-  if(rows.length>0){await sheetsValuesUpdate(dbSheetId,dbTabName+'!A2',rows);}
-}
-
-/* ══════════════════════════════════
-   COUNTDOWN
-══════════════════════════════════ */
-let autoRunning=true;
-function toggleAutoRefresh(){
-  autoRunning=!autoRunning;
-  const btn=document.getElementById('stop-btn');
-  if(autoRunning){
-    btn.textContent='⏸ Stop';
-    btn.style.background='rgba(255,100,100,.3)';
-    startCountdown();
-  }else{
-    clearInterval(cdTimer);
-    btn.textContent='▶ Start';
-    btn.style.background='rgba(100,255,100,.3)';
-    document.getElementById('cd-text').textContent='Paused';
-  }
-}
-function startCountdown(){
-  clearInterval(cdTimer);
-  cdSec=300;updateCd();
-  cdTimer=setInterval(async()=>{
-    if(!autoRunning)return;
-    cdSec--;updateCd();
-    if(cdSec<=0){cdSec=300;await autoRefreshAll();}
-  },1000);
-}
-function updateCd(){
-  const m=Math.floor(cdSec/60),s=cdSec%60;
-  document.getElementById('cd-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
-  document.getElementById('cd-fill').style.width=(cdSec/300*100)+'%';
-}
-async function manualRefresh(){
-  await autoRefreshAll();cdSec=300;updateCd();
-}
-async function autoRefreshAll(){
-  if(!dbSheetId)return;
-  const active=sheets.filter(s=>s.status==='active'&&s.sheetId);
-  for(const s of active){
-    try{await readSheetData(s);}
-    catch(e){console.warn('Read failed:',s.title,e.message);}
-  }
-  if(active.length)await saveToDb();
-  document.getElementById('last-refresh').textContent='Last refreshed: '+nowStr();
-  renderDashboard();refreshDropdowns();
-}
-
-/* ══════════════════════════════════
-   FILL DETECTION
-   Key rule: formula cells that return 0
-   are reported by Sheets API as "0" string.
-   We detect real user-typed data by:
-   1. Cell must be non-empty string
-   2. Value must not be 0/0.0/0.00/"-"/"—"
-   3. Value must be a meaningful number >0
-      OR a non-numeric non-empty string
-══════════════════════════════════ */
-/* isRealData(formattedVal, formulaVal)
-   formulaVal: if cell has a formula, this starts with '='
-   If formula exists and formatted result is 0/empty → unfilled
-   If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
-function isRealData(fmtCell, fmlCell){
-  /* Final rule (confirmed by real-world testing):
-     - Empty cell            → NOT FILLED
-     - Formula error         → NOT FILLED
-     - Everything else       → FILLED
-       (user typed 0, formula returning 0, any value = FILLED) */
+/* ══ MONITORING — isRealData, detectLastDataColumn, detectManualColumns ══ */
+function isRealData(fmtCell,fmlCell){
   const fmt=String(fmtCell||'').trim();
   if(fmt==='')return false;
   const ERRORS=new Set(['#div/0!','#ref!','#value!','#name?','#n/a!','#null!','#num!','#error!']);
@@ -2010,28 +2051,22 @@ function isRealData(fmtCell, fmlCell){
   return true;
 }
 
-/* ChatGPT-recommended robust column detection functions */
-function detectLastDataColumn(fmtCols, fmlCols){
-  /* Scan first 20 rows of all fetched columns to find true last column.
-     This handles empty gaps and FORMULA API truncation correctly. */
+function detectLastDataColumn(fmtCols,fmlCols){
   let lastCol=0;
-  const totalCols=Math.max(fmtCols.length, fmlCols.length);
+  const totalCols=Math.max(fmtCols.length,fmlCols.length);
   for(let ci=0;ci<totalCols;ci++){
     const fmtCol=fmtCols[ci]||[];
     const fmlCol=fmlCols[ci]||[];
     for(let ri=0;ri<20;ri++){
-      const fmt=String((fmtCol[ri]||[])[0]!==undefined?(fmtCol[ri]||[])[0]:'').trim();
-      const fml=String((fmlCol[ri]||[])[0]!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      const fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      const fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
       if(isRealData(fmt,fml)){lastCol=ci;break;}
     }
   }
   return lastCol;
 }
 
-function detectManualColumns(fmtCols, fmlCols, startCol, lastCol){
-  /* A column is MANUAL if: value exists AND no formula (fml==='')
-     A column is FORMULA if: formula string exists (starts with =)
-     Scans first 20 rows of each column for reliability. */
+function detectManualColumns(fmtCols,fmlCols,startCol,lastCol){
   const isManualCol=[];
   for(let ci=startCol;ci<=lastCol;ci++){
     const colIdx=ci-startCol;
@@ -2039,8 +2074,8 @@ function detectManualColumns(fmtCols, fmlCols, startCol, lastCol){
     const fmlCol=fmlCols[colIdx]||[];
     let manualFound=false;
     for(let ri=0;ri<20;ri++){
-      const fmt=String((fmtCol[ri]||[])[0]!==undefined?(fmtCol[ri]||[])[0]:'').trim();
-      const fml=String((fmlCol[ri]||[])[0]!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      const fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      const fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
       if(fmt!==''&&fml===''){manualFound=true;break;}
     }
     isManualCol[ci]=manualFound;
@@ -2048,67 +2083,38 @@ function detectManualColumns(fmtCols, fmlCols, startCol, lastCol){
   return isManualCol;
 }
 
+
 function normalizeCell(v){
-  /* Strip invisible Unicode chars that Google Sheets sometimes adds:
-     \u00a0=non-breaking space, \u200b/c/d=zero-width chars, \ufeff=BOM */
   return String(v||'')
     .replace(/[\u00a0\u200b\u200c\u200d\u200e\u200f\ufeff\u00ad]/g,' ')
     .trim().toLowerCase()
-    .replace(/\s+/g,' ')
-    .replace(/[-_]/g,' ')
-    .replace(/[()]/g,'')
-    .replace(/\s+/g,' ')
-    .trim();
+    .replace(/\s+/g,' ').replace(/[-_]/g,' ').replace(/[()]/g,'')
+    .replace(/\s+/g,' ').trim();
 }
+
 function matchBlock(row){
-  // Pass 1: exact match with normalization
   for(const cell of row){
-    if(cell===undefined||cell===null||cell==='')continue;
-    const n=normalizeCell(cell);
-    if(ALIASES[n]!==undefined)return ALIASES[n];
-    // try with dashes kept
-    const nd=String(cell).trim().toLowerCase().replace(/\s+/g,' ');
-    if(ALIASES[nd]!==undefined)return ALIASES[nd];
-    // Tiru/Thiru normalization
-    const nt=n.replace('thiruvannamalai','tiruvannamalai');
-    if(ALIASES[nt]!==undefined)return ALIASES[nt];
-  }
-  // Pass 2: fuzzy - skip short/numeric cells
-  for(const cell of row){
-    if(cell===undefined||cell===null||cell==='')continue;
-    const n=normalizeCell(cell);
-    if(n.length<4)continue;
-    if(/^[\d,.\s]+$/.test(n))continue;
-    if(/^[\d]+$/.test(n.replace(/ /g,'')))continue;
-    const nt=n.replace('thiruvannamalai','tiruvannamalai');
+    if(!cell)continue;
+    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
+    if(ALIASES[norm]!==undefined)return ALIASES[norm];
     for(const [alias,idx] of Object.entries(ALIASES)){
-      const an=normalizeCell(alias);
-      const ant=an.replace('thiruvannamalai','tiruvannamalai');
-      if(nt===ant)return idx;
-      if(n.length>=5&&an.length>=5&&(nt.includes(ant)||ant.includes(nt)))return idx;
+      if(norm===alias||norm.includes(alias)||alias.includes(norm))return idx;
     }
   }
   return -1;
 }
 
-/* ══════════════════════════════════
-   READ SHEET — scans all tabs,
-   accumulates real data score per block
-══════════════════════════════════ */
 
 function calcFillStatus(fV,tV){
   if(tV===0)return{status:'unfilled',reason:'No fillable fields'};
-  const rem=tV-fV, pct=Math.round(fV/tV*100);
+  const rem=tV-fV,pct=Math.round(fV/tV*100);
   if(tV<=5){
     if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
     return{status:'unfilled',reason:fV+'/'+tV+' fields filled - all required'};
   }
   if(tV<=10){
     if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
-    if(fV>=3){
-      const note=rem===1?' - 1 field yet to be filled':'';
-      return{status:'partial',reason:fV+'/'+tV+' fields filled'+note};
-    }
+    if(fV>=3){const note=rem===1?' - 1 field yet to be filled':'';return{status:'partial',reason:fV+'/'+tV+' fields filled'+note};}
     return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields filled'};
   }
   const minP=Math.max(6,Math.ceil(tV*0.30));
@@ -2125,127 +2131,74 @@ async function readSheetData(s){
   const meta=await sheetsGetMeta(s.sheetId);
   const tabs=meta.sheets.map(sh=>sh.properties.title);
   const blockData={};
-
   for(const tabName of tabs){
     const enc=t=>"'"+t+"'";
-
-    /* ── STEP 1: Read full tab to find block structure ── */
     const fmtFull=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
       '/values/'+encodeURIComponent(enc(tabName)+'!A:Z')+'?valueRenderOption=FORMATTED_VALUE');
     const fmtRows=fmtFull.values||[];
     if(!fmtRows.length)continue;
-
-    /* Find blockCol and firstDataRow */
     let blockCol=-1,firstDataRow=-1;
     for(let ri=0;ri<fmtRows.length&&(blockCol<0||firstDataRow<0);ri++){
       for(let ci=0;ci<(fmtRows[ri]||[]).length;ci++){
         if(matchBlock([String((fmtRows[ri]||[])[ci]||'').trim()])>=0){
-          if(blockCol<0)blockCol=ci;
-          if(firstDataRow<0)firstDataRow=ri;
-          break;
+          if(blockCol<0)blockCol=ci;if(firstDataRow<0)firstDataRow=ri;break;
         }
       }
     }
     if(blockCol<0||firstDataRow<0)continue;
-
     const dataColStart=blockCol+1;
     const colLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-    /* ── STEP 2: Fetch all data columns individually ──
-       First pass: fetch up to col Z, then use detectLastDataColumn
-       to find true extent (handles gaps and truncation) */
-    const maxPossibleCol=25; /* Z */
     const colRanges=[];
-    for(let ci=dataColStart;ci<=maxPossibleCol;ci++){
-      colRanges.push(enc(tabName)+'!'+colLetters[ci]+':'+colLetters[ci]);
-    }
-
+    for(let ci=dataColStart;ci<=25;ci++)colRanges.push(enc(tabName)+'!'+colLetters[ci]+':'+colLetters[ci]);
     const [batchFmt,batchFml]=await Promise.all([
-      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
-        '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
-        '&valueRenderOption=FORMATTED_VALUE'),
-      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
-        '/values:batchGet?'+colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+
-        '&valueRenderOption=FORMULA')
+      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
+        colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+'&valueRenderOption=FORMATTED_VALUE'),
+      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
+        colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+'&valueRenderOption=FORMULA')
     ]);
-
     const fmtCols=(batchFmt.valueRanges||[]).map(vr=>vr.values||[]);
     const fmlCols=(batchFml.valueRanges||[]).map(vr=>vr.values||[]);
-
-    /* ── STEP 3: Detect true last column and manual columns ──
-       Using ChatGPT-recommended robust functions that scan
-       multiple rows and handle gaps correctly */
     const lastColRelative=detectLastDataColumn(fmtCols,fmlCols);
-    const lastCol=dataColStart+lastColRelative;
     if(lastColRelative<0)continue;
-
     const isManualCol=detectManualColumns(fmtCols,fmlCols,0,lastColRelative);
-
-    /* tabMaxV = count of manual columns for this tab (same for all blocks) */
     const tabMaxV=Object.values(isManualCol).filter(Boolean).length;
     if(tabMaxV===0)continue;
-
-    /* ── STEP 4: Score each block row ── */
     const tabBlockBest={};
-
     for(let ri=firstDataRow;ri<fmtRows.length;ri++){
-      /* Reconstruct full row from per-column fetches */
-      const row=Array.from({length:lastCol+1},(_,ci)=>{
+      const row=Array.from({length:lastColRelative+dataColStart+1},(_,ci)=>{
         if(ci<dataColStart)return(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'';
         const colIdx=ci-dataColStart;
-        return((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?
-          ((fmtCols[colIdx]||[])[ri]||[])[0]:'';
+        return((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?((fmtCols[colIdx]||[])[ri]||[])[0]:'';
       });
-
       const bIdx=matchBlock(row);
       if(bIdx<0)continue;
-
-      /* Skip total/summary rows */
-      if(/total|மொத்தம்/.test(row.join(' ').toLowerCase()))continue;
-
+      if(/\btotal\b|\u0bae\u0bcb\u0ba4\u0bcd\u0ba4\u0bae\u0bcd/.test(row.join(' ').toLowerCase()))continue;
       let filledV=0;
       for(let colIdx=0;colIdx<=lastColRelative;colIdx++){
-        if(!isManualCol[colIdx])continue; /* skip formula columns */
-
-        const fmt=String(((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?
-          ((fmtCols[colIdx]||[])[ri]||[])[0]:'').trim();
-        const fml=String(((fmlCols[colIdx]||[])[ri]||[])[0]!==undefined?
-          ((fmlCols[colIdx]||[])[ri]||[])[0]:'').trim();
-
-        /* Use isRealData — the single source of truth for fill detection */
+        if(!isManualCol[colIdx])continue;
+        const fmt=String(((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?((fmtCols[colIdx]||[])[ri]||[])[0]:'').trim();
+        const fml=String(((fmlCols[colIdx]||[])[ri]||[])[0]!==undefined?((fmlCols[colIdx]||[])[ri]||[])[0]:'').trim();
         if(isRealData(fmt,fml))filledV++;
       }
-
-      if(tabBlockBest[bIdx]===undefined||filledV>tabBlockBest[bIdx]){
-        tabBlockBest[bIdx]=filledV;
-      }
+      if(tabBlockBest[bIdx]===undefined||filledV>tabBlockBest[bIdx])tabBlockBest[bIdx]=filledV;
     }
-
-    /* ── STEP 5: Accumulate — once per block per tab ── */
     Object.entries(tabBlockBest).forEach(([bIdxStr,filledV])=>{
       const bIdx=parseInt(bIdxStr);
       if(!blockData[bIdx])blockData[bIdx]={filledV:0,totalV:0,tabs:[]};
       blockData[bIdx].filledV+=filledV;
       blockData[bIdx].totalV+=tabMaxV;
-      if(!blockData[bIdx].tabs.includes(tabName))
-        blockData[bIdx].tabs.push(tabName);
+      if(!blockData[bIdx].tabs.includes(tabName))blockData[bIdx].tabs.push(tabName);
     });
   }
-
   s.blockStatus=BLOCKS.map((_,i)=>{
     const bd=blockData[i];
-    if(!bd||bd.totalV===0)return{idx:i,status:'unfilled',
-      reason:'Block not found in sheet',tabs:[],updatedAt:today()};
+    if(!bd||bd.totalV===0)return{idx:i,status:'unfilled',reason:'Block not found in sheet',tabs:[],updatedAt:today()};
     const{status,reason}=calcFillStatus(bd.filledV,bd.totalV);
-    return{idx:i,status,reason,tabs:bd.tabs,
-           filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
+    return{idx:i,status,reason,tabs:bd.tabs,filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
   });
   s.lastRead=nowStr();
 }
 
-/* ══════════════════════════════════
-   IMPORT EXISTING SHEET
-══════════════════════════════════ */
 async function importSheet(){
   const title=document.getElementById('ns-title').value.trim();
   const link=document.getElementById('ns-existing-link').value.trim();
@@ -2483,75 +2436,26 @@ function showCMsg(html,type){
 function onMonChange(){
   const id=parseInt(document.getElementById('mon-sel').value);
   const s=sheets.find(x=>x.id===id);
-  const lr=document.getElementById('mon-link-row');
-  const pb=document.getElementById('preview-btn');
-  if(s&&s.link){
-    document.getElementById('mon-link').href=s.link;
-    lr.classList.remove('hidden');
-    if(pb)pb.style.display='';
-  } else {
-    lr.classList.add('hidden');
-    if(pb)pb.style.display='none';
-  }
+  if(s&&s.link){document.getElementById('mon-link').href=s.link;document.getElementById('mon-link-row').classList.remove('hidden');}
+  else document.getElementById('mon-link-row').classList.add('hidden');
   document.getElementById('mon-result').innerHTML='';
-  document.getElementById('mon-result-single').innerHTML='';
-  if(window._previewOpen){window._previewOpen=false;_applyPreviewState();}
 }
-
-function _applyPreviewState(){
-  const sp=document.getElementById('mon-split');
-  const sg=document.getElementById('mon-result-single');
-  const pb=document.getElementById('preview-btn');
-  if(window._previewOpen){
-    sp.style.display='block';sg.style.display='none';
-    if(pb)pb.textContent='Close Preview';
-  } else {
-    sp.style.display='none';sg.style.display='block';
-    if(pb)pb.textContent='Preview';
-  }
-}
-
-function togglePreview(){
-  const id=parseInt(document.getElementById('mon-sel').value);
-  const s=sheets.find(x=>x.id===id);
-  window._previewOpen=!window._previewOpen;
-  if(window._previewOpen&&s&&s.link){
-    const m=s.link.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if(m)document.getElementById('mon-iframe').src='https://docs.google.com/spreadsheets/d/'+m[1]+'/preview';
-    document.getElementById('mon-result').innerHTML=document.getElementById('mon-result-single').innerHTML;
-  } else {
-    window._previewOpen=false;
-    document.getElementById('mon-result-single').innerHTML=document.getElementById('mon-result').innerHTML;
-  }
-  _applyPreviewState();
-}
-
-function _writeMonResult(html){
-  document.getElementById('mon-result').innerHTML=html;
-  document.getElementById('mon-result-single').innerHTML=html;
-  _applyPreviewState();
-}
-
 async function readOneSheet(){
   const id=parseInt(document.getElementById('mon-sel').value);
   if(!id){alert('Select a sheet first.');return;}
   const s=sheets.find(x=>x.id===id);
   if(!s)return;
-  /* Show loading */
   document.getElementById('read-spin').classList.remove('hidden');
-  _writeMonResult('<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells... Please wait.</div>');
+  document.getElementById('mon-result').innerHTML='<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells...</div>';
   try{
-    await readSheetData(s);
-    await saveToDb();
-    renderDashboard();
-    refreshDropdowns();
+    await readSheetData(s);await saveToDb();
+    renderDashboard();refreshDropdowns();
     renderMonTable(s);
   }catch(e){
-    _writeMonResult('<div class="alert a-err">&#10060; Error: '+e.message+'<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>');
+    document.getElementById('mon-result').innerHTML=`<div class="alert a-err">❌ Error: ${e.message}<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>`;
   }
   document.getElementById('read-spin').classList.add('hidden');
 }
-
 
 function renderMonTable(s){
   const f=s.blockStatus.filter(b=>b.status==='filled').length;
@@ -2572,7 +2476,7 @@ function renderMonTable(s){
     <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
     <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Last read: ${s.lastRead||'—'} · ${pct}% complete</div>
     <div style="overflow-x:auto"><table class="tbl">
-    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை / காரணம்</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
+    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
   s.blockStatus.forEach((bs,i)=>{
     const b=BLOCKS[bs.idx];
     const sc=bs.status==='filled'?'b-green':bs.status==='partial'?'b-amber':'b-red';
@@ -2582,10 +2486,7 @@ function renderMonTable(s){
       <td style="color:var(--gray);font-size:11px">${i+1}</td>
       <td style="font-weight:600">${b.ta}</td>
       <td style="font-size:12px;color:var(--gray)">${b.en}</td>
-      <td>
-        <span class="badge ${sc}">${sl}</span>
-        ${bs.reason?`<span style="display:block;font-size:10px;color:var(--gray);margin-top:2px">${bs.reason}</span>`:''}
-      </td>
+      <td><span class="badge ${sc}">${sl}</span></td>
       <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
       <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
     </tr>`;
@@ -2594,7 +2495,7 @@ function renderMonTable(s){
     <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-outline" style="font-size:12px" onclick="goToWA(${s.id})">📤 Generate WhatsApp Message</button>
     </div></div>`;
-  _writeMonResult(html);
+  document.getElementById('mon-result').innerHTML=html;
 }
 
 /* ══════════════════════════════════
@@ -2733,30 +2634,10 @@ function genWA(){
   const filled=s.blockStatus.filter(b=>b.status==='filled');
   const pending=s.blockStatus.filter(b=>b.status!=='filled');
   const pct=Math.round((filled.length/Math.max(s.blockStatus.length,1))*100);
-  /* Use date of posting (deadline field) if set, else creation date */
-  const days=s.deadline?daysSince(s.deadline):daysSince(s.createdAt);
+  const days=daysSince(s.createdAt);
   const lnk=s.link||'[இணைப்பு சேர்க்கப்படும்]';
-
-  /* For partial blocks with >10 fields, append field count note from reason */
-  const pTa=pending.map(b=>{
-    let name=BLOCKS[b.idx].ta;
-    if(b.status==='partial'&&b.totalV>10&&b.reason){
-      /* Extract "only X fields yet to be filled" from reason if present */
-      const m=b.reason.match(/only (\d+ fields? yet to be filled)/i);
-      if(m)name+=` (${m[1]})`;
-    }
-    return name;
-  }).join('\n');
-
-  const pEn=pending.map(b=>{
-    let name=BLOCKS[b.idx].en;
-    if(b.status==='partial'&&b.totalV>10&&b.reason){
-      const m=b.reason.match(/only (\d+ fields? yet to be filled)/i);
-      if(m)name+=` (${m[1]})`;
-    }
-    return name;
-  }).join('\n');
-
+  const pTa=pending.map(b=>BLOCKS[b.idx].ta).join('\n');
+  const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
   const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
   const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
   const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
@@ -2768,8 +2649,8 @@ function genWA(){
       en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
     },
     reminder:{
-      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
-      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''}\n\nYou are requested to fill immediately.\n${SIGN_EN}`
+      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது · ${pct}% முடிந்தது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
+      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
     },
     final:{
       ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nகீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
@@ -2814,7 +2695,7 @@ function renderRepo(){
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div style="flex:1">
           <div style="font-size:13px;font-weight:700">${s.title}</div>
-          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Posted: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Deadline: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
             ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
             ${s.link?`<button class="btn-sm" style="font-size:11px;padding:3px 8px" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Copied!'))">📋 Copy</button>`:''}
@@ -2871,6 +2752,7 @@ function renderBlockChips(){
 function toggleChip(i){selectedBlocks.has(i)?selectedBlocks.delete(i):selectedBlocks.add(i);renderBlockChips();}
 function selAll(){selectedBlocks=new Set(BLOCKS.map((_,i)=>i));renderBlockChips();}
 function selNone(){selectedBlocks=new Set();renderBlockChips();}
+
 </script>
 </body>
 </html>
