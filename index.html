@@ -107,7 +107,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
 .copy-link-url{font-size:12px;color:var(--blue);word-break:break-all;flex:1}
 .trash-item{background:#fff8f8;border:1px solid #f5c6c6;border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
 
-  /* Squad Tab */
+  /* ── Squad Tab ── */
+  .squad-stab{padding:9px 18px;font-size:13px;cursor:pointer;color:var(--gray);border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:500;transition:color .15s,border-color .15s;white-space:nowrap}
+  .squad-stab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+  .squad-stab:hover:not(.active){color:var(--blue-dk)}
+  .squad-spanel{display:none!important}.squad-spanel.active{display:block!important}
   .sq-block-chip{display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all .15s;user-select:none;font-weight:500}
   .sq-block-chip:hover{border-color:var(--blue);color:var(--blue)}
   .sq-block-chip.selected{background:var(--blue)!important;color:#fff!important;border-color:var(--blue)!important;font-weight:700}
@@ -189,9 +193,8 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     <div class="tab" data-tab="whatsapp">💬 WhatsApp</div>
     <div class="tab" data-tab="repo">🗄 Repository</div>
     <div class="tab" data-tab="trash">🗑 Trash</div>
-    <div class="tab" data-tab="inspection">&#128269; Inspection</div>
-    <div class="tab" data-tab="squad">&#9876; Squad</div>
-    <div class="tab" data-tab="staff-master">&#128101; Staff Master</div>
+    <div class="tab" data-tab="inspection">🔍 Inspection</div>
+    <div class="tab" data-tab="squad">⚔️ Squad</div>
   </div>
 
   <div class="main">
@@ -318,7 +321,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         </div>
         <div class="frow">
           <div>
-            <label class="flbl">Deadline</label>
+            <label class="flbl">Date of Posting</label>
             <input class="finput" type="date" id="tr-deadline">
           </div>
           <div>
@@ -346,17 +349,36 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             </select>
           </div>
           <div style="display:flex;align-items:flex-end">
-            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="readOneSheet()">
-              <span id="read-spin" class="hidden"><span class="spin"></span></span>
-              🔄 Read Sheet Now
-            </button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="readOneSheet()">
+                <span id="read-spin" class="hidden"><span class="spin"></span></span>
+                Read Sheet Now
+              </button>
+              <button id="preview-btn" class="btn btn-outline" onclick="togglePreview()" style="display:none;flex-shrink:0">
+                Preview
+              </button>
+            </div>
           </div>
         </div>
         <div id="mon-link-row" class="hidden">
           <a id="mon-link" href="#" target="_blank" class="link-sm">Open in Google Sheets ↗</a>
         </div>
       </div>
-      <div id="mon-result"></div>
+      <!-- Split screen: left=result, right=iframe preview -->
+      <div id="mon-split" style="display:none;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+          <div id="mon-result" style="max-height:620px;overflow-y:auto"></div>
+          <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:sticky;top:60px">
+            <div style="background:var(--blue-dk);color:#fff;padding:7px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between">
+              <span>Sheet Preview</span>
+              <button onclick="togglePreview()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">Close X</button>
+            </div>
+            <iframe id="mon-iframe" src="" style="width:100%;height:580px;border:none"></iframe>
+          </div>
+        </div>
+      </div>
+      <!-- Normal single column view -->
+      <div id="mon-result-single"></div>
     </div>
 
     <!-- ═══ WHATSAPP ═══ -->
@@ -409,11 +431,11 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       <div id="repo-list"></div>
     </div>
 
-    <!-- ═══ TRASH ═══ -->
-    <!-- INSPECTION PANEL -->
+    <!-- ═══ INSPECTION ═══ -->
     <div class="panel" id="panel-inspection">
       <div class="sec-title">Inspection Report</div>
-      <div class="sec-sub">MIS portal-il irunthu pattivirakkiya Excel kopaiai ingke izhutti vidungal</div>
+      <div class="sec-sub">MIS portal-இல் இருந்து பதிவிறக்கிய Excel கோப்பை இங்கே இழுத்து விடுங்கள்</div>
+
       <div class="card">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
           <div style="flex:1;min-width:200px">
@@ -429,146 +451,177 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         <div style="margin-bottom:10px">
           <label class="flbl">Squad Shop Codes to Exclude (comma separated)</label>
           <div style="display:flex;gap:8px;align-items:center">
-            <input id="insp-squad-exclude" class="finput" placeholder="e.g. 05GP101PY, 05GP102PY" style="flex:1;font-size:12px;font-family:monospace">
-            <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="loadSquadCodesFromSquadTab()">Load from Squad Tab</button>
+            <input id="insp-squad-exclude" class="finput" placeholder="e.g. 05GP101PY, 05GP102PY"
+              style="flex:1;font-size:12px;font-family:monospace">
+            <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;white-space:nowrap"
+              onclick="loadSquadCodesFromSquadTab()">Load from Squad Tab</button>
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="processInspection()">&#128202; Generate Report</button>
-          <button class="btn btn-outline" onclick="resetInspection()">&#128260; Reset</button>
+          <button class="btn btn-primary" onclick="processInspection()">📊 Generate Report</button>
+          <button class="btn btn-outline" onclick="resetInspection()">🔄 Reset</button>
         </div>
         <div id="insp-msg" class="hidden" style="margin-top:10px"></div>
       </div>
 
       <div id="insp-result" class="hidden">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+
+          <!-- LEFT: BLOCK OFFICERS -->
           <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:13px;font-weight:700;color:var(--blue)">
-                21 Vattara Aluvalargal <span style="font-size:11px;font-weight:400;color:var(--gray)">(Ilakku: 45)</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--blue-dk)" id="insp-report-title">
+                  கண்காணிப்பு இலக்கு நிறைவேற்றம்
+                </div>
+                <div style="font-size:11px;color:var(--gray)">21 வட்டார அலுவலர்கள் &nbsp;·&nbsp; இலக்கு: 45 கடைகள்</div>
               </div>
-              <button class="btn btn-outline" onclick="screenshotBlocks()" style="font-size:11px;padding:4px 10px">&#128247; Screenshot</button>
+              <button class="btn btn-outline" onclick="screenshotBlocks()" style="font-size:11px;padding:4px 10px">
+                📸 Clipboard
+              </button>
             </div>
-            <div id="insp-blocks-wrap" style="background:#fff;border:1px solid #bbb;border-radius:var(--r);overflow:hidden">
-              <div id="insp-report-title" style="background:#1f4788;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Aayvu Ilakku Nirai Verratram</div>
+            <div id="insp-blocks-wrap" style="background:#fff;border:1px solid var(--border);border-radius:var(--r)">
               <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #bbb" id="insp-blocks-tbl">
                 <thead>
                   <tr style="background:#1f4788;color:#fff">
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0;width:40px">#</th>
-                    <th style="padding:7px 10px;text-align:left;border:1px solid #3a5ea0">Vattaram</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">Ilakku</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">Aayvu seyyapatta kadaigalin ennikai</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">Niluvaai</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0;width:40px">#</th>
+                    <th style="padding:7px 10px;text-align:left;font-weight:700;border:1px solid #3a5ea0">வட்டாரம்</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0">கண்காணிப்பு</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0">இலக்கு</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0">நிலுவை</th>
                   </tr>
                 </thead>
                 <tbody id="insp-blocks"></tbody>
               </table>
-              <div id="insp-summary" style="padding:8px 10px;font-size:12px;color:var(--gray);border-top:1px solid var(--border);background:var(--gray-lt)"></div>
+              <div id="insp-summary" style="padding:8px 10px;font-size:12px;color:var(--gray);border-top:1px solid var(--border);background:var(--gray-lt);border-radius:0 0 var(--r) var(--r)"></div>
             </div>
           </div>
+
+          <!-- RIGHT: OFFICERS -->
           <div>
-            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">Aluvalargal</div>
-            <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">
+              அலுவலர்கள் — Officers
+            </div>
+            <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r)">
               <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <thead>
-                  <tr style="background:#166534;color:#fff">
-                    <th style="padding:8px 10px;text-align:left;font-weight:600">Patavi</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600">Ilakku</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600">Aayvu</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600">Niluvaai</th>
+                  <tr style="background:var(--green-dk,#064432);color:#fff">
+                    <th style="padding:8px 10px;text-align:left;font-weight:600">பதவி</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">கண்காணிப்பு</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">இலக்கு</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">நிலுவை</th>
                   </tr>
                 </thead>
                 <tbody id="insp-officers"></tbody>
               </table>
             </div>
           </div>
+
         </div>
       </div>
     </div>
 
-    <!-- SQUAD PANEL -->
+    <!-- ═══ SQUAD ═══ -->
     <div class="panel" id="panel-squad">
-      <div class="sec-title">&#9876; Squad Inspection</div>
-      <div class="sec-sub">Kootturai Aayvu Niyamana Attavanai Tayarippu</div>
+      <div class="sec-title">⚔️ Squad Inspection</div>
+      <div class="sec-sub">கூட்டுறவு ஆய்வு நியமன அட்டவணை தயாரிப்பு</div>
 
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">Padi 1 - Block &amp; Date</div>
-        <div class="frow">
-          <div>
-            <label class="flbl">Squad Inspection Date *</label>
-            <input type="date" id="sq-date" class="finput">
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px">
+        <div class="squad-stab active" data-stab="squad-generate" onclick="squadStab(this)">📋 Generate Squad</div>
+        <div class="squad-stab" data-stab="squad-staff" onclick="squadStab(this)">👥 Staff Master</div>
+      </div>
+
+      <!-- ─── GENERATE SQUAD ─── -->
+      <div id="squad-generate" class="squad-spanel active" style="display:block">
+
+        <div class="card">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">படி 1 — Block &amp; Date</div>
+          <div class="frow">
+            <div>
+              <label class="flbl">Squad Inspection Date *</label>
+              <input type="date" id="sq-date" class="finput">
+            </div>
+            <div>
+              <label class="flbl">Shops per Inspector</label>
+              <input type="number" id="sq-per-staff" class="finput" value="3" min="1" max="10" style="max-width:100px">
+            </div>
           </div>
-          <div>
-            <label class="flbl">Shops per Inspector</label>
-            <input type="number" id="sq-per-staff" class="finput" value="3" min="1" max="10" style="max-width:100px">
+          <label class="flbl" style="margin-bottom:8px">Select Block(s) *</label>
+          <div id="sq-block-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipAll()">Select All</button>
+            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipClear()">Clear</button>
           </div>
         </div>
-        <label class="flbl" style="margin-bottom:8px">Select Block(s) *</label>
-        <div id="sq-block-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipAll()">Select All</button>
-          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipClear()">Clear</button>
+
+        <div class="card">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">படி 2 — Shop Master</div>
+          <div style="font-size:12px;color:var(--gray);margin-bottom:10px">
+            முன்பு ஏற்றிய Excel நினைவில் உள்ளது. புதிய கோப்பு இருந்தால் மட்டும் மாற்றுக.
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input type="file" id="sq-shop-file" accept=".xlsx,.xls"
+              style="padding:6px;border:2px dashed var(--border);border-radius:var(--r-sm);background:var(--gray-lt);cursor:pointer"
+              onchange="loadSquadShopData(this)">
+            <div id="sq-shop-status" style="font-size:12px;color:var(--gray)">No file loaded</div>
+          </div>
+        </div>
+
+        <div class="card" id="sq-staff-card" style="display:none">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">
+            படி 3 — Available Staff
+            <span style="font-size:11px;font-weight:400;color:var(--gray)">☑ = Vacant / Leave — will be skipped</span>
+          </div>
+          <div id="sq-staff-list"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="generateSquad()">⚡ Generate Squad Table</button>
+          <button class="btn btn-outline" onclick="resetSquad()">🔄 Reset</button>
+        </div>
+        <div id="sq-msg" class="hidden" style="margin-bottom:12px"></div>
+
+        <div id="sq-result" class="hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div style="font-weight:700;font-size:14px" id="sq-result-title"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline" style="font-size:12px" onclick="copySquadTable()">📋 Copy Table</button>
+            </div>
+          </div>
+          <div id="sq-stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+          <div id="sq-table-wrap" style="background:#fff;border:2px solid #1f3864;border-radius:4px;overflow:hidden;font-family:Arial,sans-serif">
+            <table style="width:100%;border-collapse:collapse;font-size:13px" id="sq-table">
+              <thead>
+                <tr style="background:#1f3864;color:#fff">
+                  <th style="padding:9px 10px;text-align:center;width:45px;border:1px solid #3a5ea0">வ.எண்</th>
+                  <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">சங்கத்தின் பெயர்</th>
+                  <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">கடை குறியிட்டு எண்</th>
+                  <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">நியாயவிலை கடையின் பெயர்</th>
+                  <th style="padding:9px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு அலுவலர் திருவாளர்கள்/ திருமதி/ செல்வி</th>
+                </tr>
+              </thead>
+              <tbody id="sq-tbody"></tbody>
+            </table>
+          </div>
+          <div id="sq-unassigned" class="hidden" style="margin-top:12px">
+            <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px">⚠️ ஒதுக்கப்படாத கடைகள்</div>
+            <div id="sq-unassigned-list" style="font-size:12px;color:var(--gray)"></div>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">Padi 2 - Shop Master</div>
-        <div style="font-size:12px;color:var(--gray);margin-bottom:10px">Mun ertria Excel ninaivil ullathu. Putiya koppu iruntal mattum matruka.</div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <input type="file" id="sq-shop-file" accept=".xlsx,.xls"
-            style="padding:6px;border:2px dashed var(--border);border-radius:var(--r-sm);background:var(--gray-lt);cursor:pointer"
-            onchange="loadSquadShopData(this)">
-          <div id="sq-shop-status" style="font-size:12px;color:var(--gray)">No file loaded</div>
+      <!-- ─── STAFF MASTER ─── -->
+      <div id="squad-staff" class="squad-spanel hidden" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:700;font-size:14px">Staff Master Data</div>
+            <div style="font-size:12px;color:var(--gray)">நிரந்தர பணியாளர் பட்டியல் — தேவைப்படும்போது மட்டும் திருத்துக</div>
+          </div>
+          <button class="btn btn-primary" onclick="showAddStaffModal()">+ Add Staff</button>
         </div>
-      </div>
 
-      <div class="card" id="sq-staff-card" style="display:none">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">
-          Padi 3 - Available Staff
-          <span style="font-size:11px;font-weight:400;color:var(--gray)">&#9745; = Vacant/Leave - will be skipped</span>
-        </div>
-        <div id="sq-staff-list"></div>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="generateSquad()">&#9889; Generate Squad Table</button>
-        <button class="btn btn-outline" onclick="resetSquad()">&#128260; Reset</button>
-      </div>
-      <div id="sq-msg" class="hidden" style="margin-bottom:12px"></div>
-
-      <div id="sq-result" class="hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <div style="font-weight:700;font-size:14px" id="sq-result-title"></div>
-          <button class="btn btn-outline" style="font-size:12px" onclick="copySquadTable()">&#128203; Copy Table</button>
-        </div>
-        <div id="sq-stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
-        <div id="sq-table-wrap" style="background:#fff;border:2px solid #1f3864;border-radius:4px;overflow:hidden;font-family:Arial,sans-serif">
-          <table style="width:100%;border-collapse:collapse;font-size:13px" id="sq-table">
-            <thead>
-              <tr style="background:#1f3864;color:#fff">
-                <th style="padding:9px 10px;text-align:center;width:45px;border:1px solid #3a5ea0">Va.En</th>
-                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">Sangatthin Peyar</th>
-                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">Kadai Kuriyittu En</th>
-                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">Niyaayavilai Kadaiyin Peyar</th>
-                <th style="padding:9px 10px;text-align:center;border:1px solid #3a5ea0">Aayvu Aluvar</th>
-              </tr>
-            </thead>
-            <tbody id="sq-tbody"></tbody>
-          </table>
-        </div>
-        <div id="sq-unassigned" class="hidden" style="margin-top:12px">
-          <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px">&#9888; Ottukkappadatha Kadaigal</div>
-          <div id="sq-unassigned-list" style="font-size:12px;color:var(--gray)"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STAFF MASTER PANEL -->
-    <div class="panel" id="panel-staff-master">
-      <div class="sec-title">&#128101; Staff Master</div>
-      <div class="sec-sub">Nirantara Paniyalar Pattiyel - Tevaippadumpohu Mattum Tirutuka</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
           <select id="sq-filter-wing" class="fselect" style="max-width:180px" onchange="renderStaffMaster()">
             <option value="">All Wings</option>
             <option value="pds">PDS Wing</option>
@@ -579,25 +632,25 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             <option value="">All Blocks / Circles</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="showAddStaffModal()">+ Add Staff</button>
-      </div>
-      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead>
-            <tr style="background:var(--gray-lt)">
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Patavi</th>
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Vattaram / Circle</th>
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Peyar</th>
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Wing</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Vacant</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="sq-staff-tbody"></tbody>
-        </table>
+
+        <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:var(--gray-lt)">
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">பதவி</th>
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">வட்டாரம் / Circle</th>
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">பெயர்</th>
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Wing</th>
+                <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Vacant</th>
+                <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sq-staff-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Add/Edit Modal -->
+      <!-- Staff Add/Edit Modal -->
       <div id="sq-staff-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px">
         <div style="background:#fff;border-radius:var(--r);padding:20px;width:100%;max-width:480px">
           <div style="font-weight:700;font-size:15px;margin-bottom:14px" id="sq-modal-title">Add Staff</div>
@@ -613,23 +666,23 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             <div id="sm-circle-wrap">
               <label class="flbl">Circle</label>
               <select id="sm-circle" class="fselect">
-                <option value="">-</option>
-                <option value="TVM">Thiruvannamalai Circle</option>
-                <option value="CHY">Cheyyar Circle</option>
+                <option value="">—</option>
+                <option value="TVM">திருவண்ணாமலை Circle</option>
+                <option value="CHY">செய்யார் Circle</option>
               </select>
             </div>
           </div>
           <div class="frow">
             <div>
               <label class="flbl">Designation *</label>
-              <input id="sm-desig" class="finput" list="sq-desig-list" placeholder="Select or type">
+              <input id="sm-desig" class="finput" list="sq-desig-list" placeholder="தேர்வு செய்க அல்லது தட்டச்சு செய்க">
               <datalist id="sq-desig-list">
-                <option value="Koo.Cha.Pa/Povithi">
-                <option value="Mu.Ni.Aa/Povithi">
-                <option value="Kal Aluvar">
-                <option value="Inaippativalaar">
-                <option value="Thunai Pativalaar (Povithi)">
-                <option value="Thunai Pativalaar, Cheyyar Saragam">
+                <option value="கூ.சா.ப/பொவிதி">
+                <option value="மு.நி.ஆ/பொவிதி">
+                <option value="கள அலுவலர்">
+                <option value="இணைப்பதிவாளர்">
+                <option value="துணைப்பதிவாளர் (பொவிதி)">
+                <option value="துணைப்பதிவாளர், செய்யார் சரகம்">
               </datalist>
             </div>
             <div id="sm-block-wrap">
@@ -638,11 +691,11 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             </div>
           </div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:10px">
-            <input type="checkbox" id="sm-vacant" onchange="onSmVacantChange()"> Vacant
+            <input type="checkbox" id="sm-vacant" onchange="onSmVacantChange()"> Vacant (காலியிடம்)
           </label>
           <div style="margin-bottom:14px" id="sm-name-wrap">
             <label class="flbl">Staff Name <span id="sm-name-req">*</span></label>
-            <input id="sm-name" class="finput" placeholder="Name...">
+            <input id="sm-name" class="finput" placeholder="திருவாளர்/ திருமதி/ செல்வி...">
           </div>
           <input type="hidden" id="sm-edit-id">
           <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -653,6 +706,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       </div>
     </div>
 
+    <!-- ═══ TRASH ═══ -->
     <div class="panel" id="panel-trash">
       <div class="sec-title">🗑 Trash</div>
       <div class="sec-sub">Deleted sheets — restore or permanently delete</div>
@@ -663,6 +717,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 </div>
 
 <script>
+
 /* ══════════════════════════════════
    BLOCK DATA
 ══════════════════════════════════ */
@@ -691,27 +746,82 @@ const BLOCKS=[
 ];
 
 const ALIASES={
-  'திருவண்ணாமலை hq':0,'tiruvannamalai hq':0,'tvmalai hq':0,
-  'திருவண்ணாமலை 1':1,'tiruvannamalai-1':1,'tiruvannamalai 1':1,
-  'திருவண்ணாமலை 2':2,'tiruvannamalai-2':2,'tiruvannamalai 2':2,
-  'துரிஞ்சாபுரம்':3,'thurinjapuram':3,
-  'கீழ்பென்னாத்தூர்':4,'kilpennathur':4,'kilpennathur':4,
-  'செங்கம்':5,'chengam':5,
-  'புதுப்பாளையம்':6,'pudhupalayam':6,
-  'தண்டராம்பட்டு':7,'thandrampet':7,'thandrampattu':7,
-  'கலசபாக்கம்':8,'kalasapakkam':8,
-  'போளூர்':9,'polur':9,
-  'ஜமுனாமரத்தூர்':10,'jamunamarathur':10,'yamunamarathur':10,
-  'சேத்பட்':11,'chetpet':11,
-  'ஆரணி (கிழக்கு)':12,'arani east':12,'ஆரணி கிழக்கு':12,
-  'ஆரணி (மேற்கு)':13,'arani west':13,'ஆரணி மேற்கு':13,
-  'செய்யார்':14,'cheyyar':14,
-  'அனக்காவூர்':15,'anakavoor':15,
-  'வெம்பாக்கம் 1':16,'vembakkam 1':16,'vembakkam-1':16,
-  'வெம்பாக்கம் 2':17,'vembakkam 2':17,'vembakkam-2':17,
-  'வந்தவாசி':18,'vandavasi':18,
-  'பெரணமல்லூர்':19,'pernamallur':19,
-  'தெள்ளார்':20,'thellar':20
+  /* 0 Tiruvannamalai HQ */
+  'tiruvannamalai-hq':0,'thiruvannamalai-hq':0,
+  'tiruvannamalai hq':0,'thiruvannamalai hq':0,
+  'tiruvannamalai  hq':0,'tvm hq':0,'tvmalai hq':0,
+  'திருவண்ணாமலை hq':0,
+  'திருவண்ணாமலை-hq':0,
+  /* 1 Tiruvannamalai-1 */
+  'tiruvannamalai-1':1,'thiruvannamalai-1':1,
+  'tiruvannamalai 1':1,'thiruvannamalai 1':1,
+  'திருவண்ணாமலை-1':1,
+  'திருவண்ணாமலை 1':1,
+  /* 2 Tiruvannamalai-2 */
+  'tiruvannamalai-2':2,'thiruvannamalai-2':2,
+  'tiruvannamalai 2':2,'thiruvannamalai 2':2,
+  'திருவண்ணாமலை-2':2,
+  'திருவண்ணாமலை 2':2,
+  /* 3 Thurinjapuram */
+  'thurinjapuram':3,'thurinchapuram':3,
+  'துரிஞ்சாபுரம்':3,
+  /* 4 Kilpennathur */
+  'kilpennathur':4,
+  'கீழ்பென்னாத்தூர்':4,
+  /* 5 Chengam */
+  'chengam':5,
+  'செங்கம்':5,
+  /* 6 Pudhupalayam */
+  'pudhupalayam':6,'pudupalayam':6,
+  'புதுப்பாளையம்':6,
+  /* 7 Thandrampet */
+  'thandrampet':7,'thandrampattu':7,
+  'தண்டராம்பட்டு':7,
+  /* 8 Kalasapakkam */
+  'kalasapakkam':8,
+  'கலசபாக்கம்':8,
+  /* 9 Polur */
+  'polur':9,
+  'போளூர்':9,
+  /* 10 Jamunamarathur */
+  'jamunamarathur':10,'yamunamarathur':10,'jamuna marathur':10,
+  'ஜமுனாமரத்தூர்':10,
+  /* 11 Chetpet */
+  'chetpet':11,
+  'சேத்பட்':11,
+  /* 12 Arani East */
+  'arani east':12,'arani (east)':12,'arani-east':12,
+  'ஆரணி (கிழக்கு)':12,
+  'ஆரணி கிழக்கு':12,
+  'ஆரணி(கிழக்கு)':12,
+  /* 13 Arani West */
+  'arani west':13,'arani (west)':13,'arani-west':13,
+  'ஆரணி (மேற்கு)':13,
+  'ஆரணி மேற்கு':13,
+  'ஆரணி(மேற்கு)':13,
+  /* 14 Cheyyar */
+  'cheyyar':14,
+  'செய்யார்':14,
+  /* 15 Anakavoor */
+  'anakavoor':15,
+  'அனக்காவூர்':15,
+  /* 16 Vembakkam 1 */
+  'vembakkam-1':16,'vembakkam 1':16,'vembakkam1':16,
+  'வெம்பாக்கம் 1':16,
+  'வெம்பாக்கம்-1':16,
+  /* 17 Vembakkam 2 */
+  'vembakkam-2':17,'vembakkam 2':17,'vembakkam2':17,
+  'வெம்பாக்கம் 2':17,
+  'வெம்பாக்கம்-2':17,
+  /* 18 Vandavasi */
+  'vandavasi':18,
+  'வந்தவாசி':18,
+  /* 19 Pernamallur */
+  'pernamallur':19,'pernamalur':19,
+  'பெரணமல்லூர்':19,
+  /* 20 Thellar */
+  'thellar':20,
+  'தெள்ளார்':20
 };
 
 /* ══════════════════════════════════
@@ -775,10 +885,11 @@ function sidFromUrl(u){const m=(u||'').match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m
    AUTH
 ══════════════════════════════════ */
 window.addEventListener('load',()=>{
-  // Client ID is hardcoded — always skip to Sign In step
+  // Client ID hardcoded — skip to Sign In
+  if(CLIENT_ID){ const ci=document.getElementById('cid-input'); if(ci)ci.value=CLIENT_ID; document.getElementById('step-cid').classList.add('hidden'); document.getElementById('step-signin').classList.remove('hidden'); }
+  // original code below (prevent duplicate)
   if(CLIENT_ID){
-    const cidInput=document.getElementById('cid-input');
-    if(cidInput)cidInput.value=CLIENT_ID;
+    document.getElementById('cid-input').value=CLIENT_ID;
     document.getElementById('step-cid').classList.add('hidden');
     document.getElementById('step-signin').classList.remove('hidden');
   }
@@ -827,157 +938,1161 @@ function doSignOut(){
 function showSignMsg(m){document.getElementById('signin-msg').textContent=m;}
 
 /* ══════════════════════════════════
-   INIT
+   INSPECTION REPORT
 ══════════════════════════════════ */
-async function initApp(){
-  renderBlockChips();
-  const d=new Date();d.setDate(d.getDate()+7);
-  document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
-  document.querySelectorAll('.tab').forEach(t=>{
-    t.addEventListener('click',()=>{
-      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      const panelId='panel-'+t.dataset.tab;
-      const panel=document.getElementById(panelId);
-      if(panel)panel.classList.add('active');
-      refreshDropdowns();
-      if(t.dataset.tab==='repo')renderRepo();
-      if(t.dataset.tab==='trash')renderTrash();
-      if(t.dataset.tab==='track'){
-        // set default deadline
-        const d=new Date();d.setDate(d.getDate()+7);
-        document.getElementById('tr-deadline').value=d.toISOString().slice(0,10);
+const INSPECTOR_MAP={
+  '7338749500':{name:'இணைப்பதிவாளர்',type:'officer',target:10},
+  '7338749503':{name:'துணைப்பதிவாளர், செய்யார் சரகம்',type:'officer',target:null},
+  '7338749504':{name:'துணைப்பதிவாளர் (பொவிதி)',type:'officer',target:50},
+  '7338749524':{name:'திருவண்ணாமலை HQ',type:'block',target:45},
+  '7338749525':{name:'திருவண்ணாமலை 1',type:'block',target:45},
+  '7338749526':{name:'கீழ்பென்னாத்தூர்',type:'block',target:45},
+  '7338749527':{name:'செங்கம்',type:'block',target:45},
+  '7338749528':{name:'தண்டராம்பட்டு',type:'block',target:45},
+  '7338749529':{name:'கலசப்பாக்கம்',type:'block',target:45},
+  '7338749530':{name:'போளூர்',type:'block',target:45},
+  '7338749531':{name:'ஜமுனாமரத்தூர் (IC)',type:'block',target:45},
+  '7338749532':{name:'சேத்துபட்டு',type:'block',target:45},
+  '7338749533':{name:'ஆரணி (கிழக்கு)',type:'block',target:45},
+  '7338749534':{name:'செய்யார்',type:'block',target:45},
+  '7338749535':{name:'வெம்பாக்கம் 1',type:'block',target:45},
+  '7338749536':{name:'வந்தவாசி',type:'block',target:45},
+  '7338749537':{name:'பெரணமல்லூர்',type:'block',target:45},
+  '7338749538':{name:'தெள்ளார்',type:'block',target:45},
+  '7338749539':{name:'துரிஞ்சாபுரம்',type:'block',target:45},
+  '7338749540':{name:'புதுப்பாளையம்',type:'block',target:45},
+  '7338749541':{name:'ஆரணி (மேற்கு)',type:'block',target:45},
+  '7458968899':{name:'திருவண்ணாமலை 2',type:'block',target:45},
+  '8457896987':{name:'வெம்பாக்கம் 2',type:'block',target:45},
+  '8541478968':{name:'அனக்காவூர்',type:'block',target:45},
+};
+const SQUAD_COUNT=3;
+
+function resetInspection(){
+  document.getElementById('insp-file').value='';
+  document.getElementById('insp-squad-date').value='';
+  document.getElementById('insp-result').classList.add('hidden');
+  document.getElementById('insp-msg').classList.add('hidden');
+}
+
+function loadSquadCodesFromSquadTab(){
+  /* Pull shop codes from the last generated squad table */
+  const rows = document.querySelectorAll('#sq-tbody tr');
+  if(!rows.length){ alert('Generate a Squad table first in the Squad tab.'); return; }
+  const codes=[];
+  rows.forEach(row=>{
+    const cells=row.querySelectorAll('td');
+    if(cells[2]) codes.push(cells[2].textContent.trim());
+  });
+  const el=document.getElementById('insp-squad-exclude');
+  if(el){ el.value=codes.filter(Boolean).join(', '); }
+  alert('✅ '+codes.length+' squad shop codes loaded.');
+}
+
+function processInspection(){
+  const fileEl=document.getElementById('insp-file');
+  if(!fileEl.files||!fileEl.files[0]){
+    showInspMsg('Excel கோப்பை தேர்ந்தெடுக்கவும்.','err');return;
+  }
+  showInspMsg('<span class="spin spin-b"></span> படிக்கிறது...','info');
+  const squadDate=document.getElementById('insp-squad-date').value;
+  /* Generate report title from file name or current month */
+  const fileName=(fileEl.files[0]||{}).name||'';
+  const now=new Date();
+  const tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்',
+    'ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
+  const monthTa=tamilMonths[now.getMonth()];
+  const year=now.getFullYear();
+  const titleEl=document.getElementById('insp-report-title');
+  if(titleEl)titleEl.textContent=monthTa+' '+year+' — கண்காணிப்பு இலக்கு நிறைவேற்றம்';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+      /* Find header row */
+      let headerRow=-1;
+      for(let i=0;i<Math.min(rows.length,15);i++){
+        if(rows[i].some(x=>String(x).includes('Inspector Mobile'))){headerRow=i;break;}
+      }
+      if(headerRow<0){showInspMsg('Header row not found. Ensure this is the MIS inspection report.','err');return;}
+
+      const headers=rows[headerRow].map(h=>String(h).trim());
+      const mobileCol=headers.findIndex(h=>h.includes('Inspector Mobile'));
+      const shopCodeCol=headers.findIndex(h=>h.toLowerCase().includes('fps code')||h.toLowerCase().includes('shop code'));
+      const dateCol=headers.findIndex(h=>h.toLowerCase().includes('date of inspection'));
+
+      if(mobileCol<0){showInspMsg('Inspector Mobile Number column not found.','err');return;}
+      if(shopCodeCol<0){showInspMsg('FPS Code column not found.','err');return;}
+
+      /* Count unique shop codes per inspector mobile */
+      const shopSets={};
+      const squadSets={};
+
+      for(let ri=headerRow+1;ri<rows.length;ri++){
+        const row=rows[ri];
+        const rawMobile=String(row[mobileCol]||'').replace(/\.0+$/,'').trim();
+        const mobile=rawMobile.replace(/[^0-9]/g,'');
+        if(!mobile||mobile.length<10)continue;
+        const shopCode=String(row[shopCodeCol]||'').trim();
+        if(!shopCode)continue;
+
+        if(!shopSets[mobile])shopSets[mobile]=new Set();
+        shopSets[mobile].add(shopCode);
+        /* Track all shops for squad exclusion */
+        if(!window._allInspShops)window._allInspShops=[];
+              if(squadDate&&dateCol>=0){
+          let rawDate=row[dateCol];
+          let inspDate='';
+          if(rawDate instanceof Date){
+            inspDate=rawDate.toISOString().slice(0,10);
+          } else {
+            inspDate=String(rawDate).slice(0,10);
+          }
+          if(inspDate===squadDate){
+            if(!squadSets[mobile])squadSets[mobile]=new Set();
+            squadSets[mobile].add(shopCode);
+          }
+        }
+      }
+
+      /* Build results for known inspectors */
+      const blockResults=[];
+      const officerResults=[];
+      Object.entries(INSPECTOR_MAP).forEach(([mobile,info])=>{
+        /* Squad shop exclusion — optional.
+           If no codes entered AND no squad date → use raw count */
+        const excludeInput=(document.getElementById('insp-squad-exclude')?.value||'').trim();
+        const excludeCodes=new Set(
+          excludeInput.split(',').map(s=>s.trim()).filter(Boolean)
+        );
+        const myShops=shopSets[mobile]||new Set();
+        let adjusted=0;
+        myShops.forEach(code=>{
+          if(excludeCodes.size>0&&excludeCodes.has(code)) return; /* excluded squad shop */
+          adjusted++;
+        });
+        const total=myShops.size;
+        const squadCount=total-adjusted;
+        const pending=info.target!==null?Math.max(0,info.target-adjusted):null;
+        const entry={mobile,name:info.name,total,squadCount,adjusted,target:info.target,pending};
+        if(info.type==='block')blockResults.push(entry);
+        else officerResults.push(entry);
+      });
+
+      /* Sort least to highest by adjusted count */
+      blockResults.sort((a,b)=>a.adjusted-b.adjusted);
+      officerResults.sort((a,b)=>(a.adjusted||0)-(b.adjusted||0));
+
+      renderInspResults(blockResults,officerResults,squadDate);
+      showInspMsg('','ok');
+      document.getElementById('insp-result').classList.remove('hidden');
+    }catch(err){
+      showInspMsg('Error: '+err.message,'err');
+    }
+  };
+  reader.readAsArrayBuffer(fileEl.files[0]);
+}
+
+function renderInspResults(blocks,officers,squadDate){
+  /* ── Block officers — Excel-style 5-col table ── */
+  const tbody=document.getElementById('insp-blocks');
+  if(tbody){
+    tbody.innerHTML=blocks.map((e,i)=>{
+      const done=e.adjusted>=e.target;
+      const near=!done&&e.adjusted>=Math.ceil(e.target*0.75);
+      const rowBg=i%2===0?'#ffffff':'#eef3fb';
+      const countCol=done?'#1a7a3c':near?'#7d4800':'#c00000';
+      const pending=Math.max(0,e.target-e.adjusted);
+      const pendCell=done
+        ?'<span style="color:#1a7a3c;font-weight:700">&#10003;</span>'
+        :`<span style="color:#c00000;font-weight:700">${pending}</span>`;
+      const excl=e.squadCount>0?`<div style="font-size:10px;color:#888">(${e.total} - ${e.squadCount} squad)</div>`:'';
+      return `<tr style="background:${rowBg}">
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#666;font-size:12px">${i+1}</td>
+        <td style="padding:6px 10px;border:1px solid #c0c0c0;font-weight:600">${e.name}${excl}</td>
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-size:18px;font-weight:800;color:${countCol}">${e.adjusted}</td>
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">${e.target}</td>
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:${done?'#1a7a3c':'#c00000'}">${pendCell}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ── Officers ── */
+  const otbody=document.getElementById('insp-officers');
+  if(otbody){
+    otbody.innerHTML=officers.map(e=>{
+      if(e.target===null){
+        return `<tr><td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">${e.name}</td>
+          <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:#1f4788">${e.adjusted}</td>
+          <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#999">—</td>
+          <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#999">—</td></tr>`;
+      }
+      const done=e.adjusted>=e.target;
+      const rowBg=done?'#e8f5ee':'#fde8e8';
+      const col=done?'#1a7a3c':'#c00000';
+      const pend=Math.max(0,e.target-e.adjusted);
+      return `<tr style="background:${rowBg}">
+        <td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">${e.name}</td>
+        <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:${col}">${e.adjusted}</td>
+        <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">${e.target}</td>
+        <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:${done?'#1a7a3c':'#c00000'}">
+          ${done?'<span>&#10003;</span>':`${pend}`}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ── Summary ── */
+  const doneN=blocks.filter(b=>b.adjusted>=b.target).length;
+  const partN=blocks.filter(b=>b.adjusted>0&&b.adjusted<b.target).length;
+  const noneN=blocks.filter(b=>b.adjusted===0).length;
+  const sum=document.getElementById('insp-summary');
+  if(sum)sum.innerHTML=`✅ ${doneN} முடிந்தது &nbsp;·&nbsp; ⏳ ${partN} நடைபெறுகிறது &nbsp;·&nbsp; ❌ ${noneN} தொடங்கவில்லை`;
+}
+
+
+async function screenshotBlocks(){
+  const wrap=document.getElementById('insp-blocks-wrap');
+  if(!wrap){alert('No data to screenshot.');return;}
+  try{
+    /* Load html2canvas if not already loaded */
+    if(typeof html2canvas==='undefined'){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload=res;s.onerror=rej;
+        document.head.appendChild(s);
+      });
+    }
+    const canvas=await html2canvas(wrap,{
+      backgroundColor:'#ffffff',
+      scale:2,
+      useCORS:true,
+      logging:false
+    });
+    /* Copy image to clipboard */
+    canvas.toBlob(async(blob)=>{
+      try{
+        await navigator.clipboard.write([
+          new ClipboardItem({'image/png':blob})
+        ]);
+        alert('✅ Screenshot copied to clipboard!\nPaste directly in WhatsApp or anywhere.');
+      }catch(clipErr){
+        /* Clipboard API failed — fallback to download */
+        const link=document.createElement('a');
+        link.download='inspection_report.png';
+        link.href=canvas.toDataURL('image/png');
+        link.click();
+        alert('Clipboard not supported in this browser.\nImage downloaded instead.');
+      }
+    },'image/png');
+  }catch(e){
+    alert('Screenshot failed: '+e.message);
+  }
+}
+
+
+function showInspMsg(msg,type){
+  const el=document.getElementById('insp-msg');
+  if(!msg){el.classList.add('hidden');return;}
+  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
+  el.innerHTML=msg;
+  el.classList.remove('hidden');
+}
+
+/* ══════════════════════════════════
+   SQUAD TAB
+══════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   SQUAD TAB — Complete JavaScript
+   Storage keys:
+     sq:staff   → staff master array
+     sq:shopdata → cached shop Excel data
+══════════════════════════════════════════════════════ */
+
+const BLOCKS_21 = [
+  'திருவண்ணாமலை HQ','திருவண்ணாமலை 1','திருவண்ணாமலை 2',
+  'துரிஞ்சாபுரம்','கீழ்பென்னாத்தூர்','செங்கம்','புதுப்பாளையம்',
+  'தண்டராம்பட்டு','கலசபாக்கம்','போளூர்','ஜமுனாமரத்தூர்',
+  'சேத்துப்பட்டு','ஆரணி கிழக்கு','ஆரணி மேற்கு','செய்யார்',
+  'அனக்காவூர்','வெம்பாக்கம் 1','வெம்பாக்கம் 2','வந்தவாசி',
+  'பெரணமல்லூர்','தெள்ளார்'
+];
+
+let sqStaffList = [];   /* loaded from storage */
+let sqShopData  = [];   /* loaded from storage or file */
+let sqAssignments = []; /* current generated table */
+let sqEditingId = null;
+
+/* ── Sub-tab switcher ───────────────────────────────── */
+function squadStab(el){
+  /* Remove active from all tabs */
+  document.querySelectorAll('.squad-stab').forEach(t=>t.classList.remove('active'));
+  /* Hide all squad panels using direct style (avoids CSS specificity conflicts) */
+  ['squad-generate','squad-staff'].forEach(id=>{
+    const p=document.getElementById(id);
+    if(p)p.style.display='none';
+  });
+  /* Activate clicked tab and show its panel */
+  el.classList.add('active');
+  const target=el.dataset.stab;
+  const panel=document.getElementById(target);
+  if(panel)panel.style.display='block';
+  if(target==='squad-generate')initSquadGenerate();
+  if(target==='squad-staff')renderStaffMaster();
+}
+
+/* ── Init Generate panel ────────────────────────────── */
+function initSquadGenerate(){
+  /* Ensure panel is visible (override any CSS conflicts) */
+  const gp=document.getElementById('squad-generate');
+  if(gp)gp.style.display='block';
+  /* Render block chips */
+  const chips = document.getElementById('sq-block-chips');
+  if(chips && !chips.children.length){
+    BLOCKS_21.forEach(b=>{
+      const chip = document.createElement('div');
+      chip.className = 'sq-block-chip';
+      chip.textContent = b;
+      chip.dataset.block = b;
+      chip.onclick = ()=>{ chip.classList.toggle('selected'); loadSquadStaffForBlocks(); };
+      chips.appendChild(chip);
+    });
+  }
+  /* Set default date to today */
+  const dateEl = document.getElementById('sq-date');
+  if(dateEl && !dateEl.value){
+    dateEl.value = new Date().toISOString().slice(0,10);
+  }
+  loadSquadData();
+}
+
+function sqChipAll(){
+  document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.add('selected'));
+  loadSquadStaffForBlocks();
+}
+function sqChipClear(){
+  document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.remove('selected'));
+  loadSquadStaffForBlocks();
+}
+
+function getSelectedBlocks(){
+  return [...document.querySelectorAll('.sq-block-chip.selected')].map(c=>c.dataset.block);
+}
+
+/* ── Load data from storage ─────────────────────────── */
+async function loadSquadData(){
+  const staff = await sqLoad('sq:staff');
+  sqStaffList = staff||[];
+  const shops = await sqLoad('sq:shopdata');
+  if(shops&&shops.length){
+    sqShopData = shops;
+    const el = document.getElementById('sq-shop-status');
+    if(el) el.textContent = '✅ '+sqShopData.length+' shops loaded';
+  }
+  loadSquadStaffForBlocks();
+  populateStaffFilterBlock();
+}
+
+/* ── Load shop Excel file ───────────────────────────── */
+async function loadSquadShopData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('sq-shop-status');
+  if(statusEl) statusEl.textContent = 'Reading...';
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data,{type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      /* Find header row */
+      let hdr = -1;
+      for(let i=0;i<15;i++){
+        if(rows[i] && rows[i].some(c=>String(c).includes('குறியீடு')||String(c).toLowerCase().includes('fps'))){
+          hdr=i; break;
+        }
+      }
+      if(hdr<0){ alert('Header row not found in Excel.'); return; }
+      const headers = rows[hdr].map(h=>String(h).trim());
+      /* Map columns */
+      const cBlock   = headers.findIndex(h=>h.includes('ஒன்றியத்தின்'));
+      const cSociety = headers.findIndex(h=>h.includes('கூட்டுறவு') && h.includes('நிறுவனத்தின்'));
+      const cCode    = headers.findIndex(h=>h.includes('குறியீடு') && !h.includes('எண்.'));
+      const cName    = headers.findIndex(h=>h.includes('கடையின் பெயர்'));
+      const cType    = headers.findIndex(h=>h.includes('முழுநேரம்'));
+      sqShopData = [];
+      for(let ri=hdr+1;ri<rows.length;ri++){
+        const row=rows[ri];
+        const block=String(row[cBlock]||'').trim();
+        const society=String(row[cSociety]||'').trim();
+        const code=String(row[cCode]||'').trim();
+        const name=String(row[cName]||'').trim();
+        const type=String(row[cType]||'').trim();
+        if(!block||!code) continue;
+        sqShopData.push({block,society,code,name,type});
+      }
+      /* Save to storage */
+      sqStore('sq:shopdata', sqShopData);
+      if(statusEl) statusEl.textContent = `✅ ${sqShopData.length} shops loaded & saved`;
+    }catch(err){
+      if(statusEl) statusEl.textContent = '❌ Error: '+err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ── Load staff for selected blocks into step 3 ─────── */
+function loadSquadStaffForBlocks(){
+  const blocks = getSelectedBlocks();
+  const card = document.getElementById('sq-staff-card');
+  const listEl = document.getElementById('sq-staff-list');
+  if(!listEl) return;
+  if(!blocks.length){ if(card)card.style.display='none'; return; }
+  if(card) card.style.display='block';
+
+  /* Show ALL staff from master — every staff member needs a block assigned.
+     Vacant staff still shown so user can mark leave if needed this month. */
+  const relevant = sqStaffList.slice(); /* all staff */
+
+  /* Sort: PDS (by block order), then circle, then officers */
+  const wingOrder = {pds:0,circle:1,officer:2};
+  relevant.sort((a,b)=>{
+    const wo = (wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0) return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+
+  let html = '';
+  let lastSection = '';
+  relevant.forEach(s=>{
+    const section = s.wing==='pds'?'PDS Wing':s.wing==='circle'?'Circle Wing':'Officers';
+    if(section!==lastSection){
+      html += `<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;
+        padding:6px 12px;background:var(--gray-lt);border-top:1px solid var(--border)">${section}</div>`;
+      lastSection=section;
+    }
+    const vacLeave = s.vacant?'checked':'';
+    const blockOpts = blocks.map(b=>`<option value="${b}">${b}</option>`).join('');
+    html += `<div class="sq-staff-row" style="flex-wrap:wrap;gap:6px">
+      <div style="flex:1;min-width:160px">
+        <div class="sq-staff-desig" style="font-size:11px;color:var(--gray)">${s.desig} — ${s.blockUnit||s.circle||''}</div>
+        <div class="sq-staff-name">${s.name||'<span style="color:var(--red);font-style:italic">காலியிடம்</span>'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <select id="sq-assign-block-${s.id}" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:160px">
+          <option value="">Any Block</option>
+          ${blockOpts}
+        </select>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--red);white-space:nowrap">
+          <input type="checkbox" id="sq-skip-${s.id}" ${vacLeave}
+            onchange="toggleStaffSkip('${s.id}',this.checked)">
+          Skip
+        </label>
+      </div>
+    </div>`;
+  });
+  if(!relevant.length){
+    html = '<div style="padding:12px;font-size:13px;color:var(--gray)">Staff Master-ல் staff சேர்க்கவும்.</div>';
+  }
+  listEl.innerHTML = html;
+}
+
+function toggleStaffSkip(id, checked){
+  const staff = sqStaffList.find(s=>s.id===id);
+  if(staff){ staff.skipNow = checked; }
+}
+
+/* ── Auto-assign algorithm ──────────────────────────── */
+function generateSquad(){
+  const blocks = getSelectedBlocks();
+  if(!blocks.length){ showSqMsg('Block தேர்ந்தெடுக்கவும்.','err'); return; }
+  if(!sqShopData.length){ showSqMsg('Shop master data இல்லை. Excel ஏற்றுக.','err'); return; }
+
+  const date = document.getElementById('sq-date').value;
+  if(!date){ showSqMsg('Date தேர்ந்தெடுக்கவும்.','err'); return; }
+  const shopsPerStaff = parseInt(document.getElementById('sq-per-staff').value)||3;
+
+  /* Get available staff — ALL staff shown in step 3 who are not skipped/vacant */
+  const wingOrder = {pds:0,circle:1,officer:2};
+  const availStaff = sqStaffList.filter(s=>{
+    if(s.vacant) return false;
+    /* Check Vacant/Leave checkbox in step 3 UI */
+    const el = document.getElementById('sq-skip-'+s.id);
+    if(el && el.checked) return false;
+    return true; /* ALL staff in the list are eligible */
+  }).sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+
+  if(!availStaff.length){ showSqMsg('Available staff இல்லை.','err'); return; }
+
+  /* Get shops for selected blocks — fulltime first, then parttime */
+  const blockShops = {};
+  blocks.forEach(blk=>{
+    const shops = sqShopData.filter(s=>normalizeBlockName(s.block)===normalizeBlockName(blk));
+    /* Group by society, fulltime first */
+    const societies = {};
+    shops.forEach(sh=>{
+      if(!societies[sh.society]) societies[sh.society]={full:[],part:[]};
+      if(sh.type==='முழுநேரம்') societies[sh.society].full.push(sh);
+      else societies[sh.society].part.push(sh);
+    });
+    /* Flatten: fulltime shops first, max 1 parttime per group */
+    const flat = [];
+    Object.entries(societies).forEach(([soc,g])=>{
+      g.full.forEach(sh=>flat.push({...sh,_soc:soc}));
+      if(g.part.length) flat.push({...g.part[0],_soc:soc}); /* max 1 parttime */
+    });
+    blockShops[blk] = flat;
+  });
+
+  /* Build a flat pool of shops to assign */
+  let shopPool = [];
+  blocks.forEach(blk=>{ shopPool = shopPool.concat(blockShops[blk]||[]); });
+
+  /* Assign shopsPerStaff shops per staff member
+     - If staff has an assigned block (from step 3 dropdown), pick from that block first
+     - Prefer same society, fulltime first, max 1 parttime
+     - Each shop assigned to only one inspector */
+  sqAssignments = [];
+  let usedShops = new Set();
+  let slNo = 1;
+
+  availStaff.forEach(staff=>{
+    /* Get staff's assigned block from dropdown in step 3 */
+    const assignedBlockEl = document.getElementById('sq-assign-block-'+staff.id);
+    const assignedBlock = assignedBlockEl ? assignedBlockEl.value : '';
+
+    /* Build pool for this staff: assigned block first, then remaining */
+    let staffPool = [];
+    if(assignedBlock){
+      /* Only use shops from the assigned block */
+      staffPool = shopPool.filter(sh=>normalizeBlockName(sh.block)===normalizeBlockName(assignedBlock));
+    } else {
+      /* No specific block assigned — use all remaining shops */
+      staffPool = shopPool;
+    }
+
+    const assigned = [];
+    /* Pass 1: same society (prefer groups of 3 from same society) */
+    /* First find which society has most available shops */
+    const socCounts = {};
+    staffPool.forEach(sh=>{
+      if(!usedShops.has(sh.code)){
+        socCounts[sh._soc] = (socCounts[sh._soc]||0)+1;
       }
     });
+    /* Pick society with most available shops */
+    const bestSoc = Object.entries(socCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
+
+    /* Assign from best society first */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code)) continue;
+      if(sh._soc===bestSoc){ assigned.push(sh); usedShops.add(sh.code); }
+    }
+    /* Fill remaining from any society in the pool */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code)) continue;
+      assigned.push(sh); usedShops.add(sh.code);
+    }
+    /* If assigned block had no shops, try from full pool */
+    if(!assigned.length&&assignedBlock){
+      for(let i=0;i<shopPool.length&&assigned.length<shopsPerStaff;i++){
+        const sh=shopPool[i];
+        if(usedShops.has(sh.code)) continue;
+        assigned.push(sh); usedShops.add(sh.code);
+      }
+    }
+
+    if(!assigned.length) return;
+    assigned.forEach(sh=>{
+      sqAssignments.push({
+        slNo: slNo++,
+        society: sh._soc||sh.society,
+        code: sh.code,
+        shopName: sh.name,
+        inspector: staff.name||'(காலியிடம்)',
+        desig: staff.desig,
+        block: sh.block,
+        type: sh.type
+      });
+    });
   });
-  await ensureDb();
-  await loadFromDb();
-  renderDashboard();renderRepo();refreshDropdowns();
-  await autoRefreshAll();
-  startCountdown();
+
+  /* Unassigned shops */
+  const unassigned = shopPool.filter(sh=>!usedShops.has(sh.code));
+
+  renderSquadTable(sqAssignments, unassigned, date, blocks);
+  showSqMsg('','ok');
 }
 
-/* ══════════════════════════════════
-   DB — TVM Tracker DB Google Sheet
-   Columns: id|title|type|link|sheetId|stateLink|deadline|notes|createdAt|status|lang|blockStatusJSON|lastRead|trashed
-══════════════════════════════════ */
-async function ensureDb(){
-  const r=await driveSearch("name='"+DB_TITLE+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
-  const files=(r.files||[]);
-  if(files.length>0){dbSheetId=files[0].id;return;}
-  const cr=await sheetsCreate({properties:{title:DB_TITLE},sheets:[{properties:{title:'TVMData'}}]});
-  dbSheetId=cr.spreadsheetId;
-  dbTabName='TVMData';
-  await sheetsValuesUpdate(dbSheetId,'TVMData!A1',[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]);
+function normalizeBlockName(name){
+  return String(name||'').trim().toLowerCase()
+    .replace(/\s+/g,' ').replace(/[-_]/g,' ')
+    .replace(/\u00a0/g,' ').replace(/\u200b/g,'');
 }
 
-function sj(s){try{return JSON.parse(s);}catch{return [];}}
+/* ── Render table ───────────────────────────────────── */
 
-let dbTabName='Sheet1'; // will be detected on load
+function renderSquadTable(rows, unassigned, date, blocks){
+  /* Title */
+  const tamilMonths=['\u0b9c\u0ba9\u0bb5\u0bb0\u0bbf','\u0baa\u0bbf\u0baa\u0bcd\u0bb0\u0bb5\u0bb0\u0bbf','\u0bae\u0bbe\u0bb0\u0bcd\u0b9a\u0bcd','\u0b8f\u0baa\u0bcd\u0bb0\u0bb2\u0bcd','\u0bae\u0bc7','\u0b9c\u0bc2\u0ba9\u0bcd',
+    '\u0b9c\u0bc2\u0bb2\u0bc8','\u0b86\u0b95\u0bb8\u0bcd\u0b9f\u0bcd','\u0b9a\u0bc6\u0baa\u0bcd\u0b9f\u0bae\u0bcd\u0baa\u0bb0\u0bcd','\u0b85\u0b95\u0bcd\u0b9f\u0bcb\u0baa\u0bb0\u0bcd','\u0ba8\u0bb5\u0bae\u0bcd\u0baa\u0bb0\u0bcd','\u0b9f\u0bbf\u0b9a\u0bae\u0bcd\u0baa\u0bb0\u0bcd'];
+  const d=new Date(date);
+  const dateStr=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+  const blockStr=blocks.join(' & ');
+  const title=blockStr+' \u2014 \u0b95\u0bc2\u0b9f\u0bcd\u0b9f\u0bc1\u0bb1\u0bb5\u0bc1 \u0b86\u0baf\u0bcd\u0bb5\u0bc1 \u2014 '+dateStr;
+  const titleEl=document.getElementById('sq-result-title');
+  if(titleEl)titleEl.textContent=title;
 
-async function loadFromDb(){
-  // Detect actual tab name
+  /* Stats */
+  const staffSet=new Set(rows.map(r=>r.inspector));
+  const statsEl=document.getElementById('sq-stats');
+  if(statsEl)statsEl.innerHTML=[
+    '<span class="sq-stat-box" style="background:#dbeafe;color:#1e40af">\ud83c\udfea '+rows.length+' Shops</span>',
+    '<span class="sq-stat-box" style="background:#dcfce7;color:#166534">\ud83d\udc64 '+staffSet.size+' Inspectors</span>',
+    '<span class="sq-stat-box" style="background:#fef3c7;color:#92400e">'+blocks.length+' Block'+(blocks.length>1?'s':'')+'</span>',
+    unassigned.length?'<span class="sq-stat-box" style="background:#fee2e2;color:#991b1b">\u26a0\ufe0f '+unassigned.length+' Unassigned</span>':''
+  ].join('');
+
+  /* Group rows by inspector for rowspan */
+  const grouped=[];
+  let curGrp=null;
+  rows.forEach(r=>{
+    if(!curGrp||r.inspector!==curGrp.inspector){
+      curGrp={inspector:r.inspector,desig:r.desig,rows:[r]};
+      grouped.push(curGrp);
+    } else { curGrp.rows.push(r); }
+  });
+
+  let html='';
+  grouped.forEach((grp,gi)=>{
+    const rowspan=grp.rows.length;
+    const grpBg=gi%2===0?'#ffffff':'#eef3fb';
+    grp.rows.forEach((r,ri)=>{
+      const inspCell=ri===0
+        ?`<td rowspan="${rowspan}" style="padding:8px 10px;border:1px solid #b8c8e8;vertical-align:middle;font-weight:700;background:${grpBg};text-align:center">${r.inspector||'(\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd)'}<div style="font-size:10px;color:#666;font-weight:400;margin-top:2px">${r.desig||''}</div></td>`
+        :'';
+      html+=`<tr style="background:${grpBg}">
+        <td style="padding:6px 10px;text-align:center;border:1px solid #b8c8e8;color:#666;font-size:12px">${r.slNo}</td>
+        <td style="padding:6px 10px;border:1px solid #b8c8e8">${r.society}</td>
+        <td style="padding:6px 10px;border:1px solid #b8c8e8;font-family:monospace;font-size:12px">${r.code}</td>
+        <td style="padding:6px 10px;border:1px solid #b8c8e8">${r.shopName}</td>
+        ${inspCell}
+      </tr>`;
+    });
+  });
+
+  const tbody=document.getElementById('sq-tbody');
+  if(tbody)tbody.innerHTML=html;
+
+  /* Unassigned */
+  const unEl=document.getElementById('sq-unassigned');
+  const unListEl=document.getElementById('sq-unassigned-list');
+  if(unassigned.length&&unEl&&unListEl){
+    unEl.classList.remove('hidden');
+    unListEl.innerHTML=unassigned.slice(0,30).map(s=>
+      `<span style="display:inline-block;margin:2px 4px;padding:2px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">${s.code} ${s.name}</span>`
+    ).join('');
+  } else if(unEl){ unEl.classList.add('hidden'); }
+
+  document.getElementById('sq-result').classList.remove('hidden');
+}
+
+function copySquadTable(){
+  const tbl=document.getElementById('sq-table');
+  if(!tbl){alert('No table generated yet.');return;}
+  const range=document.createRange();
+  range.selectNode(tbl);
+  const sel=window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
   try{
-    const meta=await sheetsGetMeta(dbSheetId);
-    dbTabName=meta.sheets[0].properties.title;
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    alert('\u2705 Table copied! Open Word and press Ctrl+V to paste.');
+  }catch(e){
+    sel.removeAllRanges();
+    alert('Please manually select and copy the table (Ctrl+C).');
+  }
+}
+
+function resetSquad(){
+  /* Resets block selection and generated table only.
+     Staff master and shop data are NOT affected. */
+  sqChipClear();
+  const res=document.getElementById('sq-result');
+  if(res)res.classList.add('hidden');
+  const msg=document.getElementById('sq-msg');
+  if(msg)msg.classList.add('hidden');
+  const card=document.getElementById('sq-staff-card');
+  if(card)card.style.display='none';
+  document.getElementById('sq-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('sq-per-staff').value='3';
+}
+
+function showSqMsg(msg,type){
+  const el=document.getElementById('sq-msg');
+  if(!el)return;
+  if(!msg){el.classList.add('hidden');return;}
+  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
+  el.innerHTML=msg;
+  el.classList.remove('hidden');
+}
+
+/* ── Storage helpers (window.storage with localStorage fallback) ── */
+function sqStore(key,val){
+  try{
+    if(window.storage&&window.storage.set)
+      return window.storage.set(key,JSON.stringify(val));
   }catch(e){}
-  const r=await sheetsGetRange(dbSheetId,dbTabName+'!A2:N2000');
-  const rows=(r.values||[]).filter(r=>r[0]);
-  sheets=rows.filter(r=>r[13]!=='1').map(r=>({
-    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
-    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
-    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:false
-  }));
-  trashedSheets=rows.filter(r=>r[13]==='1').map(r=>({
-    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
-    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
-    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:true
-  }));
+  try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}
+}
+function sqLoad(key){
+  const fromLS=()=>{try{const v=localStorage.getItem(key);return Promise.resolve(v?JSON.parse(v):null);}catch(e){return Promise.resolve(null);}};
+  try{
+    if(window.storage&&window.storage.get){
+      return window.storage.get(key)
+        .then(r=>r?JSON.parse(r.value):null)
+        .catch(()=>fromLS());
+    }
+  }catch(e){}
+  return fromLS();
+}
+async function saveSquadStaff(){sqStore('sq:staff',sqStaffList);}
+
+async function loadSquadData(){
+  const staff=await sqLoad('sq:staff');
+  sqStaffList=staff||[];
+  const shops=await sqLoad('sq:shopdata');
+  if(shops&&shops.length){
+    sqShopData=shops;
+    const el=document.getElementById('sq-shop-status');
+    if(el)el.textContent='\u2705 '+sqShopData.length+' shops loaded';
+  }
+  loadSquadStaffForBlocks();
+  populateStaffFilterBlock();
 }
 
-async function saveToDb(){
-  const all=[...sheets,...trashedSheets];
-  const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
-  await sheetsValuesClear(dbSheetId,dbTabName+'!A2:N2000');
-  if(rows.length>0){await sheetsValuesUpdate(dbSheetId,dbTabName+'!A2',rows);}
+async function loadSquadShopData(input){
+  const file=input.files[0];if(!file)return;
+  const statusEl=document.getElementById('sq-shop-status');
+  if(statusEl)statusEl.textContent='Reading...';
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      let hdr=-1;
+      for(let i=0;i<15;i++){
+        if(rows[i]&&rows[i].some(x=>String(x).includes('\u0b92\u0ba9\u0bcd\u0bb1\u0bbf\u0baf\u0ba4\u0bcd\u0ba4\u0bbf\u0ba9\u0bcd')||String(x).toLowerCase().includes('fps code'))){hdr=i;break;}
+      }
+      if(hdr<0){if(statusEl)statusEl.textContent='\u274c Header not found';return;}
+      const headers=rows[hdr].map(h=>String(h).trim());
+      const cBlock=headers.findIndex(h=>h.includes('\u0b92\u0ba9\u0bcd\u0bb1\u0bbf\u0baf\u0ba4\u0bcd\u0ba4\u0bbf\u0ba9\u0bcd'));
+      const cSoc=headers.findIndex(h=>h.includes('\u0b95\u0bc2\u0b9f\u0bcd\u0b9f\u0bc1\u0bb1\u0bb5\u0bc1')&&h.includes('\u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0ba9\u0ba4\u0bcd\u0ba4\u0bbf\u0ba9\u0bcd'));
+      const cCode=headers.findIndex(h=>h.includes('\u0b95\u0bc1\u0bb1\u0bbf\u0baf\u0bc0\u0b9f\u0bc1')&&!h.includes('\u0bc6\u0ba3\u0bcd.'));
+      const cName=headers.findIndex(h=>h.includes('\u0b95\u0b9f\u0bc8\u0baf\u0bbf\u0ba9\u0bcd \u0baa\u0bc6\u0baf\u0bb0\u0bcd'));
+      const cType=headers.findIndex(h=>h.includes('\u0bae\u0bc1\u0bb4\u0bc1\u0ba8\u0bc7\u0bb0\u0bae\u0bcd'));
+      sqShopData=[];
+      for(let ri=hdr+1;ri<rows.length;ri++){
+        const row=rows[ri];
+        const block=String(row[cBlock]||'').trim();
+        const society=String(row[cSoc]||'').trim();
+        const code=String(row[cCode]||'').trim();
+        const name=String(row[cName]||'').trim();
+        const type=String(row[cType]||'').trim();
+        if(!block||!code)continue;
+        sqShopData.push({block,society,code,name,type});
+      }
+      sqStore('sq:shopdata',sqShopData);
+      if(statusEl)statusEl.textContent='\u2705 '+sqShopData.length+' shops loaded & saved';
+    }catch(err){if(statusEl)statusEl.textContent='\u274c Error: '+err.message;}
+  };
+  reader.readAsArrayBuffer(file);
 }
 
-/* ══════════════════════════════════
-   COUNTDOWN
-══════════════════════════════════ */
-let autoRunning=true;
-function toggleAutoRefresh(){
-  autoRunning=!autoRunning;
-  const btn=document.getElementById('stop-btn');
-  if(autoRunning){
-    btn.textContent='⏸ Stop';
-    btn.style.background='rgba(255,100,100,.3)';
-    startCountdown();
+function loadSquadStaffForBlocks(){
+  const blocks=getSelectedBlocks();
+  const card=document.getElementById('sq-staff-card');
+  const listEl=document.getElementById('sq-staff-list');
+  if(!listEl)return;
+  if(!blocks.length){if(card)card.style.display='none';return;}
+  if(card)card.style.display='block';
+
+  /* Show ALL staff — sorted PDS then Circle then Officer */
+  const wingOrder={pds:0,circle:1,officer:2};
+  const relevant=sqStaffList.slice();
+  relevant.sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+
+  let html='';let lastSection='';
+  relevant.forEach(s=>{
+    const section=s.wing==='pds'?'PDS WING':s.wing==='circle'?'CIRCLE WING':'OFFICERS';
+    if(section!==lastSection){
+      html+=`<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;padding:6px 12px;background:var(--gray-lt);border-top:1px solid var(--border)">${section}</div>`;
+      lastSection=section;
+    }
+    const vacLeave=s.vacant?'checked':'';
+    const blockOpts=blocks.map(b=>`<option value="${b}">${b}</option>`).join('');
+    html+=`<div class="sq-staff-row" style="flex-wrap:wrap;gap:6px">
+      <div style="flex:1;min-width:160px">
+        <div style="font-size:11px;color:var(--gray)">${s.desig} \u2014 ${s.blockUnit||s.circle||''}</div>
+        <div style="font-size:13px;font-weight:600">${s.name||'<span style="color:var(--red);font-style:italic">\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd</span>'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <select id="sq-assign-block-${s.id}" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:170px">
+          <option value="">Any Block</option>${blockOpts}
+        </select>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--red);white-space:nowrap">
+          <input type="checkbox" id="sq-skip-${s.id}" ${vacLeave} onchange="toggleStaffSkip('${s.id}',this.checked)"> Skip
+        </label>
+      </div>
+    </div>`;
+  });
+  if(!relevant.length){html='<div style="padding:12px;font-size:13px;color:var(--gray)">Staff Master-\u0bb2\u0bcd staff \u0b9a\u0bc7\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.</div>';}
+  listEl.innerHTML=html;
+}
+
+function toggleStaffSkip(id,checked){
+  const s=sqStaffList.find(x=>x.id===id);
+  if(s)s.skipNow=checked;
+}
+
+function normalizeBlockName(name){
+  return String(name||'').trim().toLowerCase()
+    .replace(/\s+/g,' ').replace(/[-_]/g,' ')
+    .replace(/\u00a0/g,' ').replace(/\u200b/g,'');
+}
+
+/* ════ STAFF MASTER ════════════════════════════════════════ */
+function renderStaffMaster(){
+  const wingF=document.getElementById('sq-filter-wing')?.value||'';
+  const blkF=document.getElementById('sq-filter-block')?.value||'';
+  const wingOrder={pds:0,circle:1,officer:2};
+  const filtered=sqStaffList.filter(s=>{
+    if(wingF&&s.wing!==wingF)return false;
+    if(blkF&&s.blockUnit!==blkF&&s.circle!==blkF)return false;
+    return true;
+  }).sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+  const tbody=document.getElementById('sq-staff-tbody');
+  if(!tbody)return;
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--gray)">Staff \u0b87\u0bb2\u0bcd\u0bb2\u0bc8. \u201c+ Add Staff\u201d \u0b95\u0bbf\u0bb3\u0bbf\u0b95\u0bcd \u0b9a\u0bc6\u0baf\u0bcd\u0baf\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd.</td></tr>';
+    return;
+  }
+  let html='';let lastWing='';
+  filtered.forEach(s=>{
+    if(s.wing!==lastWing){
+      const wLabel={pds:'PDS Wing',circle:'Circle Wing',officer:'Officers'}[s.wing]||s.wing;
+      html+=`<tr><td colspan="6" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;background:var(--gray-lt);border-top:1px solid var(--border)">${wLabel}</td></tr>`;
+      lastWing=s.wing;
+    }
+    const vacBadge=s.vacant?'<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;margin-left:4px">Vacant</span>':'';
+    const wCol={pds:'#dbeafe',circle:'#dcfce7',officer:'#fef3c7'}[s.wing]||'#f3f4f6';
+    const wTxt={pds:'#1e40af',circle:'#166534',officer:'#92400e'}[s.wing]||'#374151';
+    const wLbl={pds:'PDS',circle:'Circle',officer:'Officer'}[s.wing]||s.wing;
+    html+=`<tr style="border-bottom:1px solid rgba(0,0,0,.06)">
+      <td style="padding:7px 10px;font-size:12px">${s.desig}${vacBadge}</td>
+      <td style="padding:7px 10px;font-size:12px;color:var(--gray)">${s.blockUnit||s.circle||'\u2014'}</td>
+      <td style="padding:7px 10px;font-weight:600">${s.name||''}</td>
+      <td style="padding:7px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;background:${wCol};color:${wTxt}">${wLbl}</span></td>
+      <td style="padding:7px 10px;text-align:center"><input type="checkbox" ${s.vacant?'checked':''} onchange="toggleStaffVacant('${s.id}',this.checked)"></td>
+      <td style="padding:7px 10px;text-align:center">
+        <button class="btn-sm-g" onclick="editStaff('${s.id}')" style="margin-right:4px">\u270f\ufe0f</button>
+        <button class="btn-sm-g" style="background:#fee2e2;color:#991b1b" onclick="deleteStaff('${s.id}')">\ud83d\uddd1</button>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+function populateStaffFilterBlock(){
+  const sel=document.getElementById('sq-filter-block');
+  if(!sel)return;
+  const vals=new Set(sqStaffList.map(s=>s.blockUnit||s.circle||'').filter(Boolean));
+  sel.innerHTML='<option value="">All Blocks / Circles</option>'+
+    [...vals].sort().map(v=>`<option value="${v}">${v}</option>`).join('');
+}
+
+async function toggleStaffVacant(id,checked){
+  const s=sqStaffList.find(x=>x.id===id);
+  if(s){s.vacant=checked;await saveSquadStaff();}
+}
+
+async function deleteStaff(id){
+  if(!confirm('Delete this staff?'))return;
+  sqStaffList=sqStaffList.filter(s=>s.id!==id);
+  await saveSquadStaff();renderStaffMaster();populateStaffFilterBlock();
+}
+
+function editStaff(id){
+  const s=sqStaffList.find(x=>x.id===id);if(!s)return;
+  sqEditingId=id;
+  document.getElementById('sq-modal-title').textContent='Edit Staff';
+  document.getElementById('sm-wing').value=s.wing||'pds';
+  document.getElementById('sm-circle').value=s.circle||'';
+  document.getElementById('sm-desig').value=s.desig||'';
+  document.getElementById('sm-name').value=s.name||'';
+  document.getElementById('sm-vacant').checked=!!s.vacant;
+  onSmWingChange();
+  setTimeout(()=>{const b=document.getElementById('sm-block');if(b)b.value=s.blockUnit||'';},50);
+  document.getElementById('sq-staff-modal').classList.remove('hidden');
+}
+
+function showAddStaffModal(){
+  sqEditingId=null;
+  document.getElementById('sq-modal-title').textContent='Add Staff';
+  document.getElementById('sm-wing').value='pds';
+  document.getElementById('sm-circle').value='';
+  document.getElementById('sm-desig').value='';
+  document.getElementById('sm-name').value='';
+  document.getElementById('sm-vacant').checked=false;
+  onSmWingChange();
+  document.getElementById('sq-staff-modal').classList.remove('hidden');
+}
+
+function closeStaffModal(){
+  document.getElementById('sq-staff-modal').classList.add('hidden');
+  sqEditingId=null;
+}
+
+function onSmWingChange(){
+  const wing=document.getElementById('sm-wing').value;
+  const cw=document.getElementById('sm-circle-wrap');
+  const bw=document.getElementById('sm-block-wrap');
+  const di=document.getElementById('sm-desig');
+  if(cw)cw.style.display=wing==='circle'?'':'none';
+  const bsel=document.getElementById('sm-block');
+  if(bsel){
+    if(wing==='officer'){bsel.innerHTML='<option value="">\u2014</option>';if(bw)bw.style.display='none';}
+    else{bsel.innerHTML='<option value="">\u2014 Select Block \u2014</option>'+BLOCKS_21.map(b=>`<option value="${b}">${b}</option>`).join('');if(bw)bw.style.display='';}
+  }
+  if(di){
+    di.placeholder=wing==='officer'?'e.g. \u0b87\u0ba3\u0bc8\u0baa\u0bcd\u0baa\u0ba4\u0bbf\u0bb5\u0bbe\u0bb3\u0bb0\u0bcd':wing==='circle'?'e.g. \u0b95\u0bb3 \u0b85\u0bb2\u0bc1\u0bb5\u0bb2\u0bb0\u0bcd':'e.g. \u0b95\u0bc2.\u0b9a\u0bbe.\u0baa/\u0baa\u0bcb\u0bb5\u0bbf\u0ba4\u0bbf';
+  }
+}
+
+function onSmVacantChange(){
+  const isVac=document.getElementById('sm-vacant').checked;
+  const req=document.getElementById('sm-name-req');
+  const inp=document.getElementById('sm-name');
+  if(req)req.textContent=isVac?'':'*';
+  if(inp)inp.placeholder=isVac?'\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd (\u0baa\u0bc6\u0baf\u0bb0\u0bcd \u0ba4\u0bc7\u0bb5\u0bc8\u0baf\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8)':'\u0ba4\u0bbf\u0bb0\u0bc1\u0bb5\u0bbe\u0bb3\u0bb0\u0bcd/ \u0ba4\u0bbf\u0bb0\u0bc1\u0bae\u0ba4\u0bbf/ \u0b9a\u0bc6\u0bb2\u0bcd\u0bb5\u0bbf...';
+}
+
+async function saveStaffFromModal(){
+  const wing=document.getElementById('sm-wing').value;
+  const circle=document.getElementById('sm-circle').value;
+  const desig=document.getElementById('sm-desig').value.trim();
+  const block=document.getElementById('sm-block').value;
+  const name=document.getElementById('sm-name').value.trim();
+  const vacant=document.getElementById('sm-vacant').checked;
+  if(!desig){alert('Designation is required.');return;}
+  if(!name&&!vacant){alert('Staff Name is required.');return;}
+  if(sqEditingId){
+    const s=sqStaffList.find(x=>x.id===sqEditingId);
+    if(s){s.wing=wing;s.circle=circle;s.desig=desig;s.blockUnit=block;s.name=name;s.vacant=vacant;}
   }else{
-    clearInterval(cdTimer);
-    btn.textContent='▶ Start';
-    btn.style.background='rgba(100,255,100,.3)';
-    document.getElementById('cd-text').textContent='Paused';
+    sqStaffList.push({id:'s'+Date.now()+Math.random().toString(36).slice(2,6),wing,circle,desig,blockUnit:block,name,vacant,skipNow:false});
   }
-}
-function startCountdown(){
-  clearInterval(cdTimer);
-  cdSec=300;updateCd();
-  cdTimer=setInterval(async()=>{
-    if(!autoRunning)return;
-    cdSec--;updateCd();
-    if(cdSec<=0){cdSec=300;await autoRefreshAll();}
-  },1000);
-}
-function updateCd(){
-  const m=Math.floor(cdSec/60),s=cdSec%60;
-  document.getElementById('cd-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
-  document.getElementById('cd-fill').style.width=(cdSec/300*100)+'%';
-}
-async function manualRefresh(){
-  await autoRefreshAll();cdSec=300;updateCd();
-}
-async function autoRefreshAll(){
-  if(!dbSheetId)return;
-  const active=sheets.filter(s=>s.status==='active'&&s.sheetId);
-  for(const s of active){
-    try{await readSheetData(s);}
-    catch(e){console.warn('Read failed:',s.title,e.message);}
-  }
-  if(active.length)await saveToDb();
-  document.getElementById('last-refresh').textContent='Last refreshed: '+nowStr();
-  renderDashboard();refreshDropdowns();
+  await saveSquadStaff();closeStaffModal();renderStaffMaster();populateStaffFilterBlock();
 }
 
-/* ══════════════════════════════════
-   FILL DETECTION
-   Key rule: formula cells that return 0
-   are reported by Sheets API as "0" string.
-   We detect real user-typed data by:
-   1. Cell must be non-empty string
-   2. Value must not be 0/0.0/0.00/"-"/"—"
-   3. Value must be a meaningful number >0
-      OR a non-numeric non-empty string
-══════════════════════════════════ */
-/* isRealData(formattedVal, formulaVal)
-   formulaVal: if cell has a formula, this starts with '='
-   If formula exists and formatted result is 0/empty → unfilled
-   If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
-function isRealData(fmtCell, fmlCell){
-  const fmt=String(fmtCell||'').trim();
-  const fml=String(fmlCell||'').trim();
-  if(fmt==='')return false; // empty = unfilled regardless
-  const hasFormula=fml.startsWith('=');
-  if(hasFormula){
-    // Formula cell: only filled if result is meaningful non-zero
-    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
-    const n=parseFloat(fmt);
-    if(!isNaN(n))return n>0;
-    return fmt.length>0;
+/* ════ SQUAD TAB SWITCHING ═══════════════════════════════ */
+function squadStab(el){
+  document.querySelectorAll('.squad-stab').forEach(t=>t.classList.remove('active'));
+  ['squad-generate','squad-staff'].forEach(id=>{
+    const p=document.getElementById(id);if(p)p.style.display='none';
+  });
+  el.classList.add('active');
+  const target=el.dataset.stab;
+  const panel=document.getElementById(target);
+  if(panel)panel.style.display='block';
+  if(target==='squad-generate')initSquadGenerate();
+  if(target==='squad-staff')renderStaffMaster();
+}
+
+function initSquadGenerate(){
+  const gp=document.getElementById('squad-generate');if(gp)gp.style.display='block';
+  const chips=document.getElementById('sq-block-chips');
+  if(chips&&!chips.children.length){
+    BLOCKS_21.forEach(b=>{
+      const chip=document.createElement('div');
+      chip.className='sq-block-chip';chip.textContent=b;chip.dataset.block=b;
+      chip.onclick=()=>{chip.classList.toggle('selected');loadSquadStaffForBlocks();};
+      chips.appendChild(chip);
+    });
   }
-  // User typed: any non-empty value counts as filled
-  return fmt.length>0;
+  const dateEl=document.getElementById('sq-date');
+  if(dateEl&&!dateEl.value)dateEl.value=new Date().toISOString().slice(0,10);
+  loadSquadData();
+}
+
+function sqChipAll(){document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.add('selected'));loadSquadStaffForBlocks();}
+function sqChipClear(){document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.remove('selected'));loadSquadStaffForBlocks();}
+function getSelectedBlocks(){return[...document.querySelectorAll('.sq-block-chip.selected')].map(c=>c.dataset.block);}
+
+/* ════ GENERATE SQUAD ════════════════════════════════════ */
+function generateSquad(){
+  const blocks=getSelectedBlocks();
+  if(!blocks.length){showSqMsg('\u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd Block \u0ba4\u0bc7\u0bb0\u0bcd\u0ba8\u0bcd\u0ba4\u0bc6\u0b9f\u0bc1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.','err');return;}
+  if(!sqShopData.length){showSqMsg('Shop master data \u0b87\u0bb2\u0bcd\u0bb2\u0bc8. Excel \u0b8f\u0bb1\u0bcd\u0bb1\u0bc1\u0b95.','err');return;}
+  const date=document.getElementById('sq-date').value;
+  if(!date){showSqMsg('Date \u0ba4\u0bc7\u0bb0\u0bcd\u0ba8\u0bcd\u0ba4\u0bc6\u0b9f\u0bc1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.','err');return;}
+  const shopsPerStaff=parseInt(document.getElementById('sq-per-staff').value)||3;
+
+  const wingOrder={pds:0,circle:1,officer:2};
+  const availStaff=sqStaffList.filter(s=>{
+    if(s.vacant)return false;
+    const el=document.getElementById('sq-skip-'+s.id);
+    if(el&&el.checked)return false;
+    return true;
+  }).sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+  if(!availStaff.length){showSqMsg('Available staff \u0b87\u0bb2\u0bcd\u0bb2\u0bc8.','err');return;}
+
+  /* Build shop pool per block — fulltime first, max 1 parttime per society */
+  const blockShops={};
+  blocks.forEach(blk=>{
+    const shops=sqShopData.filter(s=>normalizeBlockName(s.block)===normalizeBlockName(blk));
+    const societies={};
+    shops.forEach(sh=>{
+      if(!societies[sh.society])societies[sh.society]={full:[],part:[]};
+      if(sh.type==='\u0bae\u0bc1\u0bb4\u0bc1\u0ba8\u0bc7\u0bb0\u0bae\u0bcd')societies[sh.society].full.push(sh);
+      else societies[sh.society].part.push(sh);
+    });
+    const flat=[];
+    Object.entries(societies).forEach(([soc,g])=>{
+      g.full.forEach(sh=>flat.push({...sh,_soc:soc}));
+      if(g.part.length)flat.push({...g.part[0],_soc:soc});
+    });
+    blockShops[blk]=flat;
+  });
+
+  let shopPool=[];
+  blocks.forEach(blk=>{shopPool=shopPool.concat(blockShops[blk]||[]);});
+
+  sqAssignments=[];
+  let usedShops=new Set();
+  let slNo=1;
+
+  availStaff.forEach(staff=>{
+    const assignedBlockEl=document.getElementById('sq-assign-block-'+staff.id);
+    const assignedBlock=assignedBlockEl?assignedBlockEl.value:'';
+    let staffPool=assignedBlock
+      ?shopPool.filter(sh=>normalizeBlockName(sh.block)===normalizeBlockName(assignedBlock))
+      :shopPool;
+
+    const assigned=[];
+    /* Find society with most available shops */
+    const socCounts={};
+    staffPool.forEach(sh=>{if(!usedShops.has(sh.code))socCounts[sh._soc]=(socCounts[sh._soc]||0)+1;});
+    const bestSoc=Object.entries(socCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
+    /* Assign from best society first */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code))continue;
+      if(sh._soc===bestSoc){assigned.push(sh);usedShops.add(sh.code);}
+    }
+    /* Fill remaining */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code))continue;
+      assigned.push(sh);usedShops.add(sh.code);
+    }
+    /* Fallback to full pool if assigned block had no shops */
+    if(!assigned.length&&assignedBlock){
+      for(let i=0;i<shopPool.length&&assigned.length<shopsPerStaff;i++){
+        const sh=shopPool[i];
+        if(usedShops.has(sh.code))continue;
+        assigned.push(sh);usedShops.add(sh.code);
+      }
+    }
+    if(!assigned.length)return;
+    assigned.forEach(sh=>{
+      sqAssignments.push({slNo:slNo++,society:sh._soc||sh.society,code:sh.code,
+        shopName:sh.name,inspector:staff.name||'(\u0b95\u0bbe\u0bb2\u0bbf\u0baf\u0bbf\u0b9f\u0bae\u0bcd)',
+        desig:staff.desig,block:sh.block,type:sh.type});
+    });
+  });
+
+  const unassigned=shopPool.filter(sh=>!usedShops.has(sh.code));
+  renderSquadTable(sqAssignments,unassigned,date,blocks);
+  showSqMsg('','ok');
+}
+
+
+
+/* ══ MONITORING — isRealData, detectLastDataColumn, detectManualColumns ══ */
+function isRealData(fmtCell,fmlCell){
+  const fmt=String(fmtCell||'').trim();
+  if(fmt==='')return false;
+  const ERRORS=new Set(['#div/0!','#ref!','#value!','#name?','#n/a!','#null!','#num!','#error!']);
+  if(ERRORS.has(fmt.toLowerCase()))return false;
+  return true;
+}
+
+function detectLastDataColumn(fmtCols,fmlCols){
+  let lastCol=0;
+  const totalCols=Math.max(fmtCols.length,fmlCols.length);
+  for(let ci=0;ci<totalCols;ci++){
+    const fmtCol=fmtCols[ci]||[];
+    const fmlCol=fmlCols[ci]||[];
+    for(let ri=0;ri<20;ri++){
+      const fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      const fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      if(isRealData(fmt,fml)){lastCol=ci;break;}
+    }
+  }
+  return lastCol;
+}
+
+function detectManualColumns(fmtCols,fmlCols,startCol,lastCol){
+  const isManualCol=[];
+  for(let ci=startCol;ci<=lastCol;ci++){
+    const colIdx=ci-startCol;
+    const fmtCol=fmtCols[colIdx]||[];
+    const fmlCol=fmlCols[colIdx]||[];
+    let manualFound=false;
+    for(let ri=0;ri<20;ri++){
+      const fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      const fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      if(fmt!==''&&fml===''){manualFound=true;break;}
+    }
+    isManualCol[ci]=manualFound;
+  }
+  return isManualCol;
+}
+
+
+function normalizeCell(v){
+  return String(v||'')
+    .replace(/[\u00a0\u200b\u200c\u200d\u200e\u200f\ufeff\u00ad]/g,' ')
+    .trim().toLowerCase()
+    .replace(/\s+/g,' ').replace(/[-_]/g,' ').replace(/[()]/g,'')
+    .replace(/\s+/g,' ').trim();
 }
 
 function matchBlock(row){
@@ -992,67 +2107,101 @@ function matchBlock(row){
   return -1;
 }
 
-/* ══════════════════════════════════
-   READ SHEET — scans all tabs,
-   accumulates real data score per block
-══════════════════════════════════ */
+
+function calcFillStatus(fV,tV){
+  if(tV===0)return{status:'unfilled',reason:'No fillable fields'};
+  const rem=tV-fV,pct=Math.round(fV/tV*100);
+  if(tV<=5){
+    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+    return{status:'unfilled',reason:fV+'/'+tV+' fields filled - all required'};
+  }
+  if(tV<=10){
+    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+    if(fV>=3){const note=rem===1?' - 1 field yet to be filled':'';return{status:'partial',reason:fV+'/'+tV+' fields filled'+note};}
+    return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields filled'};
+  }
+  const minP=Math.max(6,Math.ceil(tV*0.30));
+  const nearC=Math.ceil(tV*0.10);
+  if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+  if(fV>=minP){
+    const note=(rem>0&&rem<=nearC)?' - only '+rem+' field'+(rem>1?'s':'')+' yet to be filled':'';
+    return{status:'partial',reason:fV+'/'+tV+' fields ('+pct+'%) filled'+note};
+  }
+  return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields ('+pct+'%) - below minimum'};
+}
+
 async function readSheetData(s){
   const meta=await sheetsGetMeta(s.sheetId);
   const tabs=meta.sheets.map(sh=>sh.properties.title);
-  const ranges=tabs.map(t=>"'"+t+"'!A:Z");
-  // Fetch both formatted values and formula values in parallel
-  const [fmtResp, fmlResp]=await Promise.all([
-    sheetsBatchGet(s.sheetId,ranges),
-    sheetsBatchGetFormula(s.sheetId,ranges)
-  ]);
-
-  const blockScore={};
-
-  (fmtResp.valueRanges||[]).forEach((vr,ti)=>{
-    const tabName=tabs[ti];
-    const rows=vr.values||[];
-    const fmlRows=(fmlResp.valueRanges&&fmlResp.valueRanges[ti]&&fmlResp.valueRanges[ti].values)||[];
-
-    let blockCol=-1;
-    for(let ri=0;ri<Math.min(rows.length,10);ri++){
-      for(let ci=0;ci<(rows[ri]||[]).length;ci++){
-        if(matchBlock([rows[ri][ci]])>=0){blockCol=ci;break;}
+  const blockData={};
+  for(const tabName of tabs){
+    const enc=t=>"'"+t+"'";
+    const fmtFull=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
+      '/values/'+encodeURIComponent(enc(tabName)+'!A:Z')+'?valueRenderOption=FORMATTED_VALUE');
+    const fmtRows=fmtFull.values||[];
+    if(!fmtRows.length)continue;
+    let blockCol=-1,firstDataRow=-1;
+    for(let ri=0;ri<fmtRows.length&&(blockCol<0||firstDataRow<0);ri++){
+      for(let ci=0;ci<(fmtRows[ri]||[]).length;ci++){
+        if(matchBlock([String((fmtRows[ri]||[])[ci]||'').trim()])>=0){
+          if(blockCol<0)blockCol=ci;if(firstDataRow<0)firstDataRow=ri;break;
+        }
       }
-      if(blockCol>=0)break;
     }
-
-    rows.forEach((row,ri)=>{
-      if(!row||row.length===0)return;
-      const bIdx=matchBlock(row);
-      if(bIdx<0)return;
-      const fmlRow=fmlRows[ri]||[];
-      let score=0;
-      row.forEach((cell,ci)=>{
-        if(ci===blockCol)return;
-        if(isRealData(cell, fmlRow[ci]))score++;
+    if(blockCol<0||firstDataRow<0)continue;
+    const dataColStart=blockCol+1;
+    const colLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const colRanges=[];
+    for(let ci=dataColStart;ci<=25;ci++)colRanges.push(enc(tabName)+'!'+colLetters[ci]+':'+colLetters[ci]);
+    const [batchFmt,batchFml]=await Promise.all([
+      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
+        colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+'&valueRenderOption=FORMATTED_VALUE'),
+      gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
+        colRanges.map(r=>'ranges='+encodeURIComponent(r)).join('&')+'&valueRenderOption=FORMULA')
+    ]);
+    const fmtCols=(batchFmt.valueRanges||[]).map(vr=>vr.values||[]);
+    const fmlCols=(batchFml.valueRanges||[]).map(vr=>vr.values||[]);
+    const lastColRelative=detectLastDataColumn(fmtCols,fmlCols);
+    if(lastColRelative<0)continue;
+    const isManualCol=detectManualColumns(fmtCols,fmlCols,0,lastColRelative);
+    const tabMaxV=Object.values(isManualCol).filter(Boolean).length;
+    if(tabMaxV===0)continue;
+    const tabBlockBest={};
+    for(let ri=firstDataRow;ri<fmtRows.length;ri++){
+      const row=Array.from({length:lastColRelative+dataColStart+1},(_,ci)=>{
+        if(ci<dataColStart)return(fmtRows[ri]||[])[ci]!==undefined?(fmtRows[ri]||[])[ci]:'';
+        const colIdx=ci-dataColStart;
+        return((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?((fmtCols[colIdx]||[])[ri]||[])[0]:'';
       });
-      if(!blockScore[bIdx]){blockScore[bIdx]={score:0,tabs:[]};}
-      blockScore[bIdx].score+=score;
-      if(!blockScore[bIdx].tabs.includes(tabName))blockScore[bIdx].tabs.push(tabName);
-    });
-  });
-
-  // Convert score to status
-  s.blockStatus=BLOCKS.map((_,i)=>{
-    const bs=blockScore[i];
-    let status='unfilled';
-    if(bs){
-      if(bs.score>=4)status='filled';
-      else if(bs.score>=1)status='partial';
+      const bIdx=matchBlock(row);
+      if(bIdx<0)continue;
+      if(/\btotal\b|\u0bae\u0bcb\u0ba4\u0bcd\u0ba4\u0bae\u0bcd/.test(row.join(' ').toLowerCase()))continue;
+      let filledV=0;
+      for(let colIdx=0;colIdx<=lastColRelative;colIdx++){
+        if(!isManualCol[colIdx])continue;
+        const fmt=String(((fmtCols[colIdx]||[])[ri]||[])[0]!==undefined?((fmtCols[colIdx]||[])[ri]||[])[0]:'').trim();
+        const fml=String(((fmlCols[colIdx]||[])[ri]||[])[0]!==undefined?((fmlCols[colIdx]||[])[ri]||[])[0]:'').trim();
+        if(isRealData(fmt,fml))filledV++;
+      }
+      if(tabBlockBest[bIdx]===undefined||filledV>tabBlockBest[bIdx])tabBlockBest[bIdx]=filledV;
     }
-    return{idx:i,status,tabs:bs?bs.tabs:[],updatedAt:today()};
+    Object.entries(tabBlockBest).forEach(([bIdxStr,filledV])=>{
+      const bIdx=parseInt(bIdxStr);
+      if(!blockData[bIdx])blockData[bIdx]={filledV:0,totalV:0,tabs:[]};
+      blockData[bIdx].filledV+=filledV;
+      blockData[bIdx].totalV+=tabMaxV;
+      if(!blockData[bIdx].tabs.includes(tabName))blockData[bIdx].tabs.push(tabName);
+    });
+  }
+  s.blockStatus=BLOCKS.map((_,i)=>{
+    const bd=blockData[i];
+    if(!bd||bd.totalV===0)return{idx:i,status:'unfilled',reason:'Block not found in sheet',tabs:[],updatedAt:today()};
+    const{status,reason}=calcFillStatus(bd.filledV,bd.totalV);
+    return{idx:i,status,reason,tabs:bd.tabs,filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
   });
   s.lastRead=nowStr();
 }
 
-/* ══════════════════════════════════
-   IMPORT EXISTING SHEET
-══════════════════════════════════ */
 async function importSheet(){
   const title=document.getElementById('ns-title').value.trim();
   const link=document.getElementById('ns-existing-link').value.trim();
@@ -1606,771 +2755,6 @@ function renderBlockChips(){
 function toggleChip(i){selectedBlocks.has(i)?selectedBlocks.delete(i):selectedBlocks.add(i);renderBlockChips();}
 function selAll(){selectedBlocks=new Set(BLOCKS.map((_,i)=>i));renderBlockChips();}
 function selNone(){selectedBlocks=new Set();renderBlockChips();}
-
-
-/* ══════════════════════════════════
-   INSPECTION + SQUAD + STAFF JS
-══════════════════════════════════ */
-
-/* isRealData - final version */
-function isRealData(fmtCell,fmlCell){
-  var fmt=String(fmtCell||'').trim();
-  if(fmt==='')return false;
-  var ERRORS=['#div/0!','#ref!','#value!','#name?','#n/a!','#null!','#num!','#error!'];
-  if(ERRORS.indexOf(fmt.toLowerCase())>=0)return false;
-  return true;
-}
-
-function detectLastDataColumn(fmtCols,fmlCols){
-  var lastCol=0;
-  var totalCols=Math.max(fmtCols.length,fmlCols.length);
-  for(var ci=0;ci<totalCols;ci++){
-    var fmtCol=fmtCols[ci]||[];
-    var fmlCol=fmlCols[ci]||[];
-    for(var ri=0;ri<20;ri++){
-      var fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
-      var fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
-      if(isRealData(fmt,fml)){lastCol=ci;break;}
-    }
-  }
-  return lastCol;
-}
-
-function detectManualColumns(fmtCols,fmlCols,startCol,lastCol){
-  var isManualCol=[];
-  for(var ci=startCol;ci<=lastCol;ci++){
-    var colIdx=ci-startCol;
-    var fmtCol=fmtCols[colIdx]||[];
-    var fmlCol=fmlCols[colIdx]||[];
-    var manualFound=false;
-    for(var ri=0;ri<20;ri++){
-      var fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
-      var fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
-      if(fmt!==''&&fml===''){manualFound=true;break;}
-    }
-    isManualCol[ci]=manualFound;
-  }
-  return isManualCol;
-}
-
-function calcFillStatus(fV,tV){
-  if(tV===0)return{status:'unfilled',reason:'No fillable fields'};
-  var rem=tV-fV,pct=Math.round(fV/tV*100);
-  if(tV<=5){
-    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
-    return{status:'unfilled',reason:fV+'/'+tV+' fields - all required'};
-  }
-  if(tV<=10){
-    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
-    if(fV>=3){var note=rem===1?' - 1 field yet to be filled':'';return{status:'partial',reason:fV+'/'+tV+' fields filled'+note};}
-    return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields filled'};
-  }
-  var minP=Math.max(6,Math.ceil(tV*0.30));
-  var nearC=Math.ceil(tV*0.10);
-  if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
-  if(fV>=minP){
-    var note2=(rem>0&&rem<=nearC)?' - only '+rem+' field'+(rem>1?'s':'')+' yet to be filled':'';
-    return{status:'partial',reason:fV+'/'+tV+' fields ('+pct+'%) filled'+note2};
-  }
-  return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields ('+pct+'%) - below minimum'};
-}
-
-/* Override readSheetData with column-by-column version */
-async function readSheetData(s){
-  var meta=await sheetsGetMeta(s.sheetId);
-  var tabs=meta.sheets.map(function(sh){return sh.properties.title;});
-  var blockData={};
-  for(var ti=0;ti<tabs.length;ti++){
-    var tabName=tabs[ti];
-    var enc=function(t){return "'"+t+"'";};
-    var fmtFull=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
-      '/values/'+encodeURIComponent(enc(tabName)+'!A:Z')+'?valueRenderOption=FORMATTED_VALUE');
-    var fmtRows=fmtFull.values||[];
-    if(!fmtRows.length)continue;
-    var blockCol=-1,firstDataRow=-1;
-    for(var ri=0;ri<fmtRows.length&&(blockCol<0||firstDataRow<0);ri++){
-      for(var ci=0;ci<(fmtRows[ri]||[]).length;ci++){
-        if(matchBlock([String((fmtRows[ri]||[])[ci]||'').trim()])>=0){
-          if(blockCol<0)blockCol=ci;if(firstDataRow<0)firstDataRow=ri;break;
-        }
-      }
-    }
-    if(blockCol<0||firstDataRow<0)continue;
-    var dataColStart=blockCol+1;
-    var colLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    var colRanges=[];
-    for(var ci2=dataColStart;ci2<=25;ci2++)colRanges.push(enc(tabName)+'!'+colLetters[ci2]+':'+colLetters[ci2]);
-    var batchFmt=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
-      colRanges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&')+'&valueRenderOption=FORMATTED_VALUE');
-    var batchFml=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
-      colRanges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&')+'&valueRenderOption=FORMULA');
-    var fmtCols=(batchFmt.valueRanges||[]).map(function(vr){return vr.values||[];});
-    var fmlCols=(batchFml.valueRanges||[]).map(function(vr){return vr.values||[];});
-    var lastColRel=detectLastDataColumn(fmtCols,fmlCols);
-    if(lastColRel<0)continue;
-    var isManualCol=detectManualColumns(fmtCols,fmlCols,0,lastColRel);
-    var tabMaxV=0;
-    for(var k in isManualCol){if(isManualCol[k])tabMaxV++;}
-    if(tabMaxV===0)continue;
-    var tabBlockBest={};
-    for(var ri2=firstDataRow;ri2<fmtRows.length;ri2++){
-      var row2=[];
-      for(var ci3=0;ci3<=lastColRel+dataColStart;ci3++){
-        if(ci3<dataColStart)row2.push((fmtRows[ri2]||[])[ci3]!==undefined?(fmtRows[ri2]||[])[ci3]:'');
-        else{var colIdx2=ci3-dataColStart;row2.push(((fmtCols[colIdx2]||[])[ri2]||[])[0]!==undefined?((fmtCols[colIdx2]||[])[ri2]||[])[0]:'');}
-      }
-      var bIdx=matchBlock(row2);
-      if(bIdx<0)continue;
-      if(/total/.test(row2.join(' ').toLowerCase()))continue;
-      var filledV2=0;
-      for(var colIdx3=0;colIdx3<=lastColRel;colIdx3++){
-        if(!isManualCol[colIdx3])continue;
-        var fmt2=String(((fmtCols[colIdx3]||[])[ri2]||[])[0]!==undefined?((fmtCols[colIdx3]||[])[ri2]||[])[0]:'').trim();
-        var fml2=String(((fmlCols[colIdx3]||[])[ri2]||[])[0]!==undefined?((fmlCols[colIdx3]||[])[ri2]||[])[0]:'').trim();
-        if(isRealData(fmt2,fml2))filledV2++;
-      }
-      if(tabBlockBest[bIdx]===undefined||filledV2>tabBlockBest[bIdx])tabBlockBest[bIdx]=filledV2;
-    }
-    for(var bIdxStr in tabBlockBest){
-      var bIdx2=parseInt(bIdxStr);
-      if(!blockData[bIdx2])blockData[bIdx2]={filledV:0,totalV:0,tabs:[]};
-      blockData[bIdx2].filledV+=tabBlockBest[bIdxStr];
-      blockData[bIdx2].totalV+=tabMaxV;
-      if(blockData[bIdx2].tabs.indexOf(tabName)<0)blockData[bIdx2].tabs.push(tabName);
-    }
-  }
-  s.blockStatus=BLOCKS.map(function(_,i){
-    var bd=blockData[i];
-    if(!bd||bd.totalV===0)return{idx:i,status:'unfilled',reason:'Block not found',tabs:[],updatedAt:today()};
-    var res=calcFillStatus(bd.filledV,bd.totalV);
-    return{idx:i,status:res.status,reason:res.reason,tabs:bd.tabs,filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
-  });
-  s.lastRead=nowStr();
-}
-
-/* renderMonTable patched to show reason */
-var _origRenderMonTable=renderMonTable;
-function renderMonTable(s){
-  _origRenderMonTable(s);
-  /* patch badge cells to show reason */
-  var rows=document.querySelectorAll('#mon-result tr');
-  /* already handled by new renderMonTable if present */
-}
-
-/* ─── INSPECTION FUNCTIONS ─── */
-const INSPECTOR_MAP={
-  '7338749500':{name:'Inaippathivalaar',type:'officer',target:10},
-  '7338749503':{name:'Thunai Pathivalaar, Cheyyar Saragam',type:'officer',target:null},
-  '7338749504':{name:'Thunai Pathivalaar (Povithi)',type:'officer',target:50},
-  '7338749524':{name:'Thiruvannamalai HQ',type:'block',target:45},
-  '7338749525':{name:'Thiruvannamalai 1',type:'block',target:45},
-  '7338749526':{name:'Kilpennathur',type:'block',target:45},
-  '7338749527':{name:'Chengam',type:'block',target:45},
-  '7338749528':{name:'Thandrampet',type:'block',target:45},
-  '7338749529':{name:'Kalasapakkam',type:'block',target:45},
-  '7338749530':{name:'Polur',type:'block',target:45},
-  '7338749531':{name:'Jamunamarathur (IC)',type:'block',target:45},
-  '7338749532':{name:'Chetpet',type:'block',target:45},
-  '7338749533':{name:'Arani East',type:'block',target:45},
-  '7338749534':{name:'Cheyyar',type:'block',target:45},
-  '7338749535':{name:'Vembakkam 1',type:'block',target:45},
-  '7338749536':{name:'Vandavasi',type:'block',target:45},
-  '7338749537':{name:'Pernamallur',type:'block',target:45},
-  '7338749538':{name:'Thellar',type:'block',target:45},
-  '7338749539':{name:'Thurinjapuram',type:'block',target:45},
-  '7338749540':{name:'Pudhupalayam',type:'block',target:45},
-  '7338749541':{name:'Arani West',type:'block',target:45},
-  '7458968899':{name:'Thiruvannamalai 2',type:'block',target:45},
-  '8457896987':{name:'Vembakkam 2',type:'block',target:45},
-  '8541478968':{name:'Anakavoor',type:'block',target:45},
-};
-
-function resetInspection(){
-  document.getElementById('insp-file').value='';
-  document.getElementById('insp-squad-date').value='';
-  document.getElementById('insp-result').classList.add('hidden');
-  document.getElementById('insp-msg').classList.add('hidden');
-}
-
-function loadSquadCodesFromSquadTab(){
-  var rows=document.querySelectorAll('#sq-tbody tr');
-  if(!rows.length){alert('Generate a Squad table first.');return;}
-  var codes=[];
-  rows.forEach(function(row){
-    var cells=row.querySelectorAll('td');
-    if(cells[2])codes.push(cells[2].textContent.trim());
-  });
-  var el=document.getElementById('insp-squad-exclude');
-  if(el)el.value=codes.filter(Boolean).join(', ');
-  alert(codes.length+' squad shop codes loaded.');
-}
-
-function showInspMsg(msg,type){
-  var el=document.getElementById('insp-msg');
-  if(!el)return;
-  if(!msg){el.classList.add('hidden');return;}
-  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
-  el.innerHTML=msg;el.classList.remove('hidden');
-}
-
-function processInspection(){
-  var fileEl=document.getElementById('insp-file');
-  if(!fileEl.files||!fileEl.files[0]){showInspMsg('Excel file select seyyavum.','err');return;}
-  showInspMsg('<span class="spin spin-b"></span> Padikkirathu...','info');
-  var squadDate=document.getElementById('insp-squad-date').value;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var data=new Uint8Array(e.target.result);
-      var wb=XLSX.read(data,{type:'array',cellDates:true});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      var headerRow=-1;
-      for(var i=0;i<15;i++){
-        if(rows[i]&&rows[i].some(function(x){return String(x).includes('Inspector Mobile');})){headerRow=i;break;}
-      }
-      if(headerRow<0){showInspMsg('Header row not found.','err');return;}
-      var headers=rows[headerRow].map(function(h){return String(h).trim();});
-      var mobileCol=headers.findIndex(function(h){return h.includes('Inspector Mobile');});
-      var shopCodeCol=headers.findIndex(function(h){return h.toLowerCase().includes('fps code')||h.toLowerCase().includes('shop code');});
-      var dateCol=headers.findIndex(function(h){return h.toLowerCase().includes('date of inspection');});
-      if(mobileCol<0){showInspMsg('Inspector Mobile column not found.','err');return;}
-      if(shopCodeCol<0){showInspMsg('FPS Code column not found.','err');return;}
-      var shopSets={};var squadSets={};
-      for(var ri=headerRow+1;ri<rows.length;ri++){
-        var row=rows[ri];
-        var rawMobile=String(row[mobileCol]||'').replace(/\.0+$/,'').trim();
-        var mobile=rawMobile.replace(/[^0-9]/g,'');
-        if(!mobile||mobile.length<10)continue;
-        var shopCode=String(row[shopCodeCol]||'').trim();
-        if(!shopCode)continue;
-        if(!shopSets[mobile])shopSets[mobile]=new Set();
-        shopSets[mobile].add(shopCode);
-        if(squadDate&&dateCol>=0){
-          var rawDate=row[dateCol];var inspDate='';
-          if(rawDate instanceof Date){inspDate=rawDate.toISOString().slice(0,10);}
-          else{inspDate=String(rawDate).slice(0,10);}
-          if(inspDate===squadDate){
-            if(!squadSets[mobile])squadSets[mobile]=new Set();
-            squadSets[mobile].add(shopCode);
-          }
-        }
-      }
-      var excludeInput=(document.getElementById('insp-squad-exclude')?document.getElementById('insp-squad-exclude').value||'':'').trim();
-      var excludeCodes=new Set(excludeInput.split(',').map(function(s){return s.trim();}).filter(Boolean));
-      var blockResults=[];var officerResults=[];
-      Object.entries(INSPECTOR_MAP).forEach(function(entry){
-        var mobile=entry[0];var info=entry[1];
-        var myShops=shopSets[mobile]||new Set();
-        var adjusted=0;
-        myShops.forEach(function(code){if(!excludeCodes.has(code))adjusted++;});
-        var total=myShops.size;var squadCount=total-adjusted;
-        var pending=info.target!==null?Math.max(0,info.target-adjusted):null;
-        var ent={mobile:mobile,name:info.name,total:total,squadCount:squadCount,adjusted:adjusted,target:info.target,pending:pending};
-        if(info.type==='block')blockResults.push(ent);
-        else officerResults.push(ent);
-      });
-      blockResults.sort(function(a,b){return a.adjusted-b.adjusted;});
-      officerResults.sort(function(a,b){return(a.adjusted||0)-(b.adjusted||0);});
-      renderInspResults(blockResults,officerResults,squadDate);
-      showInspMsg('','ok');
-      document.getElementById('insp-result').classList.remove('hidden');
-    }catch(err){showInspMsg('Error: '+err.message,'err');}
-  };
-  reader.readAsArrayBuffer(fileEl.files[0]);
-}
-
-function renderInspResults(blocks,officers,squadDate){
-  /* Block table - columns: #, Vattaram, Ilakku, Aayvu seyyapatta, Niluvaai */
-  var tbody=document.getElementById('insp-blocks');
-  if(tbody){
-    tbody.innerHTML=blocks.map(function(e,i){
-      var done=e.adjusted>=e.target;
-      var near=!done&&e.adjusted>=Math.ceil(e.target*0.75);
-      var rowBg=i%2===0?'#ffffff':'#eef3fb';
-      var pendCol=done?'#1a7a3c':'#c00000';
-      var countCol=done?'#1a7a3c':near?'#7d4800':'#c00000';
-      var pend=Math.max(0,e.target-e.adjusted);
-      return '<tr style="background:'+rowBg+'">'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#666;font-size:12px">'+(i+1)+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #c0c0c0;font-weight:600">'+e.name+'</td>'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+e.target+'</td>'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-size:18px;font-weight:800;color:'+countCol+'">'+e.adjusted+'</td>'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:'+pendCol+'">'+
-        (done?'&#10003;':pend)+'</td></tr>';
-    }).join('');
-  }
-  var otbody=document.getElementById('insp-officers');
-  if(otbody){
-    otbody.innerHTML=officers.map(function(e){
-      if(e.target===null){
-        return '<tr><td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">'+e.name+'</td>'+
-          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0">-</td>'+
-          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:#1f4788">'+e.adjusted+'</td>'+
-          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#999">-</td></tr>';
-      }
-      var done=e.adjusted>=e.target;
-      var rowBg=done?'#e8f5ee':'#fde8e8';
-      var col=done?'#1a7a3c':'#c00000';
-      return '<tr style="background:'+rowBg+'">'+
-        '<td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">'+e.name+'</td>'+
-        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+e.target+'</td>'+
-        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:'+col+'">'+e.adjusted+'</td>'+
-        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:'+(done?'#1a7a3c':'#c00000')+'">'+
-        (done?'&#10003;':Math.max(0,e.target-e.adjusted))+'</td></tr>';
-    }).join('');
-  }
-  var doneN=blocks.filter(function(b){return b.adjusted>=b.target;}).length;
-  var partN=blocks.filter(function(b){return b.adjusted>0&&b.adjusted<b.target;}).length;
-  var noneN=blocks.filter(function(b){return b.adjusted===0;}).length;
-  var sum=document.getElementById('insp-summary');
-  if(sum)sum.innerHTML='Done: '+doneN+' | Pending: '+partN+' | Not started: '+noneN;
-
-  /* Set title */
-  var titleEl=document.getElementById('insp-report-title');
-  if(titleEl){
-    var now=new Date();
-    var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-    titleEl.textContent=months[now.getMonth()]+' '+now.getFullYear()+' - Maasaanthira Aayvu Munnerra Arikkai';
-  }
-}
-
-async function screenshotBlocks(){
-  var wrap=document.getElementById('insp-blocks-wrap');
-  if(!wrap){alert('No data.');return;}
-  try{
-    if(typeof html2canvas==='undefined'){
-      await new Promise(function(res,rej){
-        var s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        s.onload=res;s.onerror=rej;document.head.appendChild(s);
-      });
-    }
-    var canvas=await html2canvas(wrap,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false});
-    canvas.toBlob(async function(blob){
-      try{
-        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-        alert('Screenshot copied to clipboard!');
-      }catch(e){
-        var a=document.createElement('a');a.download='inspection.png';
-        a.href=canvas.toDataURL('image/png');a.click();
-      }
-    },'image/png');
-  }catch(e){alert('Error: '+e.message);}
-}
-
-/* ─── SQUAD FUNCTIONS ─── */
-const BLOCKS_21=['Thiruvannamalai HQ','Thiruvannamalai 1','Thiruvannamalai 2',
-  'Thurinjapuram','Kilpennathur','Chengam','Pudhupalayam',
-  'Thandrampet','Kalasapakkam','Polur','Jamunamarathur',
-  'Chetpet','Arani East','Arani West','Cheyyar',
-  'Anakavoor','Vembakkam 1','Vembakkam 2','Vandavasi',
-  'Pernamallur','Thellar'];
-
-var sqStaffList=[];var sqShopData=[];var sqAssignments=[];var sqEditingId=null;
-
-function sqStore(key,val){
-  try{if(window.storage&&window.storage.set)return window.storage.set(key,JSON.stringify(val));}catch(e){}
-  try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}
-}
-function sqLoad(key){
-  var fromLS=function(){try{var v=localStorage.getItem(key);return Promise.resolve(v?JSON.parse(v):null);}catch(e){return Promise.resolve(null);}};
-  try{if(window.storage&&window.storage.get){return window.storage.get(key).then(function(r){return r?JSON.parse(r.value):null;}).catch(fromLS);}}catch(e){}
-  return fromLS();
-}
-async function saveSquadStaff(){sqStore('sq:staff',sqStaffList);}
-
-async function loadSquadData(){
-  var staff=await sqLoad('sq:staff');sqStaffList=staff||[];
-  var shops=await sqLoad('sq:shopdata');
-  if(shops&&shops.length){sqShopData=shops;var el=document.getElementById('sq-shop-status');if(el)el.textContent=shops.length+' shops loaded';}
-  loadSquadStaffForBlocks();populateStaffFilterBlock();
-}
-
-async function loadSquadShopData(input){
-  var file=input.files[0];if(!file)return;
-  var statusEl=document.getElementById('sq-shop-status');
-  if(statusEl)statusEl.textContent='Reading...';
-  var reader=new FileReader();
-  reader.onload=async function(e){
-    try{
-      var data=new Uint8Array(e.target.result);
-      var wb=XLSX.read(data,{type:'array'});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      var hdr=-1;
-      for(var i=0;i<15;i++){
-        if(rows[i]&&rows[i].some(function(x){return String(x).includes('One') ||String(x).includes('FPS');})){hdr=i;break;}
-      }
-      /* Try harder - look for row with many columns */
-      if(hdr<0){for(var i2=0;i2<15;i2++){if(rows[i2]&&rows[i2].filter(function(x){return x!=='';}).length>5){hdr=i2;break;}}}
-      if(hdr<0){if(statusEl)statusEl.textContent='Header not found';return;}
-      var headers=rows[hdr].map(function(h){return String(h).trim();});
-      /* Find columns by position - known structure from your Excel */
-      var cBlock=1;   /* Column B - Onnriyatthin peyar */
-      var cSoc=5;     /* Column F - Society */
-      var cCode=1;    /* fallback */
-      var cName=7;    /* Column H - shop name */
-      var cType=9;    /* Column J - full/part */
-      /* Try to find by header content */
-      for(var hi=0;hi<headers.length;hi++){
-        if(headers[hi].includes('One') || (headers[hi].length>3&&hi<4))cBlock=hi;
-        if(headers[hi].toLowerCase().includes('soci'))cSoc=hi;
-        if(headers[hi].includes('Code')||headers[hi].includes('code'))cCode=hi;
-        if(headers[hi].includes('Name')||headers[hi].includes('name'))cName=hi;
-        if(headers[hi].toLowerCase().includes('full')||headers[hi].toLowerCase().includes('part')||headers[hi].includes('Time'))cType=hi;
-      }
-      sqShopData=[];
-      for(var ri2=hdr+1;ri2<rows.length;ri2++){
-        var row2=rows[ri2];
-        var block=String(row2[cBlock]||'').trim();
-        var society=String(row2[cSoc]||'').trim();
-        var code=String(row2[cCode]||'').trim();
-        var name=String(row2[cName]||'').trim();
-        var type=String(row2[cType]||'').trim();
-        if(!block||!code)continue;
-        sqShopData.push({block:block,society:society,code:code,name:name,type:type});
-      }
-      sqStore('sq:shopdata',sqShopData);
-      if(statusEl)statusEl.textContent=sqShopData.length+' shops loaded & saved';
-    }catch(err){if(statusEl)statusEl.textContent='Error: '+err.message;}
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function loadSquadStaffForBlocks(){
-  var blocks=getSelectedBlocks();
-  var card=document.getElementById('sq-staff-card');
-  var listEl=document.getElementById('sq-staff-list');
-  if(!listEl)return;
-  if(!blocks.length){if(card)card.style.display='none';return;}
-  if(card)card.style.display='block';
-  var wingOrder={pds:0,circle:1,officer:2};
-  var relevant=sqStaffList.slice();
-  relevant.sort(function(a,b){
-    var wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
-    if(wo!==0)return wo;
-    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
-  });
-  var html='';var lastSection='';
-  relevant.forEach(function(s){
-    var section=s.wing==='pds'?'PDS WING':s.wing==='circle'?'CIRCLE WING':'OFFICERS';
-    if(section!==lastSection){
-      html+='<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;padding:6px 12px;background:var(--gray-lt);border-top:1px solid var(--border)">'+section+'</div>';
-      lastSection=section;
-    }
-    var vacLeave=s.vacant?'checked':'';
-    var blockOpts=blocks.map(function(b){return '<option value="'+b+'">'+b+'</option>';}).join('');
-    html+='<div class="sq-staff-row" style="flex-wrap:wrap;gap:6px">'+
-      '<div style="flex:1;min-width:160px">'+
-      '<div style="font-size:11px;color:var(--gray)">'+(s.desig||'')+' - '+(s.blockUnit||s.circle||'')+'</div>'+
-      '<div style="font-size:13px;font-weight:600">'+(s.name||'<span style="color:var(--red);font-style:italic">Vacant</span>')+'</div>'+
-      '</div>'+
-      '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'+
-      '<select id="sq-assign-block-'+s.id+'" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:170px">'+
-      '<option value="">Any Block</option>'+blockOpts+'</select>'+
-      '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--red);white-space:nowrap">'+
-      '<input type="checkbox" id="sq-skip-'+s.id+'" '+vacLeave+' onchange="toggleStaffSkip(''+s.id+'',this.checked)"> Skip</label>'+
-      '</div></div>';
-  });
-  if(!relevant.length)html='<div style="padding:12px;font-size:13px;color:var(--gray)">Add staff in Staff Master tab.</div>';
-  listEl.innerHTML=html;
-}
-
-function toggleStaffSkip(id,checked){var s=sqStaffList.find(function(x){return x.id===id;});if(s)s.skipNow=checked;}
-
-function normalizeBlockName(name){
-  return String(name||'').trim().toLowerCase().replace(/\s+/g,' ').replace(/[-_]/g,' ').replace(/\u00a0/g,' ').replace(/\u200b/g,'');
-}
-
-function sqChipAll(){document.querySelectorAll('.sq-block-chip').forEach(function(c){c.classList.add('selected');});loadSquadStaffForBlocks();}
-function sqChipClear(){document.querySelectorAll('.sq-block-chip').forEach(function(c){c.classList.remove('selected');});loadSquadStaffForBlocks();}
-function getSelectedBlocks(){return Array.from(document.querySelectorAll('.sq-block-chip.selected')).map(function(c){return c.dataset.block;});}
-
-function initSquadPanel(){
-  var chips=document.getElementById('sq-block-chips');
-  if(chips&&!chips.children.length){
-    BLOCKS_21.forEach(function(b){
-      var chip=document.createElement('div');
-      chip.className='sq-block-chip';chip.textContent=b;chip.dataset.block=b;
-      chip.onclick=function(){chip.classList.toggle('selected');loadSquadStaffForBlocks();};
-      chips.appendChild(chip);
-    });
-  }
-  var dateEl=document.getElementById('sq-date');
-  if(dateEl&&!dateEl.value)dateEl.value=new Date().toISOString().slice(0,10);
-  loadSquadData();
-}
-
-function generateSquad(){
-  var blocks=getSelectedBlocks();
-  if(!blocks.length){showSqMsg('Block theerntedukkavum.','err');return;}
-  if(!sqShopData.length){showSqMsg('Shop master data illai.','err');return;}
-  var date=document.getElementById('sq-date').value;
-  if(!date){showSqMsg('Date theerntedukkavum.','err');return;}
-  var shopsPerStaff=parseInt(document.getElementById('sq-per-staff').value)||3;
-  var wingOrder={pds:0,circle:1,officer:2};
-  var availStaff=sqStaffList.filter(function(s){
-    if(s.vacant)return false;
-    var el=document.getElementById('sq-skip-'+s.id);
-    if(el&&el.checked)return false;
-    return true;
-  }).sort(function(a,b){
-    var wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
-    if(wo!==0)return wo;
-    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
-  });
-  if(!availStaff.length){showSqMsg('Available staff illai.','err');return;}
-  var blockShops={};
-  blocks.forEach(function(blk){
-    var shops=sqShopData.filter(function(s){return normalizeBlockName(s.block)===normalizeBlockName(blk);});
-    var societies={};
-    shops.forEach(function(sh){
-      if(!societies[sh.society])societies[sh.society]={full:[],part:[]};
-      if(sh.type&&sh.type.indexOf('full')>=0||sh.type&&sh.type.indexOf('Full')>=0||sh.type==='முழுநேரம்')societies[sh.society].full.push(sh);
-      else societies[sh.society].part.push(sh);
-    });
-    var flat=[];
-    Object.entries(societies).forEach(function(e){
-      var soc=e[0];var g=e[1];
-      g.full.forEach(function(sh){flat.push(Object.assign({},sh,{_soc:soc}));});
-      if(g.part.length)flat.push(Object.assign({},g.part[0],{_soc:soc}));
-    });
-    blockShops[blk]=flat;
-  });
-  var shopPool=[];
-  blocks.forEach(function(blk){shopPool=shopPool.concat(blockShops[blk]||[]);});
-  sqAssignments=[];var usedShops=new Set();var slNo=1;
-  availStaff.forEach(function(staff){
-    var assignedBlockEl=document.getElementById('sq-assign-block-'+staff.id);
-    var assignedBlock=assignedBlockEl?assignedBlockEl.value:'';
-    var staffPool=assignedBlock?shopPool.filter(function(sh){return normalizeBlockName(sh.block)===normalizeBlockName(assignedBlock);}):shopPool;
-    var assigned=[];
-    var socCounts={};
-    staffPool.forEach(function(sh){if(!usedShops.has(sh.code))socCounts[sh._soc]=(socCounts[sh._soc]||0)+1;});
-    var socEntries=Object.entries(socCounts).sort(function(a,b){return b[1]-a[1];});
-    var bestSoc=socEntries.length?socEntries[0][0]:null;
-    for(var i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
-      var sh=staffPool[i];if(usedShops.has(sh.code))continue;
-      if(sh._soc===bestSoc){assigned.push(sh);usedShops.add(sh.code);}
-    }
-    for(var i2=0;i2<staffPool.length&&assigned.length<shopsPerStaff;i2++){
-      var sh2=staffPool[i2];if(usedShops.has(sh2.code))continue;
-      assigned.push(sh2);usedShops.add(sh2.code);
-    }
-    if(!assigned.length&&assignedBlock){
-      for(var i3=0;i3<shopPool.length&&assigned.length<shopsPerStaff;i3++){
-        var sh3=shopPool[i3];if(usedShops.has(sh3.code))continue;
-        assigned.push(sh3);usedShops.add(sh3.code);
-      }
-    }
-    if(!assigned.length)return;
-    assigned.forEach(function(sh4){
-      sqAssignments.push({slNo:slNo++,society:sh4._soc||sh4.society,code:sh4.code,
-        shopName:sh4.name,inspector:staff.name||'Vacant',desig:staff.desig,block:sh4.block});
-    });
-  });
-  var unassigned=shopPool.filter(function(sh){return!usedShops.has(sh.code);});
-  renderSquadTable(sqAssignments,unassigned,date,blocks);
-  showSqMsg('','ok');
-}
-
-function renderSquadTable(rows,unassigned,date,blocks){
-  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var d=new Date(date);
-  var dateStr=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
-  var title=blocks.join(' & ')+' - Kootturai Aayvu - '+dateStr;
-  var titleEl=document.getElementById('sq-result-title');if(titleEl)titleEl.textContent=title;
-  var staffSet=new Set(rows.map(function(r){return r.inspector;}));
-  var statsEl=document.getElementById('sq-stats');
-  if(statsEl)statsEl.innerHTML='<span class="sq-stat-box" style="background:#dbeafe;color:#1e40af">'+rows.length+' Shops</span>'+
-    '<span class="sq-stat-box" style="background:#dcfce7;color:#166534">'+staffSet.size+' Inspectors</span>'+
-    (unassigned.length?'<span class="sq-stat-box" style="background:#fee2e2;color:#991b1b">'+unassigned.length+' Unassigned</span>':'');
-  var grouped=[];var curGrp=null;
-  rows.forEach(function(r){
-    if(!curGrp||r.inspector!==curGrp.inspector){curGrp={inspector:r.inspector,desig:r.desig,rows:[r]};grouped.push(curGrp);}
-    else curGrp.rows.push(r);
-  });
-  var html='';
-  grouped.forEach(function(grp,gi){
-    var rowspan=grp.rows.length;var grpBg=gi%2===0?'#ffffff':'#eef3fb';
-    grp.rows.forEach(function(r,ri){
-      var inspCell=ri===0?'<td rowspan="'+rowspan+'" style="padding:8px 10px;border:1px solid #b8c8e8;vertical-align:middle;font-weight:700;background:'+grpBg+';text-align:center">'+
-        r.inspector+'<div style="font-size:10px;color:#666;font-weight:400;margin-top:2px">'+(r.desig||'')+'</div></td>':'';
-      html+='<tr style="background:'+grpBg+'"><td style="padding:6px 10px;text-align:center;border:1px solid #b8c8e8;color:#666;font-size:12px">'+r.slNo+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #b8c8e8">'+r.society+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #b8c8e8;font-family:monospace;font-size:12px">'+r.code+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #b8c8e8">'+r.shopName+'</td>'+inspCell+'</tr>';
-    });
-  });
-  var tbody=document.getElementById('sq-tbody');if(tbody)tbody.innerHTML=html;
-  var unEl=document.getElementById('sq-unassigned');var unListEl=document.getElementById('sq-unassigned-list');
-  if(unassigned.length&&unEl&&unListEl){
-    unEl.classList.remove('hidden');
-    unListEl.innerHTML=unassigned.slice(0,20).map(function(s){return'<span style="display:inline-block;margin:2px 4px;padding:2px 8px;background:#f3f4f6;border-radius:4px;font-size:11px">'+s.code+' '+s.name+'</span>';}).join('');
-  }else if(unEl)unEl.classList.add('hidden');
-  document.getElementById('sq-result').classList.remove('hidden');
-}
-
-function copySquadTable(){
-  var tbl=document.getElementById('sq-table');
-  if(!tbl){alert('No table generated.');return;}
-  var range=document.createRange();range.selectNode(tbl);
-  var sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);
-  try{document.execCommand('copy');sel.removeAllRanges();alert('Table copied! Paste in Word with Ctrl+V.');}
-  catch(e){sel.removeAllRanges();alert('Select table manually and copy.');}
-}
-
-function resetSquad(){
-  sqChipClear();
-  var r=document.getElementById('sq-result');if(r)r.classList.add('hidden');
-  var m=document.getElementById('sq-msg');if(m)m.classList.add('hidden');
-  var c=document.getElementById('sq-staff-card');if(c)c.style.display='none';
-  document.getElementById('sq-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('sq-per-staff').value='3';
-}
-
-function showSqMsg(msg,type){
-  var el=document.getElementById('sq-msg');if(!el)return;
-  if(!msg){el.classList.add('hidden');return;}
-  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
-  el.innerHTML=msg;el.classList.remove('hidden');
-}
-
-/* ─── STAFF MASTER ─── */
-function renderStaffMaster(){
-  var wingF=(document.getElementById('sq-filter-wing')||{}).value||'';
-  var blkF=(document.getElementById('sq-filter-block')||{}).value||'';
-  var wingOrder={pds:0,circle:1,officer:2};
-  var filtered=sqStaffList.filter(function(s){
-    if(wingF&&s.wing!==wingF)return false;
-    if(blkF&&s.blockUnit!==blkF&&s.circle!==blkF)return false;
-    return true;
-  }).sort(function(a,b){
-    var wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
-    if(wo!==0)return wo;
-    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
-  });
-  var tbody=document.getElementById('sq-staff-tbody');if(!tbody)return;
-  if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--gray)">No staff. Click "+ Add Staff".</td></tr>';return;}
-  var html='';var lastWing='';
-  filtered.forEach(function(s){
-    if(s.wing!==lastWing){
-      var wLabel={pds:'PDS Wing',circle:'Circle Wing',officer:'Officers'}[s.wing]||s.wing;
-      html+='<tr><td colspan="6" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;background:var(--gray-lt);border-top:1px solid var(--border)">'+wLabel+'</td></tr>';
-      lastWing=s.wing;
-    }
-    var vacBadge=s.vacant?'<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;margin-left:4px">Vacant</span>':'';
-    var wCol={pds:'#dbeafe',circle:'#dcfce7',officer:'#fef3c7'}[s.wing]||'#f3f4f6';
-    var wTxt={pds:'#1e40af',circle:'#166534',officer:'#92400e'}[s.wing]||'#374151';
-    html+='<tr style="border-bottom:1px solid rgba(0,0,0,.06)">'+
-      '<td style="padding:7px 10px;font-size:12px">'+(s.desig||'')+vacBadge+'</td>'+
-      '<td style="padding:7px 10px;font-size:12px;color:var(--gray)">'+(s.blockUnit||s.circle||'-')+'</td>'+
-      '<td style="padding:7px 10px;font-weight:600">'+(s.name||'')+'</td>'+
-      '<td style="padding:7px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;background:'+wCol+';color:'+wTxt+'">'+(s.wing||'')+'</span></td>'+
-      '<td style="padding:7px 10px;text-align:center"><input type="checkbox" '+(s.vacant?'checked':'')+' onchange="toggleStaffVacant(''+s.id+'',this.checked)"></td>'+
-      '<td style="padding:7px 10px;text-align:center">'+
-      '<button class="btn-sm-g" onclick="editStaff(''+s.id+'')" style="margin-right:4px">Edit</button>'+
-      '<button class="btn-sm-g" style="background:#fee2e2;color:#991b1b" onclick="deleteStaff(''+s.id+'')">Del</button>'+
-      '</td></tr>';
-  });
-  tbody.innerHTML=html;
-}
-
-function populateStaffFilterBlock(){
-  var sel=document.getElementById('sq-filter-block');if(!sel)return;
-  var vals=new Set(sqStaffList.map(function(s){return s.blockUnit||s.circle||'';}).filter(Boolean));
-  sel.innerHTML='<option value="">All Blocks / Circles</option>'+Array.from(vals).sort().map(function(v){return'<option value="'+v+'">'+v+'</option>';}).join('');
-}
-
-async function toggleStaffVacant(id,checked){var s=sqStaffList.find(function(x){return x.id===id;});if(s){s.vacant=checked;await saveSquadStaff();}}
-
-async function deleteStaff(id){
-  if(!confirm('Delete this staff?'))return;
-  sqStaffList=sqStaffList.filter(function(s){return s.id!==id;});
-  await saveSquadStaff();renderStaffMaster();populateStaffFilterBlock();
-}
-
-function editStaff(id){
-  var s=sqStaffList.find(function(x){return x.id===id;});if(!s)return;
-  sqEditingId=id;
-  document.getElementById('sq-modal-title').textContent='Edit Staff';
-  document.getElementById('sm-wing').value=s.wing||'pds';
-  document.getElementById('sm-circle').value=s.circle||'';
-  document.getElementById('sm-desig').value=s.desig||'';
-  document.getElementById('sm-name').value=s.name||'';
-  document.getElementById('sm-vacant').checked=!!s.vacant;
-  onSmWingChange();
-  setTimeout(function(){var b=document.getElementById('sm-block');if(b)b.value=s.blockUnit||'';},50);
-  document.getElementById('sq-staff-modal').classList.remove('hidden');
-}
-
-function showAddStaffModal(){
-  sqEditingId=null;
-  document.getElementById('sq-modal-title').textContent='Add Staff';
-  document.getElementById('sm-wing').value='pds';
-  document.getElementById('sm-circle').value='';
-  document.getElementById('sm-desig').value='';
-  document.getElementById('sm-name').value='';
-  document.getElementById('sm-vacant').checked=false;
-  onSmWingChange();
-  document.getElementById('sq-staff-modal').classList.remove('hidden');
-}
-
-function closeStaffModal(){document.getElementById('sq-staff-modal').classList.add('hidden');sqEditingId=null;}
-
-function onSmWingChange(){
-  var wing=document.getElementById('sm-wing').value;
-  var cw=document.getElementById('sm-circle-wrap');var bw=document.getElementById('sm-block-wrap');
-  var di=document.getElementById('sm-desig');
-  if(cw)cw.style.display=wing==='circle'?'':'none';
-  var bsel=document.getElementById('sm-block');
-  if(bsel){
-    if(wing==='officer'){bsel.innerHTML='<option value="">-</option>';if(bw)bw.style.display='none';}
-    else{bsel.innerHTML='<option value="">- Select Block -</option>'+BLOCKS_21.map(function(b){return'<option value="'+b+'">'+b+'</option>';}).join('');if(bw)bw.style.display='';}
-  }
-}
-
-function onSmVacantChange(){
-  var isVac=document.getElementById('sm-vacant').checked;
-  var req=document.getElementById('sm-name-req');var inp=document.getElementById('sm-name');
-  if(req)req.textContent=isVac?'':'*';
-  if(inp)inp.placeholder=isVac?'Vacant (name optional)':'Name...';
-}
-
-async function saveStaffFromModal(){
-  var wing=document.getElementById('sm-wing').value;
-  var circle=document.getElementById('sm-circle').value;
-  var desig=document.getElementById('sm-desig').value.trim();
-  var block=document.getElementById('sm-block').value;
-  var name=document.getElementById('sm-name').value.trim();
-  var vacant=document.getElementById('sm-vacant').checked;
-  if(!desig){alert('Designation required.');return;}
-  if(!name&&!vacant){alert('Staff Name required.');return;}
-  if(sqEditingId){
-    var s=sqStaffList.find(function(x){return x.id===sqEditingId;});
-    if(s){s.wing=wing;s.circle=circle;s.desig=desig;s.blockUnit=block;s.name=name;s.vacant=vacant;}
-  }else{
-    sqStaffList.push({id:'s'+Date.now()+Math.random().toString(36).slice(2,6),
-      wing:wing,circle:circle,desig:desig,blockUnit:block,name:name,vacant:vacant,skipNow:false});
-  }
-  await saveSquadStaff();closeStaffModal();renderStaffMaster();populateStaffFilterBlock();
-}
-
-/* Patch initApp to handle new tabs */
-var _origInitApp=initApp;
-async function initApp(){
-  await _origInitApp();
-  /* Handle inspection, squad, staff-master tabs */
-  document.querySelectorAll('.tab').forEach(function(t){
-    t.addEventListener('click',function(){
-      var tab=t.dataset.tab;
-      if(tab==='inspection'){}
-      if(tab==='squad'){initSquadPanel();}
-      if(tab==='staff-master'){loadSquadData().then(function(){renderStaffMaster();});}
-    });
-  });
-}
 
 </script>
 </body>
