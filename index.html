@@ -1040,9 +1040,7 @@ function processInspection(){
         shopSets[mobile].add(shopCode);
         /* Track all shops for squad exclusion */
         if(!window._allInspShops)window._allInspShops=[];
-        window._allInspShops.push({mobile,shopCode,date:inspDate});
-
-        if(squadDate&&dateCol>=0){
+              if(squadDate&&dateCol>=0){
           let rawDate=row[dateCol];
           let inspDate='';
           if(rawDate instanceof Date){
@@ -1061,15 +1059,18 @@ function processInspection(){
       const blockResults=[];
       const officerResults=[];
       Object.entries(INSPECTOR_MAP).forEach(([mobile,info])=>{
-        /* Apply squad shop exclusions from exclusion list */
+        /* Squad shop exclusion — optional.
+           If no codes entered AND no squad date → use raw count */
+        const excludeInput=(document.getElementById('insp-squad-exclude')?.value||'').trim();
         const excludeCodes=new Set(
-          (document.getElementById('insp-squad-exclude')?.value||'')
-            .split(',').map(s=>s.trim()).filter(Boolean)
+          excludeInput.split(',').map(s=>s.trim()).filter(Boolean)
         );
         const myShops=shopSets[mobile]||new Set();
-        /* Count shops excluding squad-assigned shops */
         let adjusted=0;
-        myShops.forEach(code=>{if(!excludeCodes.has(code))adjusted++;});
+        myShops.forEach(code=>{
+          if(excludeCodes.size>0&&excludeCodes.has(code)) return; /* excluded squad shop */
+          adjusted++;
+        });
         const total=myShops.size;
         const squadCount=total-adjusted;
         const pending=info.target!==null?Math.max(0,info.target-adjusted):null;
@@ -1370,16 +1371,23 @@ function loadSquadStaffForBlocks(){
       lastSection=section;
     }
     const vacLeave = s.vacant?'checked':'';
-    html += `<div class="sq-staff-row">
-      <div>
-        <div class="sq-staff-desig">${s.desig} — ${s.blockUnit||s.circle||''}</div>
-        <div class="sq-staff-name">${s.name}</div>
+    const blockOpts = blocks.map(b=>`<option value="${b}">${b}</option>`).join('');
+    html += `<div class="sq-staff-row" style="flex-wrap:wrap;gap:6px">
+      <div style="flex:1;min-width:160px">
+        <div class="sq-staff-desig" style="font-size:11px;color:var(--gray)">${s.desig} — ${s.blockUnit||s.circle||''}</div>
+        <div class="sq-staff-name">${s.name||'<span style="color:var(--red);font-style:italic">காலியிடம்</span>'}</div>
       </div>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--red)">
-        <input type="checkbox" id="sq-skip-${s.id}" ${vacLeave}
-          onchange="toggleStaffSkip('${s.id}',this.checked)">
-        Vacant/Leave
-      </label>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <select id="sq-assign-block-${s.id}" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:160px">
+          <option value="">Any Block</option>
+          ${blockOpts}
+        </select>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--red);white-space:nowrap">
+          <input type="checkbox" id="sq-skip-${s.id}" ${vacLeave}
+            onchange="toggleStaffSkip('${s.id}',this.checked)">
+          Skip
+        </label>
+      </div>
     </div>`;
   });
   if(!relevant.length){
@@ -1403,17 +1411,14 @@ function generateSquad(){
   if(!date){ showSqMsg('Date தேர்ந்தெடுக்கவும்.','err'); return; }
   const shopsPerStaff = parseInt(document.getElementById('sq-per-staff').value)||3;
 
-  /* Get available staff (not skipped/vacant) */
+  /* Get available staff — ALL staff shown in step 3 who are not skipped/vacant */
   const wingOrder = {pds:0,circle:1,officer:2};
   const availStaff = sqStaffList.filter(s=>{
-    if(s.skipNow||s.vacant) return false;
-    /* Check skip checkbox in UI */
+    if(s.vacant) return false;
+    /* Check Vacant/Leave checkbox in step 3 UI */
     const el = document.getElementById('sq-skip-'+s.id);
     if(el && el.checked) return false;
-    if(s.wing==='officer') return true;
-    if(s.wing==='pds') return blocks.includes(s.blockUnit);
-    if(s.wing==='circle') return true;
-    return false;
+    return true; /* ALL staff in the list are eligible */
   }).sort((a,b)=>{
     const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
     if(wo!==0)return wo;
@@ -1446,26 +1451,62 @@ function generateSquad(){
   let shopPool = [];
   blocks.forEach(blk=>{ shopPool = shopPool.concat(blockShops[blk]||[]); });
 
-  /* Assign shopsPerStaff shops per staff member, preferring same society */
+  /* Assign shopsPerStaff shops per staff member
+     - If staff has an assigned block (from step 3 dropdown), pick from that block first
+     - Prefer same society, fulltime first, max 1 parttime
+     - Each shop assigned to only one inspector */
   sqAssignments = [];
   let usedShops = new Set();
   let slNo = 1;
 
   availStaff.forEach(staff=>{
+    /* Get staff's assigned block from dropdown in step 3 */
+    const assignedBlockEl = document.getElementById('sq-assign-block-'+staff.id);
+    const assignedBlock = assignedBlockEl ? assignedBlockEl.value : '';
+
+    /* Build pool for this staff: assigned block first, then remaining */
+    let staffPool = [];
+    if(assignedBlock){
+      /* Only use shops from the assigned block */
+      staffPool = shopPool.filter(sh=>normalizeBlockName(sh.block)===normalizeBlockName(assignedBlock));
+    } else {
+      /* No specific block assigned — use all remaining shops */
+      staffPool = shopPool;
+    }
+
     const assigned = [];
-    /* Try to find shops from the same society */
-    for(let pass=0;pass<2&&assigned.length<shopsPerStaff;pass++){
-      /* Pass 0: same society as first assigned shop; Pass 1: any society */
-      const targetSoc = pass===0&&assigned.length>0 ? assigned[0]._soc : null;
+    /* Pass 1: same society (prefer groups of 3 from same society) */
+    /* First find which society has most available shops */
+    const socCounts = {};
+    staffPool.forEach(sh=>{
+      if(!usedShops.has(sh.code)){
+        socCounts[sh._soc] = (socCounts[sh._soc]||0)+1;
+      }
+    });
+    /* Pick society with most available shops */
+    const bestSoc = Object.entries(socCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
+
+    /* Assign from best society first */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code)) continue;
+      if(sh._soc===bestSoc){ assigned.push(sh); usedShops.add(sh.code); }
+    }
+    /* Fill remaining from any society in the pool */
+    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
+      const sh=staffPool[i];
+      if(usedShops.has(sh.code)) continue;
+      assigned.push(sh); usedShops.add(sh.code);
+    }
+    /* If assigned block had no shops, try from full pool */
+    if(!assigned.length&&assignedBlock){
       for(let i=0;i<shopPool.length&&assigned.length<shopsPerStaff;i++){
-        const sh = shopPool[i];
+        const sh=shopPool[i];
         if(usedShops.has(sh.code)) continue;
-        if(targetSoc && sh._soc!==targetSoc) continue;
-        assigned.push(sh);
-        usedShops.add(sh.code);
+        assigned.push(sh); usedShops.add(sh.code);
       }
     }
-    /* If still no shops, this staff gets no assignment */
+
     if(!assigned.length) return;
     assigned.forEach(sh=>{
       sqAssignments.push({
@@ -1473,7 +1514,7 @@ function generateSquad(){
         society: sh._soc||sh.society,
         code: sh.code,
         shopName: sh.name,
-        inspector: staff.name,
+        inspector: staff.name||'(காலியிடம்)',
         desig: staff.desig,
         block: sh.block,
         type: sh.type
