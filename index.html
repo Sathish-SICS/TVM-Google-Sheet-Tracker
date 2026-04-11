@@ -106,6 +106,18 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
 .copy-link-box{display:flex;align-items:center;gap:8px;background:#f0f7ff;border:1px solid #b8d4f5;border-radius:var(--r-sm);padding:10px 12px;margin-top:10px}
 .copy-link-url{font-size:12px;color:var(--blue);word-break:break-all;flex:1}
 .trash-item{background:#fff8f8;border:1px solid #f5c6c6;border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
+
+  /* ── Squad Tab ── */
+  .squad-stab{padding:9px 18px;font-size:13px;cursor:pointer;color:var(--gray);border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:500;transition:color .15s,border-color .15s;white-space:nowrap}
+  .squad-stab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+  .squad-stab:hover:not(.active){color:var(--blue-dk)}
+  .squad-spanel{display:none!important}.squad-spanel.active{display:block!important}
+  .sq-block-chip{display:inline-block;padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all .15s;user-select:none;font-weight:500}
+  .sq-block-chip:hover{border-color:var(--blue);color:var(--blue)}
+  .sq-block-chip.selected{background:var(--blue)!important;color:#fff!important;border-color:var(--blue)!important;font-weight:700}
+  .sq-staff-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,.06);gap:8px}
+  .sq-staff-row:last-child{border-bottom:none}
+  .sq-stat-box{padding:6px 14px;border-radius:var(--r-sm);font-size:12px;font-weight:600}
 .hidden{display:none!important}
 a{color:var(--blue)}.link-sm{font-size:12px}
 </style>
@@ -436,6 +448,15 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             <input type="date" id="insp-squad-date" class="finput" style="min-width:160px">
           </div>
         </div>
+        <div style="margin-bottom:10px">
+          <label class="flbl">Squad Shop Codes to Exclude (comma separated)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="insp-squad-exclude" class="finput" placeholder="e.g. 05GP101PY, 05GP102PY"
+              style="flex:1;font-size:12px;font-family:monospace">
+            <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;white-space:nowrap"
+              onclick="loadSquadCodesFromSquadTab()">Load from Squad Tab</button>
+          </div>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="processInspection()">📊 Generate Report</button>
           <button class="btn btn-outline" onclick="resetInspection()">🔄 Reset</button>
@@ -460,13 +481,14 @@ a{color:var(--blue)}.link-sm{font-size:12px}
               </button>
             </div>
             <div id="insp-blocks-wrap" style="background:#fff;border:1px solid var(--border);border-radius:var(--r)">
-              <table style="width:100%;border-collapse:collapse;font-size:13px" id="insp-blocks-tbl">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #bbb" id="insp-blocks-tbl">
                 <thead>
-                  <tr style="background:var(--blue-dk);color:#fff">
-                    <th style="padding:8px 10px;text-align:left;font-weight:600;border-radius:var(--r) 0 0 0">#</th>
-                    <th style="padding:8px 10px;text-align:left;font-weight:600">வட்டாரம்</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600">கண்காணிப்பு</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600;border-radius:0 var(--r) 0 0">நிலுவை</th>
+                  <tr style="background:#1f4788;color:#fff">
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0;width:40px">#</th>
+                    <th style="padding:7px 10px;text-align:left;font-weight:700;border:1px solid #3a5ea0">வட்டாரம்</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0">கண்காணிப்பு</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0">இலக்கு</th>
+                    <th style="padding:7px 10px;text-align:center;font-weight:700;border:1px solid #3a5ea0">நிலுவை</th>
                   </tr>
                 </thead>
                 <tbody id="insp-blocks"></tbody>
@@ -564,7 +586,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
             <div style="font-weight:700;font-size:14px" id="sq-result-title"></div>
             <div style="display:flex;gap:8px">
-              <button class="btn btn-outline" style="font-size:12px" onclick="squadScreenshot()">📸 Screenshot</button>
+              <button class="btn btn-outline" style="font-size:12px" onclick="copySquadTable()">📋 Copy Table</button>
             </div>
           </div>
           <div id="sq-stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
@@ -653,20 +675,28 @@ a{color:var(--blue)}.link-sm{font-size:12px}
           <div class="frow">
             <div>
               <label class="flbl">Designation *</label>
-              <input id="sm-desig" class="finput" placeholder="e.g. கூசாப/பொவிதி">
+              <input id="sm-desig" class="finput" list="sq-desig-list" placeholder="தேர்வு செய்க அல்லது தட்டச்சு செய்க">
+              <datalist id="sq-desig-list">
+                <option value="கூ.சா.ப/பொவிதி">
+                <option value="மு.நி.ஆ/பொவிதி">
+                <option value="கள அலுவலர்">
+                <option value="இணைப்பதிவாளர்">
+                <option value="துணைப்பதிவாளர் (பொவிதி)">
+                <option value="துணைப்பதிவாளர், செய்யார் சரகம்">
+              </datalist>
             </div>
             <div id="sm-block-wrap">
               <label class="flbl">Block</label>
               <select id="sm-block" class="fselect"></select>
             </div>
           </div>
-          <div style="margin-bottom:12px">
-            <label class="flbl">Staff Name *</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:10px">
+            <input type="checkbox" id="sm-vacant" onchange="onSmVacantChange()"> Vacant (காலியிடம்)
+          </label>
+          <div style="margin-bottom:14px" id="sm-name-wrap">
+            <label class="flbl">Staff Name <span id="sm-name-req">*</span></label>
             <input id="sm-name" class="finput" placeholder="திருவாளர்/ திருமதி/ செல்வி...">
           </div>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:14px">
-            <input type="checkbox" id="sm-vacant"> Vacant (காலியிடம்)
-          </label>
           <input type="hidden" id="sm-edit-id">
           <div style="display:flex;gap:8px;justify-content:flex-end">
             <button class="btn btn-outline" onclick="closeStaffModal()">Cancel</button>
@@ -941,6 +971,20 @@ function resetInspection(){
   document.getElementById('insp-msg').classList.add('hidden');
 }
 
+function loadSquadCodesFromSquadTab(){
+  /* Pull shop codes from the last generated squad table */
+  const rows = document.querySelectorAll('#sq-tbody tr');
+  if(!rows.length){ alert('Generate a Squad table first in the Squad tab.'); return; }
+  const codes=[];
+  rows.forEach(row=>{
+    const cells=row.querySelectorAll('td');
+    if(cells[2]) codes.push(cells[2].textContent.trim());
+  });
+  const el=document.getElementById('insp-squad-exclude');
+  if(el){ el.value=codes.filter(Boolean).join(', '); }
+  alert('✅ '+codes.length+' squad shop codes loaded.');
+}
+
 function processInspection(){
   const fileEl=document.getElementById('insp-file');
   if(!fileEl.files||!fileEl.files[0]){
@@ -994,6 +1038,9 @@ function processInspection(){
 
         if(!shopSets[mobile])shopSets[mobile]=new Set();
         shopSets[mobile].add(shopCode);
+        /* Track all shops for squad exclusion */
+        if(!window._allInspShops)window._allInspShops=[];
+        window._allInspShops.push({mobile,shopCode,date:inspDate});
 
         if(squadDate&&dateCol>=0){
           let rawDate=row[dateCol];
@@ -1014,9 +1061,17 @@ function processInspection(){
       const blockResults=[];
       const officerResults=[];
       Object.entries(INSPECTOR_MAP).forEach(([mobile,info])=>{
-        const total=(shopSets[mobile]||new Set()).size;
-        const squadCount=squadDate?Math.min((squadSets[mobile]||new Set()).size,SQUAD_COUNT):0;
-        const adjusted=Math.max(0,total-squadCount);
+        /* Apply squad shop exclusions from exclusion list */
+        const excludeCodes=new Set(
+          (document.getElementById('insp-squad-exclude')?.value||'')
+            .split(',').map(s=>s.trim()).filter(Boolean)
+        );
+        const myShops=shopSets[mobile]||new Set();
+        /* Count shops excluding squad-assigned shops */
+        let adjusted=0;
+        myShops.forEach(code=>{if(!excludeCodes.has(code))adjusted++;});
+        const total=myShops.size;
+        const squadCount=total-adjusted;
         const pending=info.target!==null?Math.max(0,info.target-adjusted):null;
         const entry={mobile,name:info.name,total,squadCount,adjusted,target:info.target,pending};
         if(info.type==='block')blockResults.push(entry);
@@ -1038,63 +1093,61 @@ function processInspection(){
 }
 
 function renderInspResults(blocks,officers,squadDate){
-  const FERRORS_=new Set();
-
-  /* ── Block officers table rows (sorted least→highest) ── */
+  /* ── Block officers — Excel-style 5-col table ── */
   const tbody=document.getElementById('insp-blocks');
   if(tbody){
     tbody.innerHTML=blocks.map((e,i)=>{
       const done=e.adjusted>=e.target;
       const near=!done&&e.adjusted>=Math.ceil(e.target*0.75);
-      const rowBg=done?'#e4f5ee':near?'#fff3e0':'#fdecea';
-      const countCol=done?'var(--green)':near?'var(--amber)':'var(--red)';
-      const pendText=done?'<span style="color:var(--green);font-weight:700">✓</span>':
-        `<span style="color:var(--red);font-weight:700">${e.pending}</span>`;
-      const squadNote=squadDate&&e.squadCount>0?
-        `<div style="font-size:10px;color:var(--gray)">(${e.total} - ${e.squadCount} squad)</div>`:'';
-      return `<tr style="background:${rowBg};border-bottom:1px solid rgba(0,0,0,.07)">
-        <td style="padding:7px 10px;color:var(--gray);font-size:12px;text-align:center">${i+1}</td>
-        <td style="padding:7px 10px;font-weight:600">${e.name}${squadNote}</td>
-        <td style="padding:7px 10px;text-align:center;font-size:17px;font-weight:800;color:${countCol}">${e.adjusted}</td>
-        <td style="padding:7px 10px;text-align:center">${pendText}</td>
+      const rowBg=i%2===0?'#ffffff':'#eef3fb';
+      const countCol=done?'#1a7a3c':near?'#7d4800':'#c00000';
+      const pending=Math.max(0,e.target-e.adjusted);
+      const pendCell=done
+        ?'<span style="color:#1a7a3c;font-weight:700">&#10003;</span>'
+        :`<span style="color:#c00000;font-weight:700">${pending}</span>`;
+      const excl=e.squadCount>0?`<div style="font-size:10px;color:#888">(${e.total} - ${e.squadCount} squad)</div>`:'';
+      return `<tr style="background:${rowBg}">
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#666;font-size:12px">${i+1}</td>
+        <td style="padding:6px 10px;border:1px solid #c0c0c0;font-weight:600">${e.name}${excl}</td>
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-size:18px;font-weight:800;color:${countCol}">${e.adjusted}</td>
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">${e.target}</td>
+        <td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:${done?'#1a7a3c':'#c00000'}">${pendCell}</td>
       </tr>`;
     }).join('');
   }
 
-  /* ── Officers table rows ── */
+  /* ── Officers ── */
   const otbody=document.getElementById('insp-officers');
   if(otbody){
     otbody.innerHTML=officers.map(e=>{
       if(e.target===null){
-        return `<tr style="border-bottom:1px solid rgba(0,0,0,.07)">
-          <td style="padding:7px 10px;font-weight:600">${e.name}</td>
-          <td style="padding:7px 10px;text-align:center;font-size:17px;font-weight:800;color:var(--blue)">${e.adjusted}</td>
-          <td style="padding:7px 10px;text-align:center;color:var(--gray)">—</td>
-          <td style="padding:7px 10px;text-align:center;color:var(--gray)">—</td>
-        </tr>`;
+        return `<tr><td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">${e.name}</td>
+          <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:#1f4788">${e.adjusted}</td>
+          <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#999">—</td>
+          <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#999">—</td></tr>`;
       }
       const done=e.adjusted>=e.target;
-      const rowBg=done?'#e4f5ee':'#fdecea';
-      const col=done?'var(--green)':'var(--red)';
-      return `<tr style="background:${rowBg};border-bottom:1px solid rgba(0,0,0,.07)">
-        <td style="padding:7px 10px;font-weight:600">${e.name}</td>
-        <td style="padding:7px 10px;text-align:center;font-size:17px;font-weight:800;color:${col}">${e.adjusted}</td>
-        <td style="padding:7px 10px;text-align:center;color:var(--gray)">${e.target}</td>
-        <td style="padding:7px 10px;text-align:center">${done?
-          '<span style="color:var(--green);font-weight:700">✓</span>':
-          `<span style="color:var(--red);font-weight:700">${e.pending}</span>`}</td>
+      const rowBg=done?'#e8f5ee':'#fde8e8';
+      const col=done?'#1a7a3c':'#c00000';
+      const pend=Math.max(0,e.target-e.adjusted);
+      return `<tr style="background:${rowBg}">
+        <td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">${e.name}</td>
+        <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:${col}">${e.adjusted}</td>
+        <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">${e.target}</td>
+        <td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:${done?'#1a7a3c':'#c00000'}">
+          ${done?'<span>&#10003;</span>':`${pend}`}</td>
       </tr>`;
     }).join('');
   }
 
-  /* ── Summary line ── */
-  const done=blocks.filter(b=>b.adjusted>=b.target).length;
-  const partial=blocks.filter(b=>b.adjusted>0&&b.adjusted<b.target).length;
-  const none=blocks.filter(b=>b.adjusted===0).length;
+  /* ── Summary ── */
+  const doneN=blocks.filter(b=>b.adjusted>=b.target).length;
+  const partN=blocks.filter(b=>b.adjusted>0&&b.adjusted<b.target).length;
+  const noneN=blocks.filter(b=>b.adjusted===0).length;
   const sum=document.getElementById('insp-summary');
-  if(sum)sum.innerHTML=
-    `✅ ${done} முடிந்தது &nbsp;·&nbsp; ⏳ ${partial} நடைபெறுகிறது &nbsp;·&nbsp; ❌ ${none} தொடங்கவில்லை`;
+  if(sum)sum.innerHTML=`✅ ${doneN} முடிந்தது &nbsp;·&nbsp; ⏳ ${partN} நடைபெறுகிறது &nbsp;·&nbsp; ❌ ${noneN} தொடங்கவில்லை`;
 }
+
 
 async function screenshotBlocks(){
   const wrap=document.getElementById('insp-blocks-wrap');
@@ -1218,18 +1271,14 @@ function getSelectedBlocks(){
 
 /* ── Load data from storage ─────────────────────────── */
 async function loadSquadData(){
-  try{
-    const staffRes = await window.storage.get('sq:staff');
-    sqStaffList = staffRes ? JSON.parse(staffRes.value) : [];
-  }catch(e){ sqStaffList = []; }
-  try{
-    const shopRes = await window.storage.get('sq:shopdata');
-    if(shopRes && shopRes.value){
-      sqShopData = JSON.parse(shopRes.value);
-      const el = document.getElementById('sq-shop-status');
-      if(el) el.textContent = `✅ ${sqShopData.length} shops loaded from storage`;
-    }
-  }catch(e){ sqShopData = []; }
+  const staff = await sqLoad('sq:staff');
+  sqStaffList = staff||[];
+  const shops = await sqLoad('sq:shopdata');
+  if(shops&&shops.length){
+    sqShopData = shops;
+    const el = document.getElementById('sq-shop-status');
+    if(el) el.textContent = '✅ '+sqShopData.length+' shops loaded';
+  }
   loadSquadStaffForBlocks();
   populateStaffFilterBlock();
 }
@@ -1274,7 +1323,7 @@ async function loadSquadShopData(input){
         sqShopData.push({block,society,code,name,type});
       }
       /* Save to storage */
-      await window.storage.set('sq:shopdata', JSON.stringify(sqShopData));
+      sqStore('sq:shopdata', sqShopData);
       if(statusEl) statusEl.textContent = `✅ ${sqShopData.length} shops loaded & saved`;
     }catch(err){
       if(statusEl) statusEl.textContent = '❌ Error: '+err.message;
@@ -1506,6 +1555,25 @@ function renderSquadTable(rows, unassigned, date, blocks){
 }
 
 /* ── Screenshot ─────────────────────────────────────── */
+function copySquadTable(){
+  /* Select the table element so user can copy and paste into Word */
+  const tbl = document.getElementById('sq-table');
+  if(!tbl){ alert('No table generated yet.'); return; }
+  const range = document.createRange();
+  range.selectNode(tbl);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  try{
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    alert('✅ Table copied! Now open Word and press Ctrl+V to paste.');
+  }catch(e){
+    sel.removeAllRanges();
+    alert('Please manually select the table and copy (Ctrl+C).');
+  }
+}
+
 async function squadScreenshot(){
   const wrap = document.getElementById('sq-table-wrap');
   if(!wrap){ alert('No table to screenshot.'); return; }
@@ -1531,10 +1599,17 @@ async function squadScreenshot(){
 }
 
 function resetSquad(){
+  /* Resets current selection and generated table only.
+     Staff master data and shop data are NOT affected. */
   sqChipClear();
-  document.getElementById('sq-result')?.classList.add('hidden');
-  document.getElementById('sq-msg')?.classList.add('hidden');
-  document.getElementById('sq-staff-card').style.display='none';
+  const res=document.getElementById('sq-result');
+  if(res)res.classList.add('hidden');
+  const msg=document.getElementById('sq-msg');
+  if(msg)msg.classList.add('hidden');
+  const card=document.getElementById('sq-staff-card');
+  if(card)card.style.display='none';
+  document.getElementById('sq-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('sq-per-staff').value='3';
 }
 
 function showSqMsg(msg,type){
@@ -1547,10 +1622,26 @@ function showSqMsg(msg,type){
 
 /* ══ STAFF MASTER ══════════════════════════════════════ */
 
-async function saveSquadStaff(){
+/* Squad storage helpers — use window.storage (Claude artifact) or localStorage */
+function sqStore(key,val){
   try{
-    await window.storage.set('sq:staff', JSON.stringify(sqStaffList));
-  }catch(e){ console.error('Staff save error:',e); }
+    if(window.storage&&window.storage.set)
+      return window.storage.set(key,JSON.stringify(val));
+  }catch(e){}
+  try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){}
+}
+function sqLoad(key){
+  try{
+    if(window.storage&&window.storage.get){
+      return window.storage.get(key).then(r=>r?JSON.parse(r.value):null).catch(()=>{
+        try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}
+      });
+    }
+  }catch(e){}
+  try{const v=localStorage.getItem(key);return Promise.resolve(v?JSON.parse(v):null);}catch(e){return Promise.resolve(null);}
+}
+async function saveSquadStaff(){
+  sqStore('sq:staff', sqStaffList);
 }
 
 function renderStaffMaster(){
@@ -1690,6 +1781,14 @@ function onSmWingChange(){
     desigInput.placeholder='e.g. கூசாப/கள அலுவலர்';
   }
 }
+function onSmVacantChange(){
+  const isVacant=document.getElementById('sm-vacant').checked;
+  const req=document.getElementById('sm-name-req');
+  const inp=document.getElementById('sm-name');
+  if(req)req.textContent=isVacant?'':' *';
+  if(inp)inp.placeholder=isVacant?'காலியிடம் (பெயர் தேவையில்லை)':'திருவாளர்/ திருமதி/ செல்வி...';
+}
+
 
 async function saveStaffFromModal(){
   const wing=document.getElementById('sm-wing').value;
@@ -1698,7 +1797,9 @@ async function saveStaffFromModal(){
   const block=document.getElementById('sm-block').value;
   const name=document.getElementById('sm-name').value.trim();
   const vacant=document.getElementById('sm-vacant').checked;
-  if(!desig||!name){ alert('Designation and Name are required.'); return; }
+  const isVac=document.getElementById('sm-vacant').checked;
+  if(!desig){ alert('Designation is required.'); return; }
+  if(!name&&!isVac){ alert('Staff Name is required.'); return; }
   if(sqEditingId){
     const s=sqStaffList.find(x=>x.id===sqEditingId);
     if(s){ s.wing=wing;s.circle=circle;s.desig=desig;s.blockUnit=block;s.name=name;s.vacant=vacant; }
