@@ -1224,322 +1224,6 @@ let sqShopData  = [];   /* loaded from storage or file */
 let sqAssignments = []; /* current generated table */
 let sqEditingId = null;
 
-/* ── Sub-tab switcher ───────────────────────────────── */
-function squadStab(el){
-  /* Remove active from all tabs */
-  document.querySelectorAll('.squad-stab').forEach(t=>t.classList.remove('active'));
-  /* Hide all squad panels using direct style (avoids CSS specificity conflicts) */
-  ['squad-generate','squad-staff'].forEach(id=>{
-    const p=document.getElementById(id);
-    if(p)p.style.display='none';
-  });
-  /* Activate clicked tab and show its panel */
-  el.classList.add('active');
-  const target=el.dataset.stab;
-  const panel=document.getElementById(target);
-  if(panel)panel.style.display='block';
-  if(target==='squad-generate')initSquadGenerate();
-  if(target==='squad-staff')renderStaffMaster();
-}
-
-/* ── Init Generate panel ────────────────────────────── */
-function initSquadGenerate(){
-  /* Ensure panel is visible (override any CSS conflicts) */
-  const gp=document.getElementById('squad-generate');
-  if(gp)gp.style.display='block';
-  /* Render block chips */
-  const chips = document.getElementById('sq-block-chips');
-  if(chips && !chips.children.length){
-    BLOCKS_21.forEach(b=>{
-      const chip = document.createElement('div');
-      chip.className = 'sq-block-chip';
-      chip.textContent = b;
-      chip.dataset.block = b;
-      chip.onclick = ()=>{ chip.classList.toggle('selected'); loadSquadStaffForBlocks(); };
-      chips.appendChild(chip);
-    });
-  }
-  /* Set default date to today */
-  const dateEl = document.getElementById('sq-date');
-  if(dateEl && !dateEl.value){
-    dateEl.value = new Date().toISOString().slice(0,10);
-  }
-  loadSquadData();
-}
-
-function sqChipAll(){
-  document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.add('selected'));
-  loadSquadStaffForBlocks();
-}
-function sqChipClear(){
-  document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.remove('selected'));
-  loadSquadStaffForBlocks();
-}
-
-function getSelectedBlocks(){
-  return [...document.querySelectorAll('.sq-block-chip.selected')].map(c=>c.dataset.block);
-}
-
-/* ── Load data from storage ─────────────────────────── */
-async function loadSquadData(){
-  const staff = await sqLoad('sq:staff');
-  sqStaffList = staff||[];
-  const shops = await sqLoad('sq:shopdata');
-  if(shops&&shops.length){
-    sqShopData = shops;
-    const el = document.getElementById('sq-shop-status');
-    if(el) el.textContent = '✅ '+sqShopData.length+' shops loaded';
-  }
-  loadSquadStaffForBlocks();
-  populateStaffFilterBlock();
-}
-
-/* ── Load shop Excel file ───────────────────────────── */
-async function loadSquadShopData(input){
-  const file = input.files[0];
-  if(!file) return;
-  const statusEl = document.getElementById('sq-shop-status');
-  if(statusEl) statusEl.textContent = 'Reading...';
-  const reader = new FileReader();
-  reader.onload = async function(e){
-    try{
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data,{type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      /* Find header row */
-      let hdr = -1;
-      for(let i=0;i<15;i++){
-        if(rows[i] && rows[i].some(c=>String(c).includes('குறியீடு')||String(c).toLowerCase().includes('fps'))){
-          hdr=i; break;
-        }
-      }
-      if(hdr<0){ alert('Header row not found in Excel.'); return; }
-      const headers = rows[hdr].map(h=>String(h).trim());
-      /* Map columns */
-      const cBlock   = headers.findIndex(h=>h.includes('ஒன்றியத்தின்'));
-      const cSociety = headers.findIndex(h=>h.includes('கூட்டுறவு') && h.includes('நிறுவனத்தின்'));
-      const cCode    = headers.findIndex(h=>h.includes('குறியீடு') && !h.includes('எண்.'));
-      const cName    = headers.findIndex(h=>h.includes('கடையின் பெயர்'));
-      const cType    = headers.findIndex(h=>h.includes('முழுநேரம்'));
-      sqShopData = [];
-      for(let ri=hdr+1;ri<rows.length;ri++){
-        const row=rows[ri];
-        const block=String(row[cBlock]||'').trim();
-        const society=String(row[cSociety]||'').trim();
-        const code=String(row[cCode]||'').trim();
-        const name=String(row[cName]||'').trim();
-        const type=String(row[cType]||'').trim();
-        if(!block||!code) continue;
-        sqShopData.push({block,society,code,name,type});
-      }
-      /* Save to storage */
-      sqStore('sq:shopdata', sqShopData);
-      if(statusEl) statusEl.textContent = `✅ ${sqShopData.length} shops loaded & saved`;
-    }catch(err){
-      if(statusEl) statusEl.textContent = '❌ Error: '+err.message;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-/* ── Load staff for selected blocks into step 3 ─────── */
-function loadSquadStaffForBlocks(){
-  const blocks = getSelectedBlocks();
-  const card = document.getElementById('sq-staff-card');
-  const listEl = document.getElementById('sq-staff-list');
-  if(!listEl) return;
-  if(!blocks.length){ if(card)card.style.display='none'; return; }
-  if(card) card.style.display='block';
-
-  /* Show ALL staff from master — every staff member needs a block assigned.
-     Vacant staff still shown so user can mark leave if needed this month. */
-  const relevant = sqStaffList.slice(); /* all staff */
-
-  /* Sort: PDS (by block order), then circle, then officers */
-  const wingOrder = {pds:0,circle:1,officer:2};
-  relevant.sort((a,b)=>{
-    const wo = (wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
-    if(wo!==0) return wo;
-    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
-  });
-
-  let html = '';
-  let lastSection = '';
-  relevant.forEach(s=>{
-    const section = s.wing==='pds'?'PDS Wing':s.wing==='circle'?'Circle Wing':'Officers';
-    if(section!==lastSection){
-      html += `<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;
-        padding:6px 12px;background:var(--gray-lt);border-top:1px solid var(--border)">${section}</div>`;
-      lastSection=section;
-    }
-    const vacLeave = s.vacant?'checked':'';
-    const blockOpts = blocks.map(b=>`<option value="${b}">${b}</option>`).join('');
-    html += `<div class="sq-staff-row" style="flex-wrap:wrap;gap:6px">
-      <div style="flex:1;min-width:160px">
-        <div class="sq-staff-desig" style="font-size:11px;color:var(--gray)">${s.desig} — ${s.blockUnit||s.circle||''}</div>
-        <div class="sq-staff-name">${s.name||'<span style="color:var(--red);font-style:italic">காலியிடம்</span>'}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-        <select id="sq-assign-block-${s.id}" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:160px">
-          <option value="">Any Block</option>
-          ${blockOpts}
-        </select>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--red);white-space:nowrap">
-          <input type="checkbox" id="sq-skip-${s.id}" ${vacLeave}
-            onchange="toggleStaffSkip('${s.id}',this.checked)">
-          Skip
-        </label>
-      </div>
-    </div>`;
-  });
-  if(!relevant.length){
-    html = '<div style="padding:12px;font-size:13px;color:var(--gray)">Staff Master-ல் staff சேர்க்கவும்.</div>';
-  }
-  listEl.innerHTML = html;
-}
-
-function toggleStaffSkip(id, checked){
-  const staff = sqStaffList.find(s=>s.id===id);
-  if(staff){ staff.skipNow = checked; }
-}
-
-/* ── Auto-assign algorithm ──────────────────────────── */
-function generateSquad(){
-  const blocks = getSelectedBlocks();
-  if(!blocks.length){ showSqMsg('Block தேர்ந்தெடுக்கவும்.','err'); return; }
-  if(!sqShopData.length){ showSqMsg('Shop master data இல்லை. Excel ஏற்றுக.','err'); return; }
-
-  const date = document.getElementById('sq-date').value;
-  if(!date){ showSqMsg('Date தேர்ந்தெடுக்கவும்.','err'); return; }
-  const shopsPerStaff = parseInt(document.getElementById('sq-per-staff').value)||3;
-
-  /* Get available staff — ALL staff shown in step 3 who are not skipped/vacant */
-  const wingOrder = {pds:0,circle:1,officer:2};
-  const availStaff = sqStaffList.filter(s=>{
-    if(s.vacant) return false;
-    /* Check Vacant/Leave checkbox in step 3 UI */
-    const el = document.getElementById('sq-skip-'+s.id);
-    if(el && el.checked) return false;
-    return true; /* ALL staff in the list are eligible */
-  }).sort((a,b)=>{
-    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
-    if(wo!==0)return wo;
-    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
-  });
-
-  if(!availStaff.length){ showSqMsg('Available staff இல்லை.','err'); return; }
-
-  /* Get shops for selected blocks — fulltime first, then parttime */
-  const blockShops = {};
-  blocks.forEach(blk=>{
-    const shops = sqShopData.filter(s=>normalizeBlockName(s.block)===normalizeBlockName(blk));
-    /* Group by society, fulltime first */
-    const societies = {};
-    shops.forEach(sh=>{
-      if(!societies[sh.society]) societies[sh.society]={full:[],part:[]};
-      if(sh.type==='முழுநேரம்') societies[sh.society].full.push(sh);
-      else societies[sh.society].part.push(sh);
-    });
-    /* Flatten: fulltime shops first, max 1 parttime per group */
-    const flat = [];
-    Object.entries(societies).forEach(([soc,g])=>{
-      g.full.forEach(sh=>flat.push({...sh,_soc:soc}));
-      if(g.part.length) flat.push({...g.part[0],_soc:soc}); /* max 1 parttime */
-    });
-    blockShops[blk] = flat;
-  });
-
-  /* Build a flat pool of shops to assign */
-  let shopPool = [];
-  blocks.forEach(blk=>{ shopPool = shopPool.concat(blockShops[blk]||[]); });
-
-  /* Assign shopsPerStaff shops per staff member
-     - If staff has an assigned block (from step 3 dropdown), pick from that block first
-     - Prefer same society, fulltime first, max 1 parttime
-     - Each shop assigned to only one inspector */
-  sqAssignments = [];
-  let usedShops = new Set();
-  let slNo = 1;
-
-  availStaff.forEach(staff=>{
-    /* Get staff's assigned block from dropdown in step 3 */
-    const assignedBlockEl = document.getElementById('sq-assign-block-'+staff.id);
-    const assignedBlock = assignedBlockEl ? assignedBlockEl.value : '';
-
-    /* Build pool for this staff: assigned block first, then remaining */
-    let staffPool = [];
-    if(assignedBlock){
-      /* Only use shops from the assigned block */
-      staffPool = shopPool.filter(sh=>normalizeBlockName(sh.block)===normalizeBlockName(assignedBlock));
-    } else {
-      /* No specific block assigned — use all remaining shops */
-      staffPool = shopPool;
-    }
-
-    const assigned = [];
-    /* Pass 1: same society (prefer groups of 3 from same society) */
-    /* First find which society has most available shops */
-    const socCounts = {};
-    staffPool.forEach(sh=>{
-      if(!usedShops.has(sh.code)){
-        socCounts[sh._soc] = (socCounts[sh._soc]||0)+1;
-      }
-    });
-    /* Pick society with most available shops */
-    const bestSoc = Object.entries(socCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
-
-    /* Assign from best society first */
-    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
-      const sh=staffPool[i];
-      if(usedShops.has(sh.code)) continue;
-      if(sh._soc===bestSoc){ assigned.push(sh); usedShops.add(sh.code); }
-    }
-    /* Fill remaining from any society in the pool */
-    for(let i=0;i<staffPool.length&&assigned.length<shopsPerStaff;i++){
-      const sh=staffPool[i];
-      if(usedShops.has(sh.code)) continue;
-      assigned.push(sh); usedShops.add(sh.code);
-    }
-    /* If assigned block had no shops, try from full pool */
-    if(!assigned.length&&assignedBlock){
-      for(let i=0;i<shopPool.length&&assigned.length<shopsPerStaff;i++){
-        const sh=shopPool[i];
-        if(usedShops.has(sh.code)) continue;
-        assigned.push(sh); usedShops.add(sh.code);
-      }
-    }
-
-    if(!assigned.length) return;
-    assigned.forEach(sh=>{
-      sqAssignments.push({
-        slNo: slNo++,
-        society: sh._soc||sh.society,
-        code: sh.code,
-        shopName: sh.name,
-        inspector: staff.name||'(காலியிடம்)',
-        desig: staff.desig,
-        block: sh.block,
-        type: sh.type
-      });
-    });
-  });
-
-  /* Unassigned shops */
-  const unassigned = shopPool.filter(sh=>!usedShops.has(sh.code));
-
-  renderSquadTable(sqAssignments, unassigned, date, blocks);
-  showSqMsg('','ok');
-}
-
-function normalizeBlockName(name){
-  return String(name||'').trim().toLowerCase()
-    .replace(/\s+/g,' ').replace(/[-_]/g,' ')
-    .replace(/\u00a0/g,' ').replace(/\u200b/g,'');
-}
-
-/* ── Render table ───────────────────────────────────── */
-
 function renderSquadTable(rows, unassigned, date, blocks){
   /* Title */
   const tamilMonths=['\u0b9c\u0ba9\u0bb5\u0bb0\u0bbf','\u0baa\u0bbf\u0baa\u0bcd\u0bb0\u0bb5\u0bb0\u0bbf','\u0bae\u0bbe\u0bb0\u0bcd\u0b9a\u0bcd','\u0b8f\u0baa\u0bcd\u0bb0\u0bb2\u0bcd','\u0bae\u0bc7','\u0b9c\u0bc2\u0ba9\u0bcd',
@@ -2199,6 +1883,735 @@ async function readSheetData(s){
   s.lastRead=nowStr();
 }
 
+async function importSheet(){
+  const title=document.getElementById('ns-title').value.trim();
+  const link=document.getElementById('ns-existing-link').value.trim();
+  if(!title){alert('Please enter a sheet title.');return;}
+  if(!link){alert('Please paste a Google Sheet link.');return;}
+  const sid=sidFromUrl(link);
+  if(!sid){alert('Invalid Google Sheet link.');return;}
+  const rec={
+    id:Date.now(),title,type:document.getElementById('ns-type').value,
+    link,sheetId:sid,
+    stateLink:document.getElementById('ns-state-link').value.trim(),
+    deadline:document.getElementById('ns-deadline').value,
+    notes:document.getElementById('ns-notes').value.trim(),
+    createdAt:today(),status:'active',lang:blockLang,
+    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+    lastRead:'',trashed:false
+  };
+  showCMsg('<span class="spin spin-b"></span> Reading sheet cells...','info');
+  try{
+    await readSheetData(rec);
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
+    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
+    await saveToDb();
+    renderDashboard();refreshDropdowns();renderRepo();
+    showCMsg('✅ Sheet imported and read successfully!','ok');
+    document.getElementById('ns-title').value='';
+    document.getElementById('ns-existing-link').value='';
+    document.getElementById('ns-state-link').value='';
+  }catch(e){
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);await saveToDb();}
+    renderDashboard();refreshDropdowns();renderRepo();
+    showCMsg('⚠️ Sheet saved. Could not read cells: '+e.message,'warn');
+  }
+}
+
+
+/* ══════════════════════════════════
+   TRACK IMPORT SHEET (Track Sheet tab)
+══════════════════════════════════ */
+async function trackImportSheet(){
+  const title=document.getElementById('tr-title').value.trim();
+  const link=document.getElementById('tr-link').value.trim();
+  if(!title){alert('Please enter a sheet title.');return;}
+  if(!link){alert('Please paste a Google Sheet link.');return;}
+  const sid=sidFromUrl(link);
+  if(!sid){alert('Invalid Google Sheet link.');return;}
+  const msgEl=document.getElementById('tr-msg');
+  msgEl.className='alert a-info';msgEl.innerHTML='<span class="spin spin-b"></span> Reading sheet cells...';msgEl.classList.remove('hidden');
+  const rec={
+    id:Date.now(),
+    title,
+    type:document.getElementById('tr-type').value,
+    link,sheetId:sid,
+    stateLink:document.getElementById('tr-state-link').value.trim(),
+    deadline:document.getElementById('tr-deadline').value,
+    notes:document.getElementById('tr-notes').value.trim(),
+    createdAt:today(),status:'active',lang:'ta',
+    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+    lastRead:'',trashed:false
+  };
+  try{
+    await readSheetData(rec);
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
+    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
+    await saveToDb();
+    renderDashboard();refreshDropdowns();renderRepo();
+    msgEl.className='alert a-ok';msgEl.innerHTML='✅ Sheet imported and read successfully! Check Dashboard.';
+    document.getElementById('tr-title').value='';
+    document.getElementById('tr-link').value='';
+    document.getElementById('tr-state-link').value='';
+    document.getElementById('tr-notes').value='';
+  }catch(e){
+    msgEl.className='alert a-warn';msgEl.innerHTML='⚠️ '+e.message;
+  }
+}
+/* ══════════════════════════════════
+   CREATE FROM STATE SHEET
+   Steps:
+   1. Read state sheet metadata (all tabs, all data)
+   2. Copy entire sheet using Drive copy API
+   3. Find region/district name column in each tab
+   4. Replace district names with 21 block names (Tamil)
+   5. Delete extra rows beyond 21 blocks
+   6. Keep total/summary row if exists
+   7. Share publicly
+══════════════════════════════════ */
+async function createFromStateSheet(){
+  const stateLink=document.getElementById('ns-state-src').value.trim();
+  const newTitle=document.getElementById('ns-new-title').value.trim()||document.getElementById('ns-title').value.trim();
+  if(!stateLink){alert('Please paste the State sheet link.');return;}
+  if(!newTitle){alert('Please enter a title for the new sheet.');return;}
+  const stateSid=sidFromUrl(stateLink);
+  if(!stateSid){alert('Invalid State sheet link.');return;}
+
+  const selIdx=[...selectedBlocks].sort((a,b)=>a-b);
+  const selBlocks=selIdx.map(i=>BLOCKS[i]);
+
+  document.getElementById('create-spin').classList.remove('hidden');
+  document.getElementById('new-link-box').classList.add('hidden');
+  showCMsg('Step 1/4: Copying state sheet to your Drive...','info');
+
+  try{
+    // STEP 1: Copy the entire spreadsheet via Drive API
+    const copyResp=await driveCopy(stateSid,newTitle);
+    const newSid=copyResp.id;
+    const newUrl=`https://docs.google.com/spreadsheets/d/${newSid}/edit`;
+
+    showCMsg('Step 2/4: Reading sheet structure...','info');
+
+    // STEP 2: Get all tabs and their data
+    const meta=await sheetsGetMeta(newSid);
+    const tabSheets=meta.sheets;
+
+    showCMsg('Step 3/4: Replacing region names with block names...','info');
+
+    // STEP 3: For each tab, find region name column and replace
+    for(const tabSheet of tabSheets){
+      const tabTitle=tabSheet.properties.title;
+      const tabId=tabSheet.properties.sheetId;
+
+      // Read the tab data
+      const dataResp=await sheetsGetRange(newSid,"'"+tabTitle+"'!A:Z");
+      const rows=dataResp.values||[];
+      if(rows.length===0)continue;
+
+      // Find the column that has district/region names
+      // Strategy: scan rows 3-10, find column where cells match known district patterns
+      let nameCol=-1;
+      let firstDataRow=-1;
+      const districtPatterns=['ariyalur','chennai','coimbatore','cuddalore','dharmapuri','dindigul',
+        'erode','kancheepuram','chengalpattu','kanyakumari','karur','krishnagiri','madurai',
+        'nagapattinam','mayiladuthurai','namakkal','nilgiris','perambalur','pudukkottai',
+        'ramanathapuram','salem','sivagangai','thanjavur','theni','tiruchy','tirunelveli',
+        'tenkasi','tiruppur','tiruvallur','tiruvannamalai','tiruvarur','vellore','villupuram',
+        'virudhunagar','thiruvannamalai','திருவண்ணாமலை','அரியலூர்','சென்னை'];
+
+      for(let ri=0;ri<Math.min(rows.length,15);ri++){
+        const row=rows[ri]||[];
+        for(let ci=0;ci<row.length;ci++){
+          const cellVal=String(row[ci]||'').trim().toLowerCase();
+          if(districtPatterns.some(p=>cellVal.includes(p))){
+            nameCol=ci;firstDataRow=ri;break;
+          }
+        }
+        if(nameCol>=0)break;
+      }
+
+      if(nameCol<0)continue; // no region column found in this tab
+
+      // Find total row (usually last row with "total"/"மொத்தம்" keyword)
+      let totalRowIdx=-1;
+      for(let ri=rows.length-1;ri>=firstDataRow;ri--){
+        const rowStr=(rows[ri]||[]).join(' ').toLowerCase();
+        if(rowStr.includes('total')||rowStr.includes('மொத்தம்')||rowStr.includes('grand')){
+          totalRowIdx=ri;break;
+        }
+      }
+
+      // Build requests: update block names in nameCol
+      const requests=[];
+
+      // Replace each district name with block name (rows firstDataRow to firstDataRow+selBlocks.length-1)
+      for(let bi=0;bi<selBlocks.length;bi++){
+        const rowIdx=firstDataRow+bi;
+        if(rowIdx>=rows.length)break;
+        requests.push({
+          updateCells:{
+            range:{sheetId:tabId,startRowIndex:rowIdx,endRowIndex:rowIdx+1,startColumnIndex:nameCol,endColumnIndex:nameCol+1},
+            rows:[{values:[{userEnteredValue:{stringValue:selBlocks[bi].ta}}]}],
+            fields:'userEnteredValue'
+          }
+        });
+      }
+
+      // Delete extra rows (rows after 21 blocks and before total row)
+      const lastBlockRow=firstDataRow+selBlocks.length;
+      let deleteUpTo=totalRowIdx>=0?totalRowIdx:rows.length;
+      if(deleteUpTo>lastBlockRow){
+        requests.push({
+          deleteDimension:{range:{sheetId:tabId,dimension:'ROWS',startIndex:lastBlockRow,endIndex:deleteUpTo}}
+        });
+      }
+
+      if(requests.length>0){await sheetsBatchUpdate(newSid,requests);}
+    }
+
+    showCMsg('Step 4/4: Sharing sheet publicly...','info');
+
+    // STEP 4: Share publicly (anyone with link can edit)
+    await drivePermission(newSid);
+
+    // Save to tracker
+    const rec={
+      id:Date.now(),title:newTitle,type:'state',
+      link:newUrl,sheetId:newSid,
+      stateLink:stateLink,
+      deadline:document.getElementById('ns-deadline').value,
+      notes:document.getElementById('ns-notes').value.trim(),
+      createdAt:today(),status:'active',lang:'ta',
+      blockStatus:selIdx.map(i=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+      lastRead:'',trashed:false
+    };
+    if(!sheets.find(x=>x.sheetId===newSid)){sheets.unshift(rec);}
+    await saveToDb();
+    renderDashboard();refreshDropdowns();renderRepo();
+
+    newCreatedLink=newUrl;
+    document.getElementById('new-link-url').textContent=newUrl;
+    document.getElementById('new-link-open').href=newUrl;
+    document.getElementById('new-link-box').classList.remove('hidden');
+    showCMsg('✅ District sheet created successfully! Copy the link and share in WhatsApp.','ok');
+
+  }catch(e){
+    showCMsg('❌ Error: '+e.message,'err');
+  }
+  document.getElementById('create-spin').classList.add('hidden');
+}
+
+function copyNewLink(){
+  navigator.clipboard.writeText(newCreatedLink).then(()=>{
+    alert('✅ Link copied!\nShare this in your WhatsApp group.');
+  });
+}
+
+function showCMsg(html,type){
+  const el=document.getElementById('create-msg');
+  const cls={info:'a-info',ok:'a-ok',warn:'a-warn',err:'a-err'};
+  el.className='alert '+cls[type];el.innerHTML=html;
+  el.classList.remove('hidden');
+}
+
+/* ══════════════════════════════════
+   MONITOR
+══════════════════════════════════ */
+function onMonChange(){
+  const id=parseInt(document.getElementById('mon-sel').value);
+  const s=sheets.find(x=>x.id===id);
+  if(s&&s.link){document.getElementById('mon-link').href=s.link;document.getElementById('mon-link-row').classList.remove('hidden');}
+  else document.getElementById('mon-link-row').classList.add('hidden');
+  document.getElementById('mon-result').innerHTML='';
+}
+async function readOneSheet(){
+  const id=parseInt(document.getElementById('mon-sel').value);
+  if(!id){alert('Select a sheet first.');return;}
+  const s=sheets.find(x=>x.id===id);
+  if(!s)return;
+  document.getElementById('read-spin').classList.remove('hidden');
+  document.getElementById('mon-result').innerHTML='<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells...</div>';
+  try{
+    await readSheetData(s);await saveToDb();
+    renderDashboard();refreshDropdowns();
+    renderMonTable(s);
+  }catch(e){
+    document.getElementById('mon-result').innerHTML=`<div class="alert a-err">❌ Error: ${e.message}<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>`;
+  }
+  document.getElementById('read-spin').classList.add('hidden');
+}
+
+function renderMonTable(s){
+  const f=s.blockStatus.filter(b=>b.status==='filled').length;
+  const p=s.blockStatus.filter(b=>b.status==='partial').length;
+  const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
+  const t=s.blockStatus.length;
+  const pct=Math.round((f/Math.max(t,1))*100);
+  const col=pct>=100?'green':pct>0?'amber':'red';
+  let html=`<div class="card" style="padding:14px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <div style="font-size:14px;font-weight:700">${s.title}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge b-green">✓ ${f} நிரப்பினர்</span>
+        <span class="badge b-amber">◑ ${p} பகுதி</span>
+        <span class="badge b-red">✗ ${n} நிரப்பவில்லை</span>
+      </div>
+    </div>
+    <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Last read: ${s.lastRead||'—'} · ${pct}% complete</div>
+    <div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
+  s.blockStatus.forEach((bs,i)=>{
+    const b=BLOCKS[bs.idx];
+    const sc=bs.status==='filled'?'b-green':bs.status==='partial'?'b-amber':'b-red';
+    const sl=bs.status==='filled'?'நிரப்பினர்':bs.status==='partial'?'பகுதி':'நிரப்பவில்லை';
+    const days=bs.updatedAt?daysSince(bs.updatedAt):daysSince(s.createdAt);
+    html+=`<tr>
+      <td style="color:var(--gray);font-size:11px">${i+1}</td>
+      <td style="font-weight:600">${b.ta}</td>
+      <td style="font-size:12px;color:var(--gray)">${b.en}</td>
+      <td><span class="badge ${sc}">${sl}</span></td>
+      <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
+      <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-outline" style="font-size:12px" onclick="goToWA(${s.id})">📤 Generate WhatsApp Message</button>
+    </div></div>`;
+  document.getElementById('mon-result').innerHTML=html;
+}
+
+/* ══════════════════════════════════
+   DASHBOARD
+══════════════════════════════════ */
+function renderDashboard(){
+  const active=sheets.filter(s=>s.status==='active');
+  let fc=0,pc=0,nc=0;
+  active.forEach(s=>{
+    const bs=s.blockStatus||[];
+    const f=bs.filter(b=>b.status==='filled').length;
+    const p=bs.filter(b=>b.status==='partial').length;
+    const t=bs.length;
+    if(f===t&&t>0)fc++;else if(f>0||p>0)pc++;else nc++;
+  });
+  document.getElementById('st-total').textContent=active.length;
+  document.getElementById('st-full').textContent=fc;
+  document.getElementById('st-partial').textContent=pc;
+  document.getElementById('st-none').textContent=nc;
+
+  if(!active.length){
+    document.getElementById('dash-list').innerHTML='<div class="alert a-info">No active sheets. Go to "Add Sheet" to begin.</div>';
+    return;
+  }
+  document.getElementById('dash-list').innerHTML=active.map(s=>{
+    const f=s.blockStatus.filter(b=>b.status==='filled').length;
+    const p=s.blockStatus.filter(b=>b.status==='partial').length;
+    const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
+    const t=Math.max(s.blockStatus.length,1);
+    const pct=Math.round((f/t)*100);
+    const col=pct>=100?'green':pct>0?'amber':'red';
+    const dl=s.deadline?Math.ceil((new Date(s.deadline)-new Date())/86400000):null;
+    let dlb='';
+    if(dl!==null){if(dl<0)dlb=`<span class="badge b-red">Overdue ${Math.abs(dl)}d</span>`;
+    else if(dl<=2)dlb=`<span class="badge b-amber">Due in ${dl}d</span>`;
+    else dlb=`<span class="badge b-gray">Due ${s.deadline}</span>`;}
+    const pendTa=s.blockStatus.filter(b=>b.status!=='filled').map(b=>BLOCKS[b.idx].ta);
+    return `<div class="sheet-item">
+      <div class="sheet-head">
+        <div>
+          <div class="sheet-title">${s.title}</div>
+          <div class="sheet-meta">${s.type==='state'?'🏛 State Sheet':'📁 My Sheet'} · ${s.createdAt}${s.lastRead?` · <span style="color:var(--green)">நேரடி: ${s.lastRead}</span>`:' · <span style="color:var(--amber)">Not yet read</span>'}</div>
+          ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Open Sheet ↗</a>`:''}
+          ${s.link?`<button class="btn-sm" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Link copied!'))" style="margin-left:6px;font-size:11px">📋 Copy Link</button>`:''}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start;justify-content:flex-end">
+          ${dlb}
+          <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
+          <button class="btn-sm" onclick="quickRead(${s.id})">🔄</button>
+          <button class="btn-sm" onclick="archiveSheet(${s.id})">✓ Done</button>
+          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})">🗑</button>
+        </div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
+      <div style="display:flex;gap:14px;font-size:12px;margin-top:6px;flex-wrap:wrap">
+        <span><span class="dot dot-g"></span>${f} நிரப்பினர்</span>
+        <span><span class="dot dot-a"></span>${p} பகுதி</span>
+        <span><span class="dot dot-r"></span>${n} நிரப்பவில்லை</span>
+        <span style="color:var(--gray)">${t} மொத்தம்</span>
+      </div>
+      ${n>0?`<div style="margin-top:7px;font-size:12px;color:var(--red);line-height:1.6">⏳ நிலுவை: ${pendTa.join(', ')}</div>`:''}
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn-sm-g" onclick="goToWA(${s.id})">💬 WhatsApp</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function quickRead(id){
+  const s=sheets.find(x=>x.id===id);if(!s)return;
+  try{await readSheetData(s);await saveToDb();renderDashboard();}
+  catch(e){alert('Error: '+e.message);}
+}
+async function archiveSheet(id){
+  if(!confirm('Mark this sheet as completed?'))return;
+  const s=sheets.find(x=>x.id===id);if(s)s.status='done';
+  await saveToDb();renderDashboard();refreshDropdowns();renderRepo();
+}
+async function trashSheet(id){
+  if(!confirm('Move to trash?'))return;
+  const idx=sheets.findIndex(x=>x.id===id);
+  if(idx>=0){
+    sheets[idx].trashed=true;
+    trashedSheets.push(sheets[idx]);
+    sheets.splice(idx,1);
+    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
+  }
+}
+async function restoreSheet(id){
+  const idx=trashedSheets.findIndex(x=>x.id===id);
+  if(idx>=0){
+    trashedSheets[idx].trashed=false;
+    sheets.push(trashedSheets[idx]);
+    trashedSheets.splice(idx,1);
+    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
+  }
+}
+async function permDelete(id){
+  if(!confirm('Permanently delete? This cannot be undone.'))return;
+  const idx=trashedSheets.findIndex(x=>x.id===id);
+  if(idx>=0){trashedSheets.splice(idx,1);await saveToDb();renderTrash();}
+}
+
+/* ══════════════════════════════════
+   DROPDOWNS
+══════════════════════════════════ */
+function refreshDropdowns(){
+  const active=sheets.filter(s=>s.status==='active');
+  const opts='<option value="">— Select a sheet —</option>'+active.map(s=>`<option value="${s.id}">${s.title}</option>`).join('');
+  document.getElementById('mon-sel').innerHTML=opts;
+  document.getElementById('wa-sel').innerHTML=opts;
+}
+
+/* ══════════════════════════════════
+   WHATSAPP — CORRECTED TAMIL TEXT
+══════════════════════════════════ */
+function goToWA(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab=whatsapp]').classList.add('active');
+  document.getElementById('panel-whatsapp').classList.add('active');
+  refreshDropdowns();
+  document.getElementById('wa-sel').value=id;
+  document.getElementById('wa-type').value='reminder';
+  genWA();
+}
+function genWA(){
+  const id=parseInt(document.getElementById('wa-sel').value);
+  const type=document.getElementById('wa-type').value;
+  const lang=document.querySelector('input[name=wa-lang]:checked').value;
+  const out=document.getElementById('wa-out');
+  if(!id){out.classList.add('hidden');return;}
+  const s=sheets.find(x=>x.id===id);
+  if(!s){out.classList.add('hidden');return;}
+
+  const filled=s.blockStatus.filter(b=>b.status==='filled');
+  const pending=s.blockStatus.filter(b=>b.status!=='filled');
+  const pct=Math.round((filled.length/Math.max(s.blockStatus.length,1))*100);
+  const days=daysSince(s.createdAt);
+  const lnk=s.link||'[இணைப்பு சேர்க்கப்படும்]';
+  const pTa=pending.map(b=>BLOCKS[b.idx].ta).join('\n');
+  const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
+  const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
+  const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
+  const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
+  const SIGN_EN='— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai';
+
+  const msgs={
+    initial:{
+      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\nமதிப்பிற்குரிய ஒப்பந்த வட்டார அலுவலர்களே,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
+      en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
+    },
+    reminder:{
+      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது · ${pct}% முடிந்தது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
+      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
+    },
+    final:{
+      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nகீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
+      en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report cannot be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are requested to fill IMMEDIATELY.\n${SIGN_EN}`
+    },
+    thanks:{
+      ta:`✅ *நன்றி — ${s.title}*\n\nஅனைத்து ${s.blockStatus.length} வட்டாரங்களும் தரவுகளை நிரப்பியதற்கு மிக்க நன்றி! 🙏\n\nமாவட்ட தரவுகள் தொகுக்கப்பட்டு மாநில அலுவலகத்திற்கு அனுப்பப்படும்.\n${SIGN_TA}`,
+      en:`✅ *Thank You — ${s.title}*\n\nAll ${s.blockStatus.length} block officers have submitted data! 🙏\n\nData will be compiled and submitted to State Head Office.\n${SIGN_EN}`
+    }
+  };
+
+  const m=msgs[type];
+  let txt='';
+  if(lang==='ta')txt=m.ta;
+  else if(lang==='en')txt=m.en;
+  else txt=m.ta+'\n\n────────────────\n\n'+m.en;
+  document.getElementById('wa-text').textContent=txt;
+  out.classList.remove('hidden');
+}
+function copyWA(){
+  navigator.clipboard.writeText(document.getElementById('wa-text').textContent)
+    .then(()=>alert('✅ செய்தி நகலெடுக்கப்பட்டது!\nMessage copied!'));
+}
+
+/* ══════════════════════════════════
+   REPOSITORY
+══════════════════════════════════ */
+function setRF(f){repoFilter=f;renderRepo();}
+function renderRepo(){
+  let list=sheets;
+  if(repoFilter==='state')list=sheets.filter(s=>s.type==='state');
+  else if(repoFilter==='own')list=sheets.filter(s=>s.type==='own');
+  else if(repoFilter==='active')list=sheets.filter(s=>s.status==='active');
+  else if(repoFilter==='done')list=sheets.filter(s=>s.status==='done');
+  const el=document.getElementById('repo-list');
+  if(!list.length){el.innerHTML='<div class="alert a-info">No sheets found.</div>';return;}
+  el.innerHTML=list.map(s=>{
+    const f=s.blockStatus.filter(b=>b.status==='filled').length;
+    const pct=Math.round((f/Math.max(s.blockStatus.length,1))*100);
+    const col=pct>=100?'green':pct>0?'amber':'red';
+    return `<div class="sheet-item" style="margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${s.title}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Deadline: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+            ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
+            ${s.link?`<button class="btn-sm" style="font-size:11px;padding:3px 8px" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Copied!'))">📋 Copy</button>`:''}
+            ${s.stateLink?`<a href="${s.stateLink}" target="_blank" class="link-sm" style="color:var(--gray)">State Sheet ↗</a>`:''}
+          </div>
+          ${s.notes?`<div style="font-size:11px;color:var(--gray);margin-top:4px;font-style:italic">${s.notes}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
+          <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
+          <span class="badge b-${s.status==='active'?'blue':'gray'}">${s.status==='active'?'Active':'Done'}</span>
+          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})" style="font-size:11px">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════
+   TRASH
+══════════════════════════════════ */
+function renderTrash(){
+  const el=document.getElementById('trash-list');
+  if(!trashedSheets.length){el.innerHTML='<div class="alert a-info">Trash is empty.</div>';return;}
+  el.innerHTML=trashedSheets.map(s=>`
+    <div class="trash-item">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600">${s.title}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt}</div>
+          ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="restoreSheet(${s.id})">↩ Restore</button>
+          <button class="btn btn-red" style="font-size:12px;padding:5px 10px" onclick="permDelete(${s.id})">Delete Forever</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════
+   CHIPS & LANG
+══════════════════════════════════ */
+function setLang(l){
+  blockLang=l;
+  document.getElementById('lt-ta').classList.toggle('on',l==='ta');
+  document.getElementById('lt-en').classList.toggle('on',l==='en');
+  renderBlockChips();
+}
+function renderBlockChips(){
+  document.getElementById('block-chips').innerHTML=BLOCKS.map((b,i)=>
+    `<span class="chip ${selectedBlocks.has(i)?'on':''}" onclick="toggleChip(${i})">${blockLang==='ta'?b.ta:b.en}</span>`
+  ).join('');
+}
+function toggleChip(i){selectedBlocks.has(i)?selectedBlocks.delete(i):selectedBlocks.add(i);renderBlockChips();}
+function selAll(){selectedBlocks=new Set(BLOCKS.map((_,i)=>i));renderBlockChips();}
+function selNone(){selectedBlocks=new Set();renderBlockChips();}
+
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+async function initApp(){
+  renderBlockChips();
+  const d=new Date();d.setDate(d.getDate()+7);
+  document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const panelId='panel-'+t.dataset.tab;
+      const panel=document.getElementById(panelId);
+      if(panel)panel.classList.add('active');
+      refreshDropdowns();
+      if(t.dataset.tab==='repo')renderRepo();
+      if(t.dataset.tab==='trash')renderTrash();
+      if(t.dataset.tab==='track'){
+        // set default deadline
+        const d=new Date();d.setDate(d.getDate()+7);
+        document.getElementById('tr-deadline').value=d.toISOString().slice(0,10);
+      }
+    });
+  });
+  await ensureDb();
+  await loadFromDb();
+  renderDashboard();renderRepo();refreshDropdowns();
+  await autoRefreshAll();
+  startCountdown();
+}
+
+/* ══════════════════════════════════
+   DB — TVM Tracker DB Google Sheet
+   Columns: id|title|type|link|sheetId|stateLink|deadline|notes|createdAt|status|lang|blockStatusJSON|lastRead|trashed
+══════════════════════════════════ */
+async function ensureDb(){
+  const r=await driveSearch("name='"+DB_TITLE+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+  const files=(r.files||[]);
+  if(files.length>0){dbSheetId=files[0].id;return;}
+  const cr=await sheetsCreate({properties:{title:DB_TITLE},sheets:[{properties:{title:'TVMData'}}]});
+  dbSheetId=cr.spreadsheetId;
+  dbTabName='TVMData';
+  await sheetsValuesUpdate(dbSheetId,'TVMData!A1',[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]);
+}
+
+function sj(s){try{return JSON.parse(s);}catch{return [];}}
+
+let dbTabName='Sheet1'; // will be detected on load
+
+async function loadFromDb(){
+  // Detect actual tab name
+  try{
+    const meta=await sheetsGetMeta(dbSheetId);
+    dbTabName=meta.sheets[0].properties.title;
+  }catch(e){}
+  const r=await sheetsGetRange(dbSheetId,dbTabName+'!A2:N2000');
+  const rows=(r.values||[]).filter(r=>r[0]);
+  sheets=rows.filter(r=>r[13]!=='1').map(r=>({
+    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
+    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
+    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:false
+  }));
+  trashedSheets=rows.filter(r=>r[13]==='1').map(r=>({
+    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
+    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
+    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:true
+  }));
+}
+
+async function saveToDb(){
+  const all=[...sheets,...trashedSheets];
+  const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
+  await sheetsValuesClear(dbSheetId,dbTabName+'!A2:N2000');
+  if(rows.length>0){await sheetsValuesUpdate(dbSheetId,dbTabName+'!A2',rows);}
+}
+
+/* ══════════════════════════════════
+   COUNTDOWN
+══════════════════════════════════ */
+let autoRunning=true;
+function toggleAutoRefresh(){
+  autoRunning=!autoRunning;
+  const btn=document.getElementById('stop-btn');
+  if(autoRunning){
+    btn.textContent='⏸ Stop';
+    btn.style.background='rgba(255,100,100,.3)';
+    startCountdown();
+  }else{
+    clearInterval(cdTimer);
+    btn.textContent='▶ Start';
+    btn.style.background='rgba(100,255,100,.3)';
+    document.getElementById('cd-text').textContent='Paused';
+  }
+}
+function startCountdown(){
+  clearInterval(cdTimer);
+  cdSec=300;updateCd();
+  cdTimer=setInterval(async()=>{
+    if(!autoRunning)return;
+    cdSec--;updateCd();
+    if(cdSec<=0){cdSec=300;await autoRefreshAll();}
+  },1000);
+}
+function updateCd(){
+  const m=Math.floor(cdSec/60),s=cdSec%60;
+  document.getElementById('cd-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('cd-fill').style.width=(cdSec/300*100)+'%';
+}
+async function manualRefresh(){
+  await autoRefreshAll();cdSec=300;updateCd();
+}
+async function autoRefreshAll(){
+  if(!dbSheetId)return;
+  const active=sheets.filter(s=>s.status==='active'&&s.sheetId);
+  for(const s of active){
+    try{await readSheetData(s);}
+    catch(e){console.warn('Read failed:',s.title,e.message);}
+  }
+  if(active.length)await saveToDb();
+  document.getElementById('last-refresh').textContent='Last refreshed: '+nowStr();
+  renderDashboard();refreshDropdowns();
+}
+
+/* ══════════════════════════════════
+   FILL DETECTION
+   Key rule: formula cells that return 0
+   are reported by Sheets API as "0" string.
+   We detect real user-typed data by:
+   1. Cell must be non-empty string
+   2. Value must not be 0/0.0/0.00/"-"/"—"
+   3. Value must be a meaningful number >0
+      OR a non-numeric non-empty string
+══════════════════════════════════ */
+/* isRealData(formattedVal, formulaVal)
+   formulaVal: if cell has a formula, this starts with '='
+   If formula exists and formatted result is 0/empty → unfilled
+   If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
+function isRealData(fmtCell, fmlCell){
+  const fmt=String(fmtCell||'').trim();
+  const fml=String(fmlCell||'').trim();
+  if(fmt==='')return false; // empty = unfilled regardless
+  const hasFormula=fml.startsWith('=');
+  if(hasFormula){
+    // Formula cell: only filled if result is meaningful non-zero
+    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
+    const n=parseFloat(fmt);
+    if(!isNaN(n))return n>0;
+    return fmt.length>0;
+  }
+  // User typed: any non-empty value counts as filled
+  return fmt.length>0;
+}
+
+function matchBlock(row){
+  for(const cell of row){
+    if(!cell)continue;
+    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
+    if(ALIASES[norm]!==undefined)return ALIASES[norm];
+    for(const [alias,idx] of Object.entries(ALIASES)){
+      if(norm===alias||norm.includes(alias)||alias.includes(norm))return idx;
+    }
+  }
+  return -1;
+}
+
+/* ══════════════════════════════════
+   READ SHEET — scans all tabs,
+   accumulates real data score per block
+══════════════════════════════════ */
+
+/* ══════════════════════════════════
+   IMPORT EXISTING SHEET
+══════════════════════════════════ */
 async function importSheet(){
   const title=document.getElementById('ns-title').value.trim();
   const link=document.getElementById('ns-existing-link').value.trim();
