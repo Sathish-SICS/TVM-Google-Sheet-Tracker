@@ -775,11 +775,10 @@ function sidFromUrl(u){const m=(u||'').match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m
    AUTH
 ══════════════════════════════════ */
 window.addEventListener('load',()=>{
-  if(CLIENT_ID){
-    document.getElementById('cid-input').value=CLIENT_ID;
-    document.getElementById('step-cid').classList.add('hidden');
-    document.getElementById('step-signin').classList.remove('hidden');
-  }
+  // Always skip Client ID screen — it is hardcoded
+  document.getElementById('cid-input').value=CLIENT_ID;
+  document.getElementById('step-cid').classList.add('hidden');
+  document.getElementById('step-signin').classList.remove('hidden');
 });
 function saveClientId(){
   const v=document.getElementById('cid-input').value.trim();
