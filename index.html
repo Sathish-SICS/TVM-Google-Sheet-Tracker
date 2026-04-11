@@ -182,6 +182,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     <div class="tab" data-tab="repo">🗄 Repository</div>
     <div class="tab" data-tab="trash">🗑 Trash</div>
     <div class="tab" data-tab="inspection">🔍 Inspection</div>
+    <div class="tab" data-tab="squad">⚔️ Squad</div>
   </div>
 
   <div class="main">
@@ -494,6 +495,183 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SQUAD ═══ -->
+    <div class="panel" id="panel-squad">
+      <div class="sec-title">⚔️ Squad Inspection</div>
+      <div class="sec-sub">கூட்டுறவு ஆய்வு நியமன அட்டவணை தயாரிப்பு</div>
+
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px">
+        <div class="squad-stab active" data-stab="squad-generate" onclick="squadStab(this)">📋 Generate Squad</div>
+        <div class="squad-stab" data-stab="squad-staff" onclick="squadStab(this)">👥 Staff Master</div>
+      </div>
+
+      <!-- ─── GENERATE SQUAD ─── -->
+      <div id="squad-generate" class="squad-spanel active">
+
+        <div class="card">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">படி 1 — Block &amp; Date</div>
+          <div class="frow">
+            <div>
+              <label class="flbl">Squad Inspection Date *</label>
+              <input type="date" id="sq-date" class="finput">
+            </div>
+            <div>
+              <label class="flbl">Shops per Inspector</label>
+              <input type="number" id="sq-per-staff" class="finput" value="3" min="1" max="10" style="max-width:100px">
+            </div>
+          </div>
+          <label class="flbl" style="margin-bottom:8px">Select Block(s) *</label>
+          <div id="sq-block-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipAll()">Select All</button>
+            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipClear()">Clear</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">படி 2 — Shop Master</div>
+          <div style="font-size:12px;color:var(--gray);margin-bottom:10px">
+            முன்பு ஏற்றிய Excel நினைவில் உள்ளது. புதிய கோப்பு இருந்தால் மட்டும் மாற்றுக.
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input type="file" id="sq-shop-file" accept=".xlsx,.xls"
+              style="padding:6px;border:2px dashed var(--border);border-radius:var(--r-sm);background:var(--gray-lt);cursor:pointer"
+              onchange="loadSquadShopData(this)">
+            <div id="sq-shop-status" style="font-size:12px;color:var(--gray)">No file loaded</div>
+          </div>
+        </div>
+
+        <div class="card" id="sq-staff-card" style="display:none">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">
+            படி 3 — Available Staff
+            <span style="font-size:11px;font-weight:400;color:var(--gray)">☑ = Vacant / Leave — will be skipped</span>
+          </div>
+          <div id="sq-staff-list"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="generateSquad()">⚡ Generate Squad Table</button>
+          <button class="btn btn-outline" onclick="resetSquad()">🔄 Reset</button>
+        </div>
+        <div id="sq-msg" class="hidden" style="margin-bottom:12px"></div>
+
+        <div id="sq-result" class="hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div style="font-weight:700;font-size:14px" id="sq-result-title"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline" style="font-size:12px" onclick="squadScreenshot()">📸 Screenshot</button>
+            </div>
+          </div>
+          <div id="sq-stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+          <div id="sq-table-wrap" style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+            <table style="width:100%;border-collapse:collapse;font-size:13px" id="sq-table">
+              <thead>
+                <tr style="background:var(--blue-dk);color:#fff">
+                  <th style="padding:8px 10px;text-align:center;width:45px">வ.எண்</th>
+                  <th style="padding:8px 10px;text-align:left">சங்கத்தின் பெயர்</th>
+                  <th style="padding:8px 10px;text-align:left">கடை குறியிட்டு எண்</th>
+                  <th style="padding:8px 10px;text-align:left">நியாயவிலை கடையின் பெயர்</th>
+                  <th style="padding:8px 10px;text-align:left">ஆய்வு அலுவலர்</th>
+                </tr>
+              </thead>
+              <tbody id="sq-tbody"></tbody>
+            </table>
+          </div>
+          <div id="sq-unassigned" class="hidden" style="margin-top:12px">
+            <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px">⚠️ ஒதுக்கப்படாத கடைகள்</div>
+            <div id="sq-unassigned-list" style="font-size:12px;color:var(--gray)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── STAFF MASTER ─── -->
+      <div id="squad-staff" class="squad-spanel hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:700;font-size:14px">Staff Master Data</div>
+            <div style="font-size:12px;color:var(--gray)">நிரந்தர பணியாளர் பட்டியல் — தேவைப்படும்போது மட்டும் திருத்துக</div>
+          </div>
+          <button class="btn btn-primary" onclick="showAddStaffModal()">+ Add Staff</button>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <select id="sq-filter-wing" class="fselect" style="max-width:180px" onchange="renderStaffMaster()">
+            <option value="">All Wings</option>
+            <option value="pds">PDS Wing</option>
+            <option value="circle">Circle Wing</option>
+            <option value="officer">Officers</option>
+          </select>
+          <select id="sq-filter-block" class="fselect" style="max-width:220px" onchange="renderStaffMaster()">
+            <option value="">All Blocks / Circles</option>
+          </select>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:var(--gray-lt)">
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">பதவி</th>
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">வட்டாரம் / Circle</th>
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">பெயர்</th>
+                <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Wing</th>
+                <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Vacant</th>
+                <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sq-staff-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Staff Add/Edit Modal -->
+      <div id="sq-staff-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px">
+        <div style="background:#fff;border-radius:var(--r);padding:20px;width:100%;max-width:480px">
+          <div style="font-weight:700;font-size:15px;margin-bottom:14px" id="sq-modal-title">Add Staff</div>
+          <div class="frow">
+            <div>
+              <label class="flbl">Wing *</label>
+              <select id="sm-wing" class="fselect" onchange="onSmWingChange()">
+                <option value="pds">PDS Wing</option>
+                <option value="circle">Circle Wing</option>
+                <option value="officer">Officer</option>
+              </select>
+            </div>
+            <div id="sm-circle-wrap">
+              <label class="flbl">Circle</label>
+              <select id="sm-circle" class="fselect">
+                <option value="">—</option>
+                <option value="TVM">திருவண்ணாமலை Circle</option>
+                <option value="CHY">செய்யார் Circle</option>
+              </select>
+            </div>
+          </div>
+          <div class="frow">
+            <div>
+              <label class="flbl">Designation *</label>
+              <input id="sm-desig" class="finput" placeholder="e.g. கூசாப/பொவிதி">
+            </div>
+            <div id="sm-block-wrap">
+              <label class="flbl">Block</label>
+              <select id="sm-block" class="fselect"></select>
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="flbl">Staff Name *</label>
+            <input id="sm-name" class="finput" placeholder="திருவாளர்/ திருமதி/ செல்வி...">
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:14px">
+            <input type="checkbox" id="sm-vacant"> Vacant (காலியிடம்)
+          </label>
+          <input type="hidden" id="sm-edit-id">
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-outline" onclick="closeStaffModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveStaffFromModal()">Save</button>
+          </div>
         </div>
       </div>
     </div>
@@ -966,6 +1144,578 @@ function showInspMsg(msg,type){
   el.innerHTML=msg;
   el.classList.remove('hidden');
 }
+
+/* ══════════════════════════════════
+   SQUAD TAB
+══════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   SQUAD TAB — Complete JavaScript
+   Storage keys:
+     sq:staff   → staff master array
+     sq:shopdata → cached shop Excel data
+══════════════════════════════════════════════════════ */
+
+const BLOCKS_21 = [
+  'திருவண்ணாமலை HQ','திருவண்ணாமலை 1','திருவண்ணாமலை 2',
+  'துரிஞ்சாபுரம்','கீழ்பென்னாத்தூர்','செங்கம்','புதுப்பாளையம்',
+  'தண்டராம்பட்டு','கலசபாக்கம்','போளூர்','ஜமுனாமரத்தூர்',
+  'சேத்துப்பட்டு','ஆரணி கிழக்கு','ஆரணி மேற்கு','செய்யார்',
+  'அனக்காவூர்','வெம்பாக்கம் 1','வெம்பாக்கம் 2','வந்தவாசி',
+  'பெரணமல்லூர்','தெள்ளார்'
+];
+
+let sqStaffList = [];   /* loaded from storage */
+let sqShopData  = [];   /* loaded from storage or file */
+let sqAssignments = []; /* current generated table */
+let sqEditingId = null;
+
+/* ── Sub-tab switcher ───────────────────────────────── */
+function squadStab(el){
+  document.querySelectorAll('.squad-stab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.squad-spanel').forEach(p=>p.classList.add('hidden'));
+  el.classList.add('active');
+  const target = el.dataset.stab;
+  const panel = document.getElementById(target);
+  if(panel){ panel.classList.remove('hidden'); panel.classList.add('active'); }
+  if(target==='squad-generate') initSquadGenerate();
+  if(target==='squad-staff') renderStaffMaster();
+}
+
+/* ── Init Generate panel ────────────────────────────── */
+function initSquadGenerate(){
+  /* Render block chips */
+  const chips = document.getElementById('sq-block-chips');
+  if(chips && !chips.children.length){
+    BLOCKS_21.forEach(b=>{
+      const chip = document.createElement('div');
+      chip.className = 'sq-block-chip';
+      chip.textContent = b;
+      chip.dataset.block = b;
+      chip.onclick = ()=>{ chip.classList.toggle('selected'); loadSquadStaffForBlocks(); };
+      chips.appendChild(chip);
+    });
+  }
+  /* Set default date to today */
+  const dateEl = document.getElementById('sq-date');
+  if(dateEl && !dateEl.value){
+    dateEl.value = new Date().toISOString().slice(0,10);
+  }
+  loadSquadData();
+}
+
+function sqChipAll(){
+  document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.add('selected'));
+  loadSquadStaffForBlocks();
+}
+function sqChipClear(){
+  document.querySelectorAll('.sq-block-chip').forEach(c=>c.classList.remove('selected'));
+  loadSquadStaffForBlocks();
+}
+
+function getSelectedBlocks(){
+  return [...document.querySelectorAll('.sq-block-chip.selected')].map(c=>c.dataset.block);
+}
+
+/* ── Load data from storage ─────────────────────────── */
+async function loadSquadData(){
+  try{
+    const staffRes = await window.storage.get('sq:staff');
+    sqStaffList = staffRes ? JSON.parse(staffRes.value) : [];
+  }catch(e){ sqStaffList = []; }
+  try{
+    const shopRes = await window.storage.get('sq:shopdata');
+    if(shopRes && shopRes.value){
+      sqShopData = JSON.parse(shopRes.value);
+      const el = document.getElementById('sq-shop-status');
+      if(el) el.textContent = `✅ ${sqShopData.length} shops loaded from storage`;
+    }
+  }catch(e){ sqShopData = []; }
+  loadSquadStaffForBlocks();
+  populateStaffFilterBlock();
+}
+
+/* ── Load shop Excel file ───────────────────────────── */
+async function loadSquadShopData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('sq-shop-status');
+  if(statusEl) statusEl.textContent = 'Reading...';
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data,{type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      /* Find header row */
+      let hdr = -1;
+      for(let i=0;i<15;i++){
+        if(rows[i] && rows[i].some(c=>String(c).includes('குறியீடு')||String(c).toLowerCase().includes('fps'))){
+          hdr=i; break;
+        }
+      }
+      if(hdr<0){ alert('Header row not found in Excel.'); return; }
+      const headers = rows[hdr].map(h=>String(h).trim());
+      /* Map columns */
+      const cBlock   = headers.findIndex(h=>h.includes('ஒன்றியத்தின்'));
+      const cSociety = headers.findIndex(h=>h.includes('கூட்டுறவு') && h.includes('நிறுவனத்தின்'));
+      const cCode    = headers.findIndex(h=>h.includes('குறியீடு') && !h.includes('எண்.'));
+      const cName    = headers.findIndex(h=>h.includes('கடையின் பெயர்'));
+      const cType    = headers.findIndex(h=>h.includes('முழுநேரம்'));
+      sqShopData = [];
+      for(let ri=hdr+1;ri<rows.length;ri++){
+        const row=rows[ri];
+        const block=String(row[cBlock]||'').trim();
+        const society=String(row[cSociety]||'').trim();
+        const code=String(row[cCode]||'').trim();
+        const name=String(row[cName]||'').trim();
+        const type=String(row[cType]||'').trim();
+        if(!block||!code) continue;
+        sqShopData.push({block,society,code,name,type});
+      }
+      /* Save to storage */
+      await window.storage.set('sq:shopdata', JSON.stringify(sqShopData));
+      if(statusEl) statusEl.textContent = `✅ ${sqShopData.length} shops loaded & saved`;
+    }catch(err){
+      if(statusEl) statusEl.textContent = '❌ Error: '+err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ── Load staff for selected blocks into step 3 ─────── */
+function loadSquadStaffForBlocks(){
+  const blocks = getSelectedBlocks();
+  const card = document.getElementById('sq-staff-card');
+  const listEl = document.getElementById('sq-staff-list');
+  if(!listEl) return;
+  if(!blocks.length){ if(card)card.style.display='none'; return; }
+  if(card) card.style.display='block';
+
+  /* Gather relevant staff: block's own PDS + circle FOs + officers */
+  const relevant = sqStaffList.filter(s=>{
+    if(s.wing==='officer') return true;
+    if(s.wing==='pds') return blocks.includes(s.blockUnit);
+    if(s.wing==='circle'){
+      /* Include circle FOs whose circle covers selected blocks */
+      return true; /* simplified: show all circle staff */
+    }
+    return false;
+  });
+
+  /* Sort: PDS (by block order), then circle, then officers */
+  const wingOrder = {pds:0,circle:1,officer:2};
+  relevant.sort((a,b)=>{
+    const wo = (wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0) return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+
+  let html = '';
+  let lastSection = '';
+  relevant.forEach(s=>{
+    const section = s.wing==='pds'?'PDS Wing':s.wing==='circle'?'Circle Wing':'Officers';
+    if(section!==lastSection){
+      html += `<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;
+        padding:6px 12px;background:var(--gray-lt);border-top:1px solid var(--border)">${section}</div>`;
+      lastSection=section;
+    }
+    const vacLeave = s.vacant?'checked':'';
+    html += `<div class="sq-staff-row">
+      <div>
+        <div class="sq-staff-desig">${s.desig} — ${s.blockUnit||s.circle||''}</div>
+        <div class="sq-staff-name">${s.name}</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--red)">
+        <input type="checkbox" id="sq-skip-${s.id}" ${vacLeave}
+          onchange="toggleStaffSkip('${s.id}',this.checked)">
+        Vacant/Leave
+      </label>
+    </div>`;
+  });
+  if(!relevant.length){
+    html = '<div style="padding:12px;font-size:13px;color:var(--gray)">Staff Master-ல் staff சேர்க்கவும்.</div>';
+  }
+  listEl.innerHTML = html;
+}
+
+function toggleStaffSkip(id, checked){
+  const staff = sqStaffList.find(s=>s.id===id);
+  if(staff){ staff.skipNow = checked; }
+}
+
+/* ── Auto-assign algorithm ──────────────────────────── */
+function generateSquad(){
+  const blocks = getSelectedBlocks();
+  if(!blocks.length){ showSqMsg('Block தேர்ந்தெடுக்கவும்.','err'); return; }
+  if(!sqShopData.length){ showSqMsg('Shop master data இல்லை. Excel ஏற்றுக.','err'); return; }
+
+  const date = document.getElementById('sq-date').value;
+  if(!date){ showSqMsg('Date தேர்ந்தெடுக்கவும்.','err'); return; }
+  const shopsPerStaff = parseInt(document.getElementById('sq-per-staff').value)||3;
+
+  /* Get available staff (not skipped/vacant) */
+  const wingOrder = {pds:0,circle:1,officer:2};
+  const availStaff = sqStaffList.filter(s=>{
+    if(s.skipNow||s.vacant) return false;
+    /* Check skip checkbox in UI */
+    const el = document.getElementById('sq-skip-'+s.id);
+    if(el && el.checked) return false;
+    if(s.wing==='officer') return true;
+    if(s.wing==='pds') return blocks.includes(s.blockUnit);
+    if(s.wing==='circle') return true;
+    return false;
+  }).sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+
+  if(!availStaff.length){ showSqMsg('Available staff இல்லை.','err'); return; }
+
+  /* Get shops for selected blocks — fulltime first, then parttime */
+  const blockShops = {};
+  blocks.forEach(blk=>{
+    const shops = sqShopData.filter(s=>normalizeBlockName(s.block)===normalizeBlockName(blk));
+    /* Group by society, fulltime first */
+    const societies = {};
+    shops.forEach(sh=>{
+      if(!societies[sh.society]) societies[sh.society]={full:[],part:[]};
+      if(sh.type==='முழுநேரம்') societies[sh.society].full.push(sh);
+      else societies[sh.society].part.push(sh);
+    });
+    /* Flatten: fulltime shops first, max 1 parttime per group */
+    const flat = [];
+    Object.entries(societies).forEach(([soc,g])=>{
+      g.full.forEach(sh=>flat.push({...sh,_soc:soc}));
+      if(g.part.length) flat.push({...g.part[0],_soc:soc}); /* max 1 parttime */
+    });
+    blockShops[blk] = flat;
+  });
+
+  /* Build a flat pool of shops to assign */
+  let shopPool = [];
+  blocks.forEach(blk=>{ shopPool = shopPool.concat(blockShops[blk]||[]); });
+
+  /* Assign shopsPerStaff shops per staff member, preferring same society */
+  sqAssignments = [];
+  let usedShops = new Set();
+  let slNo = 1;
+
+  availStaff.forEach(staff=>{
+    const assigned = [];
+    /* Try to find shops from the same society */
+    for(let pass=0;pass<2&&assigned.length<shopsPerStaff;pass++){
+      /* Pass 0: same society as first assigned shop; Pass 1: any society */
+      const targetSoc = pass===0&&assigned.length>0 ? assigned[0]._soc : null;
+      for(let i=0;i<shopPool.length&&assigned.length<shopsPerStaff;i++){
+        const sh = shopPool[i];
+        if(usedShops.has(sh.code)) continue;
+        if(targetSoc && sh._soc!==targetSoc) continue;
+        assigned.push(sh);
+        usedShops.add(sh.code);
+      }
+    }
+    /* If still no shops, this staff gets no assignment */
+    if(!assigned.length) return;
+    assigned.forEach(sh=>{
+      sqAssignments.push({
+        slNo: slNo++,
+        society: sh._soc||sh.society,
+        code: sh.code,
+        shopName: sh.name,
+        inspector: staff.name,
+        desig: staff.desig,
+        block: sh.block,
+        type: sh.type
+      });
+    });
+  });
+
+  /* Unassigned shops */
+  const unassigned = shopPool.filter(sh=>!usedShops.has(sh.code));
+
+  renderSquadTable(sqAssignments, unassigned, date, blocks);
+  showSqMsg('','ok');
+}
+
+function normalizeBlockName(name){
+  return String(name||'').trim().toLowerCase()
+    .replace(/\s+/g,' ').replace(/[-_]/g,' ')
+    .replace(/\u00a0/g,' ').replace(/\u200b/g,'');
+}
+
+/* ── Render table ───────────────────────────────────── */
+function renderSquadTable(rows, unassigned, date, blocks){
+  /* Title */
+  const tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்',
+    'ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
+  const d = new Date(date);
+  const dateStr = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+  const monthTa = tamilMonths[d.getMonth()];
+  const blockStr = blocks.join(' & ');
+  const title = `${blockStr} — கூட்டுறவு ஆய்வு — ${dateStr}`;
+  const el = document.getElementById('sq-result-title');
+  if(el) el.textContent = title;
+
+  /* Stats */
+  const staffSet = new Set(rows.map(r=>r.inspector));
+  const statsEl = document.getElementById('sq-stats');
+  if(statsEl) statsEl.innerHTML = [
+    `<span class="sq-stat-box" style="background:var(--blue-lt);color:var(--blue-dk)">🏪 ${rows.length} Shops</span>`,
+    `<span class="sq-stat-box" style="background:var(--green-lt);color:var(--green)">👤 ${staffSet.size} Inspectors</span>`,
+    `<span class="sq-stat-box" style="background:var(--amber-lt);color:var(--amber)">${blocks.length} Block${blocks.length>1?'s':''}</span>`,
+    unassigned.length?`<span class="sq-stat-box" style="background:var(--red-lt);color:var(--red)">⚠️ ${unassigned.length} Unassigned</span>`:''
+  ].join('');
+
+  /* Table rows */
+  const tbody = document.getElementById('sq-tbody');
+  if(!tbody) return;
+  let html = '';
+  let lastInspector = '';
+  rows.forEach(r=>{
+    const newInsp = r.inspector !== lastInspector;
+    const rowBg = newInsp ? '#f0f4ff' : '#fff';
+    const inspCell = newInsp
+      ? `<td rowspan="?" style="padding:8px 10px;font-weight:600;vertical-align:top">${r.inspector}<div style="font-size:10px;color:var(--gray)">${r.desig}</div></td>`
+      : '';
+    html += `<tr style="background:${rowBg};border-bottom:1px solid rgba(0,0,0,.06)">
+      <td style="padding:7px 10px;text-align:center;color:var(--gray);font-size:12px">${r.slNo}</td>
+      <td style="padding:7px 10px">${r.society}</td>
+      <td style="padding:7px 10px;font-family:monospace;font-size:12px">${r.code}</td>
+      <td style="padding:7px 10px">${r.shopName}</td>
+      <td style="padding:7px 10px;font-weight:600">${r.inspector}<div style="font-size:10px;color:var(--gray)">${r.desig}</div></td>
+    </tr>`;
+    lastInspector = r.inspector;
+  });
+  tbody.innerHTML = html;
+
+  /* Unassigned */
+  const unEl = document.getElementById('sq-unassigned');
+  const unListEl = document.getElementById('sq-unassigned-list');
+  if(unassigned.length && unEl && unListEl){
+    unEl.classList.remove('hidden');
+    unListEl.innerHTML = unassigned.slice(0,20).map(s=>
+      `<span style="display:inline-block;margin:2px 4px;padding:2px 8px;background:var(--gray-lt);border-radius:4px;font-size:11px">${s.code} ${s.name}</span>`
+    ).join('');
+  } else if(unEl){
+    unEl.classList.add('hidden');
+  }
+
+  document.getElementById('sq-result').classList.remove('hidden');
+}
+
+/* ── Screenshot ─────────────────────────────────────── */
+async function squadScreenshot(){
+  const wrap = document.getElementById('sq-table-wrap');
+  if(!wrap){ alert('No table to screenshot.'); return; }
+  try{
+    if(typeof html2canvas==='undefined'){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload=res;s.onerror=rej;document.head.appendChild(s);
+      });
+    }
+    const canvas = await html2canvas(wrap,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false});
+    canvas.toBlob(async blob=>{
+      try{
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        alert('✅ Screenshot copied to clipboard!');
+      }catch(e){
+        const a=document.createElement('a');a.download='squad_table.png';
+        a.href=canvas.toDataURL('image/png');a.click();
+      }
+    },'image/png');
+  }catch(e){ alert('Screenshot error: '+e.message); }
+}
+
+function resetSquad(){
+  sqChipClear();
+  document.getElementById('sq-result')?.classList.add('hidden');
+  document.getElementById('sq-msg')?.classList.add('hidden');
+  document.getElementById('sq-staff-card').style.display='none';
+}
+
+function showSqMsg(msg,type){
+  const el=document.getElementById('sq-msg');
+  if(!el)return;
+  if(!msg){el.classList.add('hidden');return;}
+  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
+  el.innerHTML=msg;el.classList.remove('hidden');
+}
+
+/* ══ STAFF MASTER ══════════════════════════════════════ */
+
+async function saveSquadStaff(){
+  try{
+    await window.storage.set('sq:staff', JSON.stringify(sqStaffList));
+  }catch(e){ console.error('Staff save error:',e); }
+}
+
+function renderStaffMaster(){
+  const wingF = document.getElementById('sq-filter-wing')?.value||'';
+  const blkF  = document.getElementById('sq-filter-block')?.value||'';
+  const wingOrder={pds:0,circle:1,officer:2};
+  const filtered = sqStaffList.filter(s=>{
+    if(wingF && s.wing!==wingF) return false;
+    if(blkF && s.blockUnit!==blkF && s.circle!==blkF) return false;
+    return true;
+  }).sort((a,b)=>{
+    const wo=(wingOrder[a.wing]||0)-(wingOrder[b.wing]||0);
+    if(wo!==0)return wo;
+    return BLOCKS_21.indexOf(a.blockUnit)-BLOCKS_21.indexOf(b.blockUnit);
+  });
+
+  const tbody = document.getElementById('sq-staff-tbody');
+  if(!tbody) return;
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--gray)">Staff இல்லை. "+ Add Staff" கிளிக் செய்யுங்கள்.</td></tr>';
+    return;
+  }
+  let html=''; let lastWing='';
+  filtered.forEach(s=>{
+    if(s.wing!==lastWing){
+      const wLabel={pds:'PDS Wing',circle:'Circle Wing',officer:'Officers'}[s.wing]||s.wing;
+      html+=`<tr><td colspan="6" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--gray);
+        text-transform:uppercase;background:var(--gray-lt);border-top:1px solid var(--border)">${wLabel}</td></tr>`;
+      lastWing=s.wing;
+    }
+    const vacBadge=s.vacant?'<span style="font-size:10px;background:var(--red-lt);color:var(--red);padding:2px 6px;border-radius:4px;margin-left:4px">Vacant</span>':'';
+    html+=`<tr style="border-bottom:1px solid rgba(0,0,0,.06)">
+      <td style="padding:7px 10px;font-size:12px">${s.desig}${vacBadge}</td>
+      <td style="padding:7px 10px;font-size:12px;color:var(--gray)">${s.blockUnit||s.circle||'—'}</td>
+      <td style="padding:7px 10px;font-weight:600">${s.name}</td>
+      <td style="padding:7px 10px;font-size:12px">
+        <span style="padding:2px 8px;border-radius:4px;font-size:11px;
+          background:${{pds:'var(--blue-lt)',circle:'var(--green-lt)',officer:'var(--amber-lt)'}[s.wing]||'var(--gray-lt)'};
+          color:${{pds:'var(--blue-dk)',circle:'var(--green)',officer:'var(--amber)'}[s.wing]||'var(--gray)'}">
+          ${{pds:'PDS',circle:'Circle',officer:'Officer'}[s.wing]||s.wing}
+        </span>
+      </td>
+      <td style="padding:7px 10px;text-align:center">
+        <input type="checkbox" ${s.vacant?'checked':''} onchange="toggleStaffVacant('${s.id}',this.checked)">
+      </td>
+      <td style="padding:7px 10px;text-align:center;display:flex;gap:4px;justify-content:center">
+        <button class="btn-sm-g" onclick="editStaff('${s.id}')">✏️</button>
+        <button class="btn-sm-g" style="background:var(--red-lt);color:var(--red)" onclick="deleteStaff('${s.id}')">🗑</button>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+function populateStaffFilterBlock(){
+  const sel=document.getElementById('sq-filter-block');
+  if(!sel)return;
+  const vals=new Set(sqStaffList.map(s=>s.blockUnit||s.circle||'').filter(Boolean));
+  sel.innerHTML='<option value="">All Blocks / Circles</option>'+
+    [...vals].sort().map(v=>`<option value="${v}">${v}</option>`).join('');
+}
+
+async function toggleStaffVacant(id,checked){
+  const s=sqStaffList.find(x=>x.id===id);
+  if(s){s.vacant=checked;await saveSquadStaff();}
+}
+
+async function deleteStaff(id){
+  if(!confirm('Delete this staff?'))return;
+  sqStaffList=sqStaffList.filter(s=>s.id!==id);
+  await saveSquadStaff();
+  renderStaffMaster();
+  populateStaffFilterBlock();
+}
+
+function editStaff(id){
+  const s=sqStaffList.find(x=>x.id===id);
+  if(!s)return;
+  sqEditingId=id;
+  document.getElementById('sq-modal-title').textContent='Edit Staff';
+  document.getElementById('sm-wing').value=s.wing||'pds';
+  document.getElementById('sm-circle').value=s.circle||'';
+  document.getElementById('sm-desig').value=s.desig||'';
+  document.getElementById('sm-name').value=s.name||'';
+  document.getElementById('sm-vacant').checked=!!s.vacant;
+  onSmWingChange();
+  /* Set block */
+  setTimeout(()=>{
+    const bsel=document.getElementById('sm-block');
+    if(bsel)bsel.value=s.blockUnit||'';
+  },50);
+  document.getElementById('sq-staff-modal').classList.remove('hidden');
+}
+
+function showAddStaffModal(){
+  sqEditingId=null;
+  document.getElementById('sq-modal-title').textContent='Add Staff';
+  document.getElementById('sm-wing').value='pds';
+  document.getElementById('sm-circle').value='';
+  document.getElementById('sm-desig').value='';
+  document.getElementById('sm-name').value='';
+  document.getElementById('sm-vacant').checked=false;
+  onSmWingChange();
+  document.getElementById('sq-staff-modal').classList.remove('hidden');
+}
+
+function closeStaffModal(){
+  document.getElementById('sq-staff-modal').classList.add('hidden');
+  sqEditingId=null;
+}
+
+function onSmWingChange(){
+  const wing=document.getElementById('sm-wing').value;
+  const circleWrap=document.getElementById('sm-circle-wrap');
+  const blockWrap=document.getElementById('sm-block-wrap');
+  const desigInput=document.getElementById('sm-desig');
+  /* Show/hide circle selector */
+  if(circleWrap) circleWrap.style.display=wing==='circle'?'':'none';
+  /* Populate block dropdown */
+  const bsel=document.getElementById('sm-block');
+  if(bsel){
+    if(wing==='pds'||wing==='circle'){
+      bsel.innerHTML='<option value="">— Select Block —</option>'+
+        BLOCKS_21.map(b=>`<option value="${b}">${b}</option>`).join('');
+      if(blockWrap)blockWrap.style.display='';
+    } else {
+      bsel.innerHTML='<option value="">—</option>';
+      if(blockWrap)blockWrap.style.display='none';
+    }
+  }
+  /* Preset designation hint */
+  if(wing==='officer' && !desigInput.value){
+    desigInput.placeholder='e.g. இணைப்பதிவாளர்';
+  } else if(wing==='pds'){
+    desigInput.placeholder='e.g. கூசாப/பொவிதி';
+  } else if(wing==='circle'){
+    desigInput.placeholder='e.g. கூசாப/கள அலுவலர்';
+  }
+}
+
+async function saveStaffFromModal(){
+  const wing=document.getElementById('sm-wing').value;
+  const circle=document.getElementById('sm-circle').value;
+  const desig=document.getElementById('sm-desig').value.trim();
+  const block=document.getElementById('sm-block').value;
+  const name=document.getElementById('sm-name').value.trim();
+  const vacant=document.getElementById('sm-vacant').checked;
+  if(!desig||!name){ alert('Designation and Name are required.'); return; }
+  if(sqEditingId){
+    const s=sqStaffList.find(x=>x.id===sqEditingId);
+    if(s){ s.wing=wing;s.circle=circle;s.desig=desig;s.blockUnit=block;s.name=name;s.vacant=vacant; }
+  } else {
+    sqStaffList.push({
+      id:'s'+Date.now()+Math.random().toString(36).slice(2,6),
+      wing,circle,desig,blockUnit:block,name,vacant,skipNow:false
+    });
+  }
+  await saveSquadStaff();
+  closeStaffModal();
+  renderStaffMaster();
+  populateStaffFilterBlock();
+}
+
+/* ── Init on panel open ─────────────────────────────── */
+/* Called when squad panel becomes active via main tab */
 
 /* ══════════════════════════════════
    INIT
