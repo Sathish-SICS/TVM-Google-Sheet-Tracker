@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="ta">
 <head>
 <meta charset="UTF-8">
@@ -2113,7 +2113,7 @@ function loadSquadStaffForBlocks(){
       '<select id="sq-assign-block-'+s.id+'" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:170px">'+
       '<option value="">Any Block</option>'+blockOpts+'</select>'+
       '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--red);white-space:nowrap">'+
-      '<input type="checkbox" id="sq-skip-'+s.id+'" '+vacLeave+' onchange="toggleStaffSkip(''+s.id+'',this.checked)"> Skip</label>'+
+      '<input type="checkbox" id="sq-skip-'+s.id+'" '+vacLeave+' onchange="toggleStaffSkip(this.dataset.sid,this.checked)" data-sid="'+s.id+'"> Skip</label>'+
       '</div></div>';
   });
   if(!relevant.length)html='<div style="padding:12px;font-size:13px;color:var(--gray)">Add staff in Staff Master tab.</div>';
@@ -2311,10 +2311,10 @@ function renderStaffMaster(){
       '<td style="padding:7px 10px;font-size:12px;color:var(--gray)">'+(s.blockUnit||s.circle||'-')+'</td>'+
       '<td style="padding:7px 10px;font-weight:600">'+(s.name||'')+'</td>'+
       '<td style="padding:7px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;background:'+wCol+';color:'+wTxt+'">'+(s.wing||'')+'</span></td>'+
-      '<td style="padding:7px 10px;text-align:center"><input type="checkbox" '+(s.vacant?'checked':'')+' onchange="toggleStaffVacant(''+s.id+'',this.checked)"></td>'+
+      '<td style="padding:7px 10px;text-align:center"><input type="checkbox" '+(s.vacant?'checked':'')+' onchange="toggleStaffVacant(this.dataset.sid,this.checked)" data-sid="'+s.id+'"></td>'+
       '<td style="padding:7px 10px;text-align:center">'+
-      '<button class="btn-sm-g" onclick="editStaff(''+s.id+'')" style="margin-right:4px">Edit</button>'+
-      '<button class="btn-sm-g" style="background:#fee2e2;color:#991b1b" onclick="deleteStaff(''+s.id+'')">Del</button>'+
+      '<button class="btn-sm-g" onclick="editStaff(this.dataset.sid)" data-sid="'+s.id+'" style="margin-right:4px">Edit</button>'+
+      '<button class="btn-sm-g" style="background:#fee2e2;color:#991b1b" onclick="deleteStaff(this.dataset.sid)" data-sid="'+s.id+'">Del</button>'+
       '</td></tr>';
   });
   tbody.innerHTML=html;
