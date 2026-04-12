@@ -805,6 +805,7 @@ function doSignIn(){
       await gapi.client.init({discoveryDocs:DISC});
       const tc=google.accounts.oauth2.initTokenClient({
         client_id:CLIENT_ID,scope:SCOPES,
+        prompt:'consent',
         callback:async r=>{
           if(r.error){showSignMsg('Sign-in error: '+r.error);return;}
           accessToken=r.access_token;
@@ -1093,6 +1094,7 @@ async function importSheet(){
     document.getElementById('ns-existing-link').value='';
     document.getElementById('ns-state-link').value='';
   }catch(e){
+    console.error('importSheet error:',e);
     if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);await saveToDb();}
     renderDashboard();refreshDropdowns();renderRepo();
     showCMsg('⚠️ Sheet saved. Could not read cells: '+e.message,'warn');
@@ -1943,7 +1945,7 @@ function renderInspResults(blocks,officers,squadDate){
     var now=new Date();
     var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
     var tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்','ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
-    titleEl.textContent=tamilMonths[now.getMonth()]+' '+now.getFullYear()+' — மாசாந்திர ஆய்வு முன்னேற்ற அறிக்கை';
+    titleEl.textContent=tamilMonths[now.getMonth()]+' '+now.getFullYear()+' — மாதாந்திர ஆய்வு முன்னேற்ற அறிக்கை';
   }
 }
 
