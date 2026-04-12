@@ -1138,7 +1138,8 @@ async function trackImportSheet(){
     document.getElementById('tr-state-link').value='';
     document.getElementById('tr-notes').value='';
   }catch(e){
-    msgEl.className='alert a-warn';msgEl.innerHTML='⚠️ '+e.message;
+    console.error('trackImport error:',e);
+    msgEl.className='alert a-err';msgEl.innerHTML='❌ '+e.message+'<br><small>Sheet must be shared (anyone with link can view/edit). Check if you are signed in properly.</small>';
   }
 }
 /* ══════════════════════════════════
@@ -1252,10 +1253,15 @@ async function createFromStateSheet(){
       if(requests.length>0){await sheetsBatchUpdate(newSid,requests);}
     }
 
-    showCMsg('Step 4/4: Sharing sheet publicly...','info');
+    showCMsg('Step 4/4: Saving to tracker...','info');
 
-    // STEP 4: Share publicly (anyone with link can edit)
-    await drivePermission(newSid);
+    // STEP 4: Try to share publicly — skip if Drive permission API fails
+    try{
+      await drivePermission(newSid);
+    }catch(permErr){
+      console.warn('Share permission skipped:',permErr.message);
+      // Not a fatal error — sheet is still created, user can share manually
+    }
 
     // Save to tracker
     const rec={
