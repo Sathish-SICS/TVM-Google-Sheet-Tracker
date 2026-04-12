@@ -265,8 +265,8 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         <label class="flbl" style="margin-top:10px">Select blocks to include</label>
         <div class="chip-row" id="block-chips"></div>
         <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selAll()">Select All</button>
-          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selNone()">Clear</button>
+          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selAll()">அனைத்தும்</button>
+          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selNone()">நீக்கு</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-green" onclick="createFromStateSheet()">
@@ -412,30 +412,30 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     <!-- ═══ TRASH ═══ -->
     <!-- INSPECTION PANEL -->
     <div class="panel" class="panel" id="panel-inspection">
-      <div class="sec-title">Inspection Report</div>
+      <div class="sec-title">ஆய்வு அறிக்கை</div>
       <div class="sec-sub">MIS portal-il irunthu pattivirakkiya Excel kopaiai ingke izhutti vidungal</div>
       <div class="card">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
           <div style="flex:1;min-width:200px">
-            <label class="flbl">Excel File (MIS Inspection Report)</label>
+            <label class="flbl">Excel File (MIS ஆய்வு அறிக்கை)</label>
             <input type="file" id="insp-file" accept=".xlsx,.xls"
               style="padding:8px;border:2px dashed var(--border);border-radius:var(--r-sm);background:var(--gray-lt);cursor:pointer;width:100%">
           </div>
           <div>
-            <label class="flbl">Squad Day Date (if applicable)</label>
+            <label class="flbl">கூட்டுரை ஆய்வு தேதி (பொருந்தினால்)</label>
             <input type="date" id="insp-squad-date" class="finput" style="min-width:160px">
           </div>
         </div>
         <div style="margin-bottom:10px">
-          <label class="flbl">Squad Shop Codes to Exclude (comma separated)</label>
+          <label class="flbl">தவிர்க்க வேண்டிய கடை குறியீடுகள் (கமாவால் பிரிக்கவும்)</label>
           <div style="display:flex;gap:8px;align-items:center">
             <input id="insp-squad-exclude" class="finput" placeholder="e.g. 05GP101PY, 05GP102PY" style="flex:1;font-size:12px;font-family:monospace">
-            <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="loadSquadCodesFromSquadTab()">Load from Squad Tab</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="loadSquadCodesFromSquadTab()">கூட்டுரை தாவலில் இருந்து ஏற்று</button>
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="processInspection()">&#128202; Generate Report</button>
-          <button class="btn btn-outline" onclick="resetInspection()">&#128260; Reset</button>
+          <button class="btn btn-primary" onclick="processInspection()">&#128202; அறிக்கை உருவாக்கு</button>
+          <button class="btn btn-outline" onclick="resetInspection()">&#128260; மீட்டமை</button>
         </div>
         <div id="insp-msg" class="hidden" style="margin-top:10px"></div>
       </div>
@@ -445,20 +445,20 @@ a{color:var(--blue)}.link-sm{font-size:12px}
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
               <div style="font-size:13px;font-weight:700;color:var(--blue)">
-                21 Vattara Aluvalargal <span style="font-size:11px;font-weight:400;color:var(--gray)">(Ilakku: 45)</span>
+                21 வட்டார அலுவலர்கள் <span style="font-size:11px;font-weight:400;color:var(--gray)">(இலக்கு: 45)</span>
               </div>
               <button class="btn btn-outline" onclick="screenshotBlocks()" style="font-size:11px;padding:4px 10px">&#128247; Screenshot</button>
             </div>
             <div id="insp-blocks-wrap" style="background:#fff;border:1px solid #bbb;border-radius:var(--r);overflow:hidden">
-              <div id="insp-report-title" style="background:#1f4788;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">Aayvu Ilakku Nirai Verratram</div>
+              <div id="insp-report-title" style="background:#1f4788;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">ஆய்வு இலக்கு நிறைவேற்றம்</div>
               <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #bbb" id="insp-blocks-tbl">
                 <thead>
                   <tr style="background:#1f4788;color:#fff">
                     <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0;width:40px">#</th>
-                    <th style="padding:7px 10px;text-align:left;border:1px solid #3a5ea0">Vattaram</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">Ilakku</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">Aayvu seyyapatta kadaigalin ennikai</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">Niluvaai</th>
+                    <th style="padding:7px 10px;text-align:left;border:1px solid #3a5ea0">வட்டாரம்</th>
+                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">இலக்கு</th>
+                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு செய்யப்பட்ட கடைகளின் எண்ணிக்கை</th>
+                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">நிலுவை</th>
                   </tr>
                 </thead>
                 <tbody id="insp-blocks"></tbody>
@@ -467,15 +467,15 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             </div>
           </div>
           <div>
-            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">Aluvalargal</div>
+            <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px">அலுவலர்கள்</div>
             <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
               <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <thead>
                   <tr style="background:#166534;color:#fff">
-                    <th style="padding:8px 10px;text-align:left;font-weight:600">Patavi</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600">Ilakku</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600">Aayvu</th>
-                    <th style="padding:8px 10px;text-align:center;font-weight:600">Niluvaai</th>
+                    <th style="padding:8px 10px;text-align:left;font-weight:600">பதவி</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">இலக்கு</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">ஆய்வு</th>
+                    <th style="padding:8px 10px;text-align:center;font-weight:600">நிலுவை</th>
                   </tr>
                 </thead>
                 <tbody id="insp-officers"></tbody>
@@ -492,65 +492,65 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       <div class="sec-sub">Kootturai Aayvu Niyamana Attavanai Tayarippu</div>
 
       <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">Padi 1 - Block &amp; Date</div>
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">படி 1 - வட்டாரம் &amp; தேதி</div>
         <div class="frow">
           <div>
-            <label class="flbl">Squad Inspection Date *</label>
+            <label class="flbl">கூட்டுரை ஆய்வு தேதி *</label>
             <input type="date" id="sq-date" class="finput">
           </div>
           <div>
-            <label class="flbl">Shops per Inspector</label>
+            <label class="flbl">ஆய்வாளருக்கு கடைகள்</label>
             <input type="number" id="sq-per-staff" class="finput" value="3" min="1" max="10" style="max-width:100px">
           </div>
         </div>
-        <label class="flbl" style="margin-bottom:8px">Select Block(s) *</label>
+        <label class="flbl" style="margin-bottom:8px">வட்டாரம் தேர்வு *</label>
         <div id="sq-block-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipAll()">Select All</button>
-          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipClear()">Clear</button>
+          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipAll()">அனைத்தும்</button>
+          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="sqChipநீக்கு()">நீக்கு</button>
         </div>
       </div>
 
       <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">Padi 2 - Shop Master</div>
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">படி 2 - கடை பட்டியல்</div>
         <div style="font-size:12px;color:var(--gray);margin-bottom:10px">Mun ertria Excel ninaivil ullathu. Putiya koppu iruntal mattum matruka.</div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <input type="file" id="sq-shop-file" accept=".xlsx,.xls"
             style="padding:6px;border:2px dashed var(--border);border-radius:var(--r-sm);background:var(--gray-lt);cursor:pointer"
             onchange="loadSquadShopData(this)">
-          <div id="sq-shop-status" style="font-size:12px;color:var(--gray)">No file loaded</div>
+          <div id="sq-shop-status" style="font-size:12px;color:var(--gray)">கோப்பு ஏதும் ஏற்றப்படவில்லை</div>
         </div>
       </div>
 
       <div class="card" id="sq-staff-card" style="display:none">
         <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px">
-          Padi 3 - Available Staff
-          <span style="font-size:11px;font-weight:400;color:var(--gray)">&#9745; = Vacant/Leave - will be skipped</span>
+          படி 3 - கிடைக்கும் ஊழியர்கள்
+          <span style="font-size:11px;font-weight:400;color:var(--gray)">&#9745; = காலியிடம்/விடுப்பு - தவிர்க்கப்படும்</span>
         </div>
         <div id="sq-staff-list"></div>
       </div>
 
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="generateSquad()">&#9889; Generate Squad Table</button>
-        <button class="btn btn-outline" onclick="resetSquad()">&#128260; Reset</button>
+        <button class="btn btn-primary" onclick="generateSquad()">&#9889; அட்டவணை உருவாக்கு</button>
+        <button class="btn btn-outline" onclick="resetSquad()">&#128260; மீட்டமை</button>
       </div>
       <div id="sq-msg" class="hidden" style="margin-bottom:12px"></div>
 
       <div id="sq-result" class="hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <div style="font-weight:700;font-size:14px" id="sq-result-title"></div>
-          <button class="btn btn-outline" style="font-size:12px" onclick="copySquadTable()">&#128203; Copy Table</button>
+          <button class="btn btn-outline" style="font-size:12px" onclick="copySquadTable()">&#128203; அட்டவணை நகலெடு</button>
         </div>
         <div id="sq-stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
         <div id="sq-table-wrap" style="background:#fff;border:2px solid #1f3864;border-radius:4px;overflow:hidden;font-family:Arial,sans-serif">
           <table style="width:100%;border-collapse:collapse;font-size:13px" id="sq-table">
             <thead>
               <tr style="background:#1f3864;color:#fff">
-                <th style="padding:9px 10px;text-align:center;width:45px;border:1px solid #3a5ea0">Va.En</th>
-                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">Sangatthin Peyar</th>
-                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">Kadai Kuriyittu En</th>
-                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">Niyaayavilai Kadaiyin Peyar</th>
-                <th style="padding:9px 10px;text-align:center;border:1px solid #3a5ea0">Aayvu Aluvar</th>
+                <th style="padding:9px 10px;text-align:center;width:45px;border:1px solid #3a5ea0">வ.எண்</th>
+                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">சங்கத்தின் பெயர்</th>
+                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">கடை குறியீட்டு எண்</th>
+                <th style="padding:9px 10px;text-align:left;border:1px solid #3a5ea0">நியாயவிலை கடையின் பெயர்</th>
+                <th style="padding:9px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு அலுவலர்</th>
               </tr>
             </thead>
             <tbody id="sq-tbody"></tbody>
@@ -566,7 +566,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     <!-- STAFF MASTER PANEL -->
     <div class="panel" class="panel" id="panel-staff-master">
       <div class="sec-title">&#128101; Staff Master</div>
-      <div class="sec-sub">Nirantara Paniyalar Pattiyel - Tevaippadumpohu Mattum Tirutuka</div>
+      <div class="sec-sub">நிரந்தர பணியாளர் பட்டியல் — தேவைப்படும்போது மட்டும் திருத்துக</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;">
         <span style="color:var(--gray)">&#9729; Google Sheet Sync:</span>
         <span id="staff-sync-status" style="color:var(--gray);font-weight:600">Not loaded yet</span>
@@ -575,13 +575,13 @@ a{color:var(--blue)}.link-sm{font-size:12px}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <select id="sq-filter-wing" class="fselect" style="max-width:180px" onchange="renderStaffMaster()">
-            <option value="">All Wings</option>
-            <option value="pds">PDS Wing</option>
-            <option value="circle">Circle Wing</option>
-            <option value="officer">Officers</option>
+            <option value="">அனைத்து பிரிவுகளும்</option>
+            <option value="pds">பொவிதி பிரிவு</option>
+            <option value="circle">வட்டார பிரிவு</option>
+            <option value="officer">அலுவலர்கள்</option>
           </select>
           <select id="sq-filter-block" class="fselect" style="max-width:220px" onchange="renderStaffMaster()">
-            <option value="">All Blocks / Circles</option>
+            <option value="">அனைத்து வட்டாரங்களும்</option>
           </select>
         </div>
         <button class="btn btn-primary" onclick="showAddStaffModal()">+ Add Staff</button>
@@ -590,12 +590,12 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         <table style="width:100%;border-collapse:collapse;font-size:13px">
           <thead>
             <tr style="background:var(--gray-lt)">
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Patavi</th>
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Vattaram / Circle</th>
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Peyar</th>
-              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">Wing</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Vacant</th>
-              <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">Actions</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">பதவி</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">வட்டாரம் / வட்டம்</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">பெயர்</th>
+              <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--gray);font-weight:700">பிரிவு</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">காலியிடம்</th>
+              <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--gray);font-weight:700">செயல்கள்</th>
             </tr>
           </thead>
           <tbody id="sq-staff-tbody"></tbody>
@@ -610,9 +610,9 @@ a{color:var(--blue)}.link-sm{font-size:12px}
             <div>
               <label class="flbl">Wing *</label>
               <select id="sm-wing" class="fselect" onchange="onSmWingChange()">
-                <option value="pds">PDS Wing</option>
-                <option value="circle">Circle Wing</option>
-                <option value="officer">Officer</option>
+                <option value="pds">பொவிதி பிரிவு</option>
+                <option value="circle">வட்டார பிரிவு</option>
+                <option value="officer">அலுவலர்</option>
               </select>
             </div>
             <div id="sm-circle-wrap">
@@ -629,12 +629,12 @@ a{color:var(--blue)}.link-sm{font-size:12px}
               <label class="flbl">Designation *</label>
               <input id="sm-desig" class="finput" list="sq-desig-list" placeholder="Select or type">
               <datalist id="sq-desig-list">
-                <option value="Koo.Cha.Pa/Povithi">
-                <option value="Mu.Ni.Aa/Povithi">
-                <option value="Kal Aluvar">
-                <option value="Inaippativalaar">
-                <option value="Thunai Pativalaar (Povithi)">
-                <option value="Thunai Pativalaar, Cheyyar Saragam">
+                <option value="கூ.சா.ப/பொவிதி">
+                <option value="மு.நி.ஆ/பொவிதி">
+                <option value="கள அலுவலர்">
+                <option value="இணைப்பதிவாளர்">
+                <option value="துணைப்பதிவாளர் (பொவிதி)">
+                <option value="துணைப்பதிவாளர், செய்யார் சரகம்">
               </datalist>
             </div>
             <div id="sm-block-wrap">
@@ -764,7 +764,7 @@ async function sheetsBatchGet(sid,ranges){const q=ranges.map(function(r){return'
 async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
 async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
 async function sheetsBatchUpdate(sid,requests){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+':batchUpdate','POST',{requests:requests});}
-async function sheetsValuesClear(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+':clear','POST',{});}
+async function sheetsValuesநீக்கு(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+':clear','POST',{});}
 async function sheetsValuesUpdate(sid,range,values){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW','PUT',{values:values});}
 async function sheetsCreate(body){return gFetch('https://sheets.googleapis.com/v4/spreadsheets','POST',body);}
 async function driveCopy(sid,name){return gFetch('https://www.googleapis.com/drive/v3/files/'+sid+'/copy','POST',{name:name});}
@@ -910,7 +910,7 @@ async function loadFromDb(){
 async function saveToDb(){
   const all=[...sheets,...trashedSheets];
   const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
-  await sheetsValuesClear(dbSheetId,dbTabName+'!A2:N2000');
+  await sheetsValuesநீக்கு(dbSheetId,dbTabName+'!A2:N2000');
   if(rows.length>0){await sheetsValuesUpdate(dbSheetId,dbTabName+'!A2',rows);}
 }
 
@@ -1971,12 +1971,12 @@ async function screenshotBlocks(){
 }
 
 /* ─── SQUAD FUNCTIONS ─── */
-const BLOCKS_21=['Thiruvannamalai HQ','Thiruvannamalai 1','Thiruvannamalai 2',
-  'Thurinjapuram','Kilpennathur','Chengam','Pudhupalayam',
-  'Thandrampet','Kalasapakkam','Polur','Jamunamarathur',
-  'Chetpet','Arani East','Arani West','Cheyyar',
-  'Anakavoor','Vembakkam 1','Vembakkam 2','Vandavasi',
-  'Pernamallur','Thellar'];
+const BLOCKS_21=['திருவண்ணாமலை HQ','திருவண்ணாமலை 1','திருவண்ணாமலை 2',
+  'துரிஞ்சாபுரம்','கீழ்பென்னாத்தூர்','செங்கம்','புதுப்பாளையம்',
+  'தண்டராம்பட்டு','கலசபாக்கம்','போளூர்','ஜமுனாமரத்தூர்',
+  'சேத்பட்','ஆரணி (கிழக்கு)','ஆரணி (மேற்கு)','செய்யார்',
+  'அனக்காவூர்','வெம்பாக்கம் 1','வெம்பாக்கம் 2','வந்தவாசி',
+  'பெரணமல்லூர்','தெள்ளார்'];
 
 var sqStaffList=[];var sqShopData=[];var sqAssignments=[];var sqEditingId=null;
 
@@ -2101,7 +2101,7 @@ function loadSquadStaffForBlocks(){
   });
   var html='';var lastSection='';
   relevant.forEach(function(s){
-    var section=s.wing==='pds'?'PDS WING':s.wing==='circle'?'CIRCLE WING':'OFFICERS';
+    var section=s.wing==='pds'?'பொவிதி பிரிவு':s.wing==='circle'?'வட்டார பிரிவு':'அலுவலர்கள்';
     if(section!==lastSection){
       html+='<div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;padding:6px 12px;background:var(--gray-lt);border-top:1px solid var(--border)">'+section+'</div>';
       lastSection=section;
@@ -2111,7 +2111,7 @@ function loadSquadStaffForBlocks(){
     html+='<div class="sq-staff-row" style="flex-wrap:wrap;gap:6px">'+
       '<div style="flex:1;min-width:160px">'+
       '<div style="font-size:11px;color:var(--gray)">'+(s.desig||'')+' - '+(s.blockUnit||s.circle||'')+'</div>'+
-      '<div style="font-size:13px;font-weight:600">'+(s.name||'<span style="color:var(--red);font-style:italic">Vacant</span>')+'</div>'+
+      '<div style="font-size:13px;font-weight:600">'+(s.name||'<span style="color:var(--red);font-style:italic">காலியிடம்</span>')+'</div>'+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'+
       '<select id="sq-assign-block-'+s.id+'" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;max-width:170px">'+
@@ -2131,7 +2131,7 @@ function normalizeBlockName(name){
 }
 
 function sqChipAll(){document.querySelectorAll('.sq-block-chip').forEach(function(c){c.classList.add('selected');});loadSquadStaffForBlocks();}
-function sqChipClear(){document.querySelectorAll('.sq-block-chip').forEach(function(c){c.classList.remove('selected');});loadSquadStaffForBlocks();}
+function sqChipநீக்கு(){document.querySelectorAll('.sq-block-chip').forEach(function(c){c.classList.remove('selected');});loadSquadStaffForBlocks();}
 function getSelectedBlocks(){return Array.from(document.querySelectorAll('.sq-block-chip.selected')).map(function(c){return c.dataset.block;});}
 
 function initSquadPanel(){
@@ -2269,7 +2269,7 @@ function copySquadTable(){
 }
 
 function resetSquad(){
-  sqChipClear();
+  sqChipநீக்கு();
   var r=document.getElementById('sq-result');if(r)r.classList.add('hidden');
   var m=document.getElementById('sq-msg');if(m)m.classList.add('hidden');
   var c=document.getElementById('sq-staff-card');if(c)c.style.display='none';
@@ -2303,18 +2303,18 @@ function renderStaffMaster(){
   var html='';var lastWing='';
   filtered.forEach(function(s){
     if(s.wing!==lastWing){
-      var wLabel={pds:'PDS Wing',circle:'Circle Wing',officer:'Officers'}[s.wing]||s.wing;
+      var wLabel={pds:'பொவிதி பிரிவு',circle:'வட்டார பிரிவு',officer:'அலுவலர்கள்'}[s.wing]||s.wing;
       html+='<tr><td colspan="6" style="padding:6px 10px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;background:var(--gray-lt);border-top:1px solid var(--border)">'+wLabel+'</td></tr>';
       lastWing=s.wing;
     }
-    var vacBadge=s.vacant?'<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;margin-left:4px">Vacant</span>':'';
+    var vacBadge=s.vacant?'<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;margin-left:4px">காலியிடம்</span>':'';
     var wCol={pds:'#dbeafe',circle:'#dcfce7',officer:'#fef3c7'}[s.wing]||'#f3f4f6';
     var wTxt={pds:'#1e40af',circle:'#166534',officer:'#92400e'}[s.wing]||'#374151';
     html+='<tr style="border-bottom:1px solid rgba(0,0,0,.06)">'+
       '<td style="padding:7px 10px;font-size:12px">'+(s.desig||'')+vacBadge+'</td>'+
       '<td style="padding:7px 10px;font-size:12px;color:var(--gray)">'+(s.blockUnit||s.circle||'-')+'</td>'+
       '<td style="padding:7px 10px;font-weight:600">'+(s.name||'')+'</td>'+
-      '<td style="padding:7px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;background:'+wCol+';color:'+wTxt+'">'+(s.wing||'')+'</span></td>'+
+      '<td style="padding:7px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;background:'+wCol+';color:'+wTxt+'">'+({pds:'பொவிதி பிரிவு',circle:'வட்டார பிரிவு',officer:'அலுவலர்கள்'}[s.wing]||s.wing||'')+'</span></td>'+
       '<td style="padding:7px 10px;text-align:center"><input type="checkbox" '+(s.vacant?'checked':'')+' onchange="toggleStaffVacant(this.dataset.sid,this.checked)" data-sid="'+s.id+'"></td>'+
       '<td style="padding:7px 10px;text-align:center">'+
       '<button class="btn-sm-g" onclick="editStaff(this.dataset.sid)" data-sid="'+s.id+'" style="margin-right:4px">Edit</button>'+
@@ -2327,7 +2327,7 @@ function renderStaffMaster(){
 function populateStaffFilterBlock(){
   var sel=document.getElementById('sq-filter-block');if(!sel)return;
   var vals=new Set(sqStaffList.map(function(s){return s.blockUnit||s.circle||'';}).filter(Boolean));
-  sel.innerHTML='<option value="">All Blocks / Circles</option>'+Array.from(vals).sort().map(function(v){return'<option value="'+v+'">'+v+'</option>';}).join('');
+  sel.innerHTML='<option value="">அனைத்து வட்டாரங்களும்</option>'+Array.from(vals).sort().map(function(v){return'<option value="'+v+'">'+v+'</option>';}).join('');
 }
 
 async function toggleStaffVacant(id,checked){var s=sqStaffList.find(function(x){return x.id===id;});if(s){s.vacant=checked;await saveSquadStaff();}}
