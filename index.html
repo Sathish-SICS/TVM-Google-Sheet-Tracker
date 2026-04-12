@@ -1770,30 +1770,30 @@ function renderMonTable(s){
 
 /* ─── INSPECTION FUNCTIONS ─── */
 const INSPECTOR_MAP={
-  '7338749500':{name:'Inaippathivalaar',type:'officer',target:10},
-  '7338749503':{name:'Thunai Pathivalaar, Cheyyar Saragam',type:'officer',target:null},
-  '7338749504':{name:'Thunai Pathivalaar (Povithi)',type:'officer',target:50},
-  '7338749524':{name:'Thiruvannamalai HQ',type:'block',target:45},
-  '7338749525':{name:'Thiruvannamalai 1',type:'block',target:45},
-  '7338749526':{name:'Kilpennathur',type:'block',target:45},
-  '7338749527':{name:'Chengam',type:'block',target:45},
-  '7338749528':{name:'Thandrampet',type:'block',target:45},
-  '7338749529':{name:'Kalasapakkam',type:'block',target:45},
-  '7338749530':{name:'Polur',type:'block',target:45},
-  '7338749531':{name:'Jamunamarathur (IC)',type:'block',target:45},
-  '7338749532':{name:'Chetpet',type:'block',target:45},
-  '7338749533':{name:'Arani East',type:'block',target:45},
-  '7338749534':{name:'Cheyyar',type:'block',target:45},
-  '7338749535':{name:'Vembakkam 1',type:'block',target:45},
-  '7338749536':{name:'Vandavasi',type:'block',target:45},
-  '7338749537':{name:'Pernamallur',type:'block',target:45},
-  '7338749538':{name:'Thellar',type:'block',target:45},
-  '7338749539':{name:'Thurinjapuram',type:'block',target:45},
-  '7338749540':{name:'Pudhupalayam',type:'block',target:45},
-  '7338749541':{name:'Arani West',type:'block',target:45},
-  '7458968899':{name:'Thiruvannamalai 2',type:'block',target:45},
-  '8457896987':{name:'Vembakkam 2',type:'block',target:45},
-  '8541478968':{name:'Anakavoor',type:'block',target:45},
+  '7338749500':{name:'இணைப்பதிவாளர்',type:'officer',target:10},
+  '7338749503':{name:'துணைப்பதிவாளர், செய்யார் சரகம்',type:'officer',target:null},
+  '7338749504':{name:'துணைப்பதிவாளர் (பொவிதி)',type:'officer',target:50},
+  '7338749524':{name:'திருவண்ணாமலை HQ',type:'block',target:45},
+  '7338749525':{name:'திருவண்ணாமலை 1',type:'block',target:45},
+  '7338749526':{name:'கீழ்பென்னாத்தூர்',type:'block',target:45},
+  '7338749527':{name:'செங்கம்',type:'block',target:45},
+  '7338749528':{name:'தண்டராம்பட்டு',type:'block',target:45},
+  '7338749529':{name:'கலசபாக்கம்',type:'block',target:45},
+  '7338749530':{name:'போளூர்',type:'block',target:45},
+  '7338749531':{name:'ஜமுனாமரத்தூர்',type:'block',target:45},
+  '7338749532':{name:'சேத்பட்',type:'block',target:45},
+  '7338749533':{name:'ஆரணி (கிழக்கு)',type:'block',target:45},
+  '7338749534':{name:'செய்யார்',type:'block',target:45},
+  '7338749535':{name:'வெம்பாக்கம் 1',type:'block',target:45},
+  '7338749536':{name:'வந்தவாசி',type:'block',target:45},
+  '7338749537':{name:'பெரணமல்லூர்',type:'block',target:45},
+  '7338749538':{name:'தெள்ளார்',type:'block',target:45},
+  '7338749539':{name:'துரிஞ்சாபுரம்',type:'block',target:45},
+  '7338749540':{name:'புதுப்பாளையம்',type:'block',target:45},
+  '7338749541':{name:'ஆரணி (மேற்கு)',type:'block',target:45},
+  '7458968899':{name:'திருவண்ணாமலை 2',type:'block',target:45},
+  '8457896987':{name:'வெம்பாக்கம் 2',type:'block',target:45},
+  '8541478968':{name:'அனக்காவூர்',type:'block',target:45},
 };
 
 function resetInspection(){
@@ -1942,7 +1942,8 @@ function renderInspResults(blocks,officers,squadDate){
   if(titleEl){
     var now=new Date();
     var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-    titleEl.textContent=months[now.getMonth()]+' '+now.getFullYear()+' - Maasaanthira Aayvu Munnerra Arikkai';
+    var tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்','ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
+    titleEl.textContent=tamilMonths[now.getMonth()]+' '+now.getFullYear()+' — மாசாந்திர ஆய்வு முன்னேற்ற அறிக்கை';
   }
 }
 
