@@ -790,8 +790,7 @@ function saveClientId(){
   const v=document.getElementById('cid-input').value.trim();
   if(!v){alert('Paste your Client ID first.');return;}
   CLIENT_ID=v;localStorage.setItem('tvm_cid',v);
-  document.getElementById('step-cid').classList.add('hidden');
-  document.getElementById('step-signin').classList.remove('hidden');
+  doSignIn();
 }
 function resetCid(){
   document.getElementById('step-signin').classList.add('hidden');
@@ -799,18 +798,22 @@ function resetCid(){
 }
 function doSignIn(){
   if(!CLIENT_ID){alert('Set Client ID first.');return;}
+  showSignMsg('Opening Google sign-in...');
+  if(typeof gapi==='undefined'){showSignMsg('Error: Google API not loaded. Check internet connection.');return;}
   gapi.load('client',async()=>{
     try{
       await gapi.client.init({discoveryDocs:DISC});
       const tc=google.accounts.oauth2.initTokenClient({
         client_id:CLIENT_ID,scope:SCOPES,
         callback:async r=>{
-          if(r.error){showSignMsg(r.error);return;}
+          if(r.error){showSignMsg('Sign-in error: '+r.error);return;}
           accessToken=r.access_token;
           gapi.client.setToken({access_token:accessToken});
-          const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}}).then(x=>x.json());
-          document.getElementById('user-name').textContent=ui.name||ui.email||'';
-          if(ui.picture)document.getElementById('user-avatar').src=ui.picture;
+          try{
+            const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}}).then(x=>x.json());
+            document.getElementById('user-name').textContent=ui.name||ui.email||'';
+            if(ui.picture)document.getElementById('user-avatar').src=ui.picture;
+          }catch(ue){}
           document.getElementById('signin-screen').style.display='none';
           document.getElementById('app').style.display='flex';
           await initApp();
