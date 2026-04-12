@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ta">
 <head>
 <meta charset="UTF-8">
@@ -832,13 +832,8 @@ function doSignOut(){
 }
 function showSignMsg(m){document.getElementById('signin-msg').textContent=m;}
 
-/* ══════════════════════════════════
-   INIT
-══════════════════════════════════ */
-async function initApp(){
-  renderBlockChips();
-  const d=new Date();d.setDate(d.getDate()+7);
-  document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
+/* Tab listeners — attached at page load, independent of initApp */
+document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.tab').forEach(t=>{
     t.addEventListener('click',()=>{
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
@@ -847,7 +842,7 @@ async function initApp(){
       const panelId='panel-'+t.dataset.tab;
       const panel=document.getElementById(panelId);
       if(panel)panel.classList.add('active');
-      refreshDropdowns();
+      if(typeof refreshDropdowns==='function')refreshDropdowns();
       if(t.dataset.tab==='repo')renderRepo();
       if(t.dataset.tab==='trash')renderTrash();
       if(t.dataset.tab==='track'){
@@ -858,6 +853,15 @@ async function initApp(){
       if(t.dataset.tab==='staff-master'){loadSquadData().then(()=>renderStaffMaster());}
     });
   });
+});
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+async function initApp(){
+  renderBlockChips();
+  const d=new Date();d.setDate(d.getDate()+7);
+  document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
   await ensureDb();
   await loadFromDb();
   renderDashboard();renderRepo();refreshDropdowns();
