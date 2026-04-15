@@ -1009,8 +1009,18 @@ const DB_TITLE='TVM Tracker DB';
 ══════════════════════════════════ */
 const TVM_API='https://script.google.com/macros/s/AKfycbyLtEh7fnM3yrLxGm9wL4smISH6ZdXROH8DQxKUYB7PHg_Y2KGZlOzqyt7VroAfmZVWGg/exec';
 async function apiCall(params){
-  const url=TVM_API+'?'+Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  const r=await fetch(url);
+  const url=TVM_API+'?action='+encodeURIComponent(params.action||'');
+  // Use POST for large payloads (saveDB), GET for others
+  let r;
+  if(params.payload){
+    // POST with form data to avoid URL length limits
+    const body=new URLSearchParams();
+    Object.entries(params).forEach(([k,v])=>body.append(k,v));
+    r=await fetch(url,{method:'POST',body:body,redirect:'follow'});
+  } else {
+    const q=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+    r=await fetch(TVM_API+'?'+q,{redirect:'follow'});
+  }
   const j=await r.json();
   if(j.status==='error')throw new Error(j.msg||'API error');
   return j;
