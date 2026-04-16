@@ -267,7 +267,22 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         <input class="finput" id="ns-state-src" placeholder="https://docs.google.com/spreadsheets/d/...">
         <label class="flbl" style="margin-top:10px">New sheet title *</label>
         <input class="finput" id="ns-new-title" placeholder="e.g. திருவண்ணாமலை — PDL-1 ஏப்ரல் 2025">
-        <label class="flbl" style="margin-top:10px">Select blocks to include</label>
+        <label class="flbl" style="margin-top:10px">Group தேர்வு</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
+            <input type="checkbox" id="grp-blocks" checked onchange="updateGroupChips()"> வட்டாரங்கள் (21)
+          </label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
+            <input type="checkbox" id="grp-cms" onchange="updateGroupChips()"> சி.எம்.எஸ் (7)
+          </label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
+            <input type="checkbox" id="grp-stores" onchange="updateGroupChips()"> கிடங்குகள் (4)
+          </label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
+            <input type="checkbox" id="grp-lamps" onchange="updateGroupChips()"> LAMP (2)
+          </label>
+        </div>
+        <label class="flbl">தேர்ந்தெடுக்கப்பட்டவை</label>
         <div class="chip-row" id="block-chips"></div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selAll()">அனைத்தும்</button>
@@ -390,6 +405,16 @@ a{color:var(--blue)}.link-sm{font-size:12px}
           <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="ta" checked onchange="genWA()"> தமிழ்</label>
           <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="en" onchange="genWA()"> English</label>
           <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="both" onchange="genWA()"> Both</label>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="wa-show-filled" onchange="genWA()">
+            நிரப்பியவர்கள் (Filled list) காட்டு
+          </label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="wa-show-signoff" checked onchange="genWA()">
+            Sign-off காட்டு
+          </label>
         </div>
       </div>
       <div id="wa-out" class="hidden">
@@ -715,16 +740,16 @@ a{color:var(--blue)}.link-sm{font-size:12px}
               </div>
               <button class="btn btn-outline" onclick="screenshotBlocks()" style="font-size:11px;padding:4px 10px">&#128247; Screenshot</button>
             </div>
-            <div id="insp-blocks-wrap" style="background:#fff;border:1px solid #bbb;border-radius:var(--r);overflow:hidden">
-              <div id="insp-report-title" style="background:#1f4788;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">ஆய்வு இலக்கு நிறைவேற்றம்</div>
-              <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #bbb" id="insp-blocks-tbl">
+            <div id="insp-blocks-wrap" style="background:#fff;border:1px solid #bbb;overflow:hidden;font-family:Calibri,Arial,sans-serif">
+              <div id="insp-report-title" style="background:#1f4788;color:#fff;padding:6px 8px;font-size:12px;font-weight:700;font-family:Calibri,Arial,sans-serif;text-align:center">ஆய்வு இலக்கு நிறைவேற்றம்</div>
+              <table style="width:100%;border-collapse:collapse;font-size:12px" id="insp-blocks-tbl">
                 <thead>
-                  <tr style="background:#1f4788;color:#fff">
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0;width:40px">#</th>
-                    <th style="padding:7px 10px;text-align:left;border:1px solid #3a5ea0">வட்டாரம்</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">இலக்கு</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு செய்யப்பட்ட கடைகளின் எண்ணிக்கை</th>
-                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">நிலுவை</th>
+                  <tr style="background:#1f4788;color:#fff;font-family:Calibri,Arial,sans-serif;font-size:12px">
+                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;width:35px;font-weight:700">#</th>
+                    <th style="padding:4px 8px;text-align:left;border:1px solid #fff;font-weight:700">வட்டாரம்</th>
+                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;font-weight:700">இலக்கு</th>
+                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;font-weight:700">ஆய்வு செய்யப்பட்ட கடைகளின் எண்ணிக்கை</th>
+                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;font-weight:700">நிலுவை</th>
                   </tr>
                 </thead>
                 <tbody id="insp-blocks"></tbody>
@@ -937,6 +962,19 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 /* ══════════════════════════════════
    BLOCK DATA
 ══════════════════════════════════ */
+/* ── Group data for New Sheet creation ── */
+const CMS_NAMES=[
+  'திருவண்ணாமலை சி.எம்.எஸ்','செங்கம் சி.எம்.எஸ்','போளூர் சி.எம்.எஸ்',
+  'ஆரணி சி.எம்.எஸ்','செய்யாறு சி.எம்.எஸ்','வந்தவாசி சி.எம்.எஸ்','தெள்ளார் சி.எம்.எஸ்'
+];
+const STORE_NAMES=[
+  'Thiruvannamalai DCCWS','Arani Primary Store',
+  'Devigapuram Primary Store','Vandavasi Primary Store'
+];
+const LAMP_NAMES=[
+  'Nammiyampattu LAMP','Jamunamarathur LAMP'
+];
+
 const BLOCKS=[
   {en:'Tiruvannamalai HQ',ta:'திருவண்ணாமலை HQ'},
   {en:'Tiruvannamalai-1', ta:'திருவண்ணாமலை 1'},
@@ -1371,8 +1409,9 @@ async function createFromStateSheet(){
   if(!stateLink){alert('State sheet link தேவை.');return;}
   if(!newTitle){alert('புதிய தாள் தலைப்பு தேவை.');return;}
 
+  if(!ALL_NAMES.length)buildAllNames();
   const selIdx=[...selectedBlocks].sort(function(a,b){return a-b;});
-  const selBlockNames=selIdx.map(function(i){return BLOCKS[i].ta;});
+  const selBlockNames=selIdx.map(function(i){return ALL_NAMES[i]?ALL_NAMES[i].ta:BLOCKS[i]?BLOCKS[i].ta:'';}).filter(Boolean);
 
   document.getElementById('create-spin').classList.remove('hidden');
   document.getElementById('new-link-box').classList.add('hidden');
@@ -1640,17 +1679,21 @@ function genWA(){
   const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
   const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
   const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
-  const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
-  const SIGN_EN='— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai';
+  const showFilled=document.getElementById('wa-show-filled')&&document.getElementById('wa-show-filled').checked;
+  const showSignoff=!document.getElementById('wa-show-signoff')||document.getElementById('wa-show-signoff').checked;
+  const SIGN_TA=showSignoff?'\n— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை':'';
+  const SIGN_EN=showSignoff?'\n— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai':'';
+  const filledLineTa=showFilled?`\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n`:'';
+  const filledLineEn=showFilled?`\n✅ Filled (${filled.length}): ${fEn||'—'}\n`:'';
 
   const msgs={
     initial:{
-      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\nமதிப்பிற்குரிய ஒப்பந்த வட்டார அலுவலர்களே,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
-      en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
+      ta:`அனைத்து பொவிதி களப்பணியாளர்கள் கவனத்திற்கு,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}${SIGN_TA}`,
+      en:`🏛 *Thiruvannamalai District*\n\nAll Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.${SIGN_EN}`
     },
     reminder:{
-      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது · ${pct}% முடிந்தது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
-      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
+      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n${filledLineTa}\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n\nநெடுவரிசைகளை முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது${SIGN_TA}`,
+      en:`⚠️ *REMINDER — ${s.title}*\n${filledLineEn}\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are asked to fill the columns completely.${SIGN_EN}`
     },
     final:{
       ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nகீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
@@ -1744,13 +1787,34 @@ function setLang(l){
   document.getElementById('lt-en').classList.toggle('on',l==='en');
   renderBlockChips();
 }
+/* selectedBlocks: Set of indices into ALL_NAMES (combined list) */
+var ALL_NAMES=[];
+function buildAllNames(){
+  ALL_NAMES=[];
+  var useBlocks=document.getElementById('grp-blocks')&&document.getElementById('grp-blocks').checked;
+  var useCMS=document.getElementById('grp-cms')&&document.getElementById('grp-cms').checked;
+  var useStores=document.getElementById('grp-stores')&&document.getElementById('grp-stores').checked;
+  var useLamps=document.getElementById('grp-lamps')&&document.getElementById('grp-lamps').checked;
+  if(useBlocks)BLOCKS.forEach(function(b){ALL_NAMES.push({label:b.ta,ta:b.ta,en:b.en});});
+  if(useCMS)CMS_NAMES.forEach(function(n){ALL_NAMES.push({label:n,ta:n,en:n});});
+  if(useStores)STORE_NAMES.forEach(function(n){ALL_NAMES.push({label:n,ta:n,en:n});});
+  if(useLamps)LAMP_NAMES.forEach(function(n){ALL_NAMES.push({label:n,ta:n,en:n});});
+}
+function updateGroupChips(){
+  buildAllNames();
+  selectedBlocks=new Set(ALL_NAMES.map(function(_,i){return i;}));
+  renderBlockChips();
+}
 function renderBlockChips(){
-  document.getElementById('block-chips').innerHTML=BLOCKS.map((b,i)=>
-    `<span class="chip ${selectedBlocks.has(i)?'on':''}" onclick="toggleChip(${i})">${blockLang==='ta'?b.ta:b.en}</span>`
-  ).join('');
+  if(!ALL_NAMES.length)buildAllNames();
+  var el=document.getElementById('block-chips');
+  if(!el)return;
+  el.innerHTML=ALL_NAMES.map(function(b,i){
+    return '<span class="chip '+(selectedBlocks.has(i)?'on':'')+'" onclick="toggleChip('+i+')">'+(blockLang==='ta'?b.ta:b.en)+'</span>';
+  }).join('');
 }
 function toggleChip(i){selectedBlocks.has(i)?selectedBlocks.delete(i):selectedBlocks.add(i);renderBlockChips();}
-function selAll(){selectedBlocks=new Set(BLOCKS.map((_,i)=>i));renderBlockChips();}
+function selAll(){if(!ALL_NAMES.length)buildAllNames();selectedBlocks=new Set(ALL_NAMES.map(function(_,i){return i;}));renderBlockChips();}
 function selNone(){selectedBlocks=new Set();renderBlockChips();}
 
 
@@ -1997,35 +2061,37 @@ function renderInspResults(blocks,officers,squadDate,officerRows){
     tbody.innerHTML=blocks.map(function(e,i){
       var done=e.adjusted>=e.target;
       var near=!done&&e.adjusted>=Math.ceil(e.target*0.75);
-      var rowBg=i%2===0?'#ffffff':'#eef3fb';
+      var rowBg=i%2===0?'#ffffff':'#dce6f1';
       var pendCol=done?'#1a7a3c':'#c00000';
       var countCol=done?'#1a7a3c':near?'#7d4800':'#c00000';
       var pend=Math.max(0,e.target-e.adjusted);
+      var cs='padding:3px 6px;border:1px solid #bfbfbf;font-family:Calibri,Arial,sans-serif;font-size:12px';
       return '<tr style="background:'+rowBg+'">'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#666;font-size:12px">'+(i+1)+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #c0c0c0;font-weight:600">'+e.name+'</td>'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+e.target+'</td>'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-size:18px;font-weight:800;color:'+countCol+'">'+e.adjusted+'</td>'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:'+pendCol+'">'+(done?'&#10003;':pend)+'</td></tr>';
+        '<td style="'+cs+';text-align:center;color:#333">'+(i+1)+'</td>'+
+        '<td style="'+cs+';font-weight:600">'+e.name+'</td>'+
+        '<td style="'+cs+';text-align:center">'+e.target+'</td>'+
+        '<td style="'+cs+';text-align:center;font-weight:700;color:'+countCol+'">'+e.adjusted+'</td>'+
+        '<td style="'+cs+';text-align:center;font-weight:700;color:'+pendCol+'">'+(done?'✓':pend)+'</td></tr>';
     }).join('');
   }
   var otbody=document.getElementById('insp-officers');
   if(otbody){
+    var oCell='padding:3px 6px;border:1px solid #bfbfbf;font-family:Calibri,Arial,sans-serif;font-size:12px';
     otbody.innerHTML=officers.map(function(e){
       if(e.target===null){
-        return '<tr><td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">'+e.name+'</td>'+
-          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0">-</td>'+
-          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:#1f4788">'+e.adjusted+'</td>'+
-          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#999">-</td></tr>';
+        return '<tr><td style="'+oCell+';font-weight:600">'+e.name+'</td>'+
+          '<td style="'+oCell+';text-align:center">-</td>'+
+          '<td style="'+oCell+';text-align:center;font-weight:700;color:#1f4788">'+e.adjusted+'</td>'+
+          '<td style="'+oCell+';text-align:center;color:#999">-</td></tr>';
       }
       var done=e.adjusted>=e.target;
-      var rowBg=done?'#e8f5ee':'#fde8e8';
+      var rowBg=done?'#e2efda':'#fce4d6';
       var col=done?'#1a7a3c':'#c00000';
       return '<tr style="background:'+rowBg+'">'+
-        '<td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">'+e.name+'</td>'+
-        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+e.target+'</td>'+
-        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:'+col+'">'+e.adjusted+'</td>'+
-        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:'+(done?'#1a7a3c':'#c00000')+'">'+(done?'&#10003;':Math.max(0,e.target-e.adjusted))+'</td></tr>';
+        '<td style="'+oCell+';font-weight:600">'+e.name+'</td>'+
+        '<td style="'+oCell+';text-align:center">'+e.target+'</td>'+
+        '<td style="'+oCell+';text-align:center;font-weight:700;color:'+col+'">'+e.adjusted+'</td>'+
+        '<td style="'+oCell+';text-align:center;font-weight:700;color:'+(done?'#1a7a3c':'#c00000')+'">'+(done?'✓':Math.max(0,e.target-e.adjusted))+'</td></tr>';
     }).join('');
   }
   var doneN=blocks.filter(function(b){return b.adjusted>=b.target;}).length;
