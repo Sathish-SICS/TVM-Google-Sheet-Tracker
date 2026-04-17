@@ -1112,6 +1112,17 @@ function sidFromUrl(u){const m=(u||'').match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m
    AUTH
 ══════════════════════════════════ */
 window.addEventListener('load',()=>{
+  // Check if returning from iOS OAuth redirect
+  if(window.location.hash&&window.location.hash.includes('access_token=')){
+    // Wait for gapi to load then handle callback
+    if(typeof gapi!=='undefined'){
+      handleRedirectCallback();
+    }else{
+      // gapi not ready yet — wait briefly
+      setTimeout(function(){handleRedirectCallback();},800);
+    }
+    return;
+  }
   if(CLIENT_ID){
     document.getElementById('cid-input').value=CLIENT_ID;
     document.getElementById('step-cid').classList.add('hidden');
@@ -1128,10 +1139,22 @@ function resetCid(){
   document.getElementById('step-signin').classList.add('hidden');
   document.getElementById('step-cid').classList.remove('hidden');
 }
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)||
+    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+}
+
 function doSignIn(){
   if(!CLIENT_ID){alert('Set Client ID first.');return;}
   showSignMsg('Opening Google sign-in...');
   if(typeof gapi==='undefined'){showSignMsg('Error: Google API not loaded. Check internet connection.');return;}
+
+  // iOS Safari blocks popups — use redirect flow instead
+  if(isIOS()){
+    doSignInRedirect();
+    return;
+  }
+
   gapi.load('client',async()=>{
     try{
       await gapi.client.init({discoveryDocs:DISC});
@@ -1155,6 +1178,47 @@ function doSignIn(){
       tc.requestAccessToken();
     }catch(e){showSignMsg('Error: '+e.message);}
   });
+}
+
+/* iOS redirect-based OAuth flow */
+function doSignInRedirect(){
+  const redirectUri=window.location.origin+window.location.pathname;
+  const params=new URLSearchParams({
+    client_id:CLIENT_ID,
+    redirect_uri:redirectUri,
+    response_type:'token',
+    scope:SCOPES,
+    prompt:'consent'
+  });
+  window.location.href='https://accounts.google.com/o/oauth2/v2/auth?'+params.toString();
+}
+
+/* Handle redirect callback — called on page load if token is in URL hash */
+function handleRedirectCallback(){
+  const hash=window.location.hash;
+  if(!hash||!hash.includes('access_token='))return false;
+  const params=new URLSearchParams(hash.replace('#',''));
+  const token=params.get('access_token');
+  if(!token)return false;
+  // Clear hash from URL without reload
+  history.replaceState(null,null,window.location.pathname);
+  accessToken=token;
+  // Complete sign-in with token
+  gapi.load('client',async()=>{
+    try{
+      await gapi.client.init({discoveryDocs:DISC});
+      gapi.client.setToken({access_token:token});
+      try{
+        const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json());
+        document.getElementById('user-name').textContent=ui.name||ui.email||'';
+        if(ui.picture)document.getElementById('user-avatar').src=ui.picture;
+      }catch(ue){}
+      document.getElementById('signin-screen').style.display='none';
+      document.getElementById('app').style.display='flex';
+      await initApp();
+    }catch(e){showSignMsg('Error after redirect: '+e.message);}
+  });
+  return true;
 }
 function doSignOut(){
   if(accessToken)google.accounts.oauth2.revoke(accessToken);
