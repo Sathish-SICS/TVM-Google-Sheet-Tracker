@@ -1278,15 +1278,29 @@ function sj(s){try{return JSON.parse(s);}catch{return [];}}
 let dbTabName='Sheet1'; // will be detected on load
 
 async function loadFromDb(){
-  const resp=await apiCall({action:'loadDB'});
-  const records=resp.records||[];
-  sheets=records.filter(function(r){return !r.trashed;});
-  trashedSheets=records.filter(function(r){return r.trashed;});
+  try{
+    const resp=await apiCall({action:'loadDB'});
+    const records=resp.records||[];
+    sheets=records.filter(function(r){return !r.trashed;});
+    trashedSheets=records.filter(function(r){return r.trashed;});
+    console.log('loadFromDb: loaded',records.length,'records');
+  }catch(err){
+    console.error('loadFromDb error:',err);
+    // Show error on dashboard
+    var el=document.getElementById('last-refresh');
+    if(el)el.textContent='DB load error: '+err.message;
+    sheets=[];trashedSheets=[];
+  }
 }
 
 async function saveToDb(){
-  const all=[...sheets,...trashedSheets];
-  await apiCall({action:'saveDB',payload:JSON.stringify(all)});
+  try{
+    const all=[...sheets,...trashedSheets];
+    await apiCall({action:'saveDB',payload:JSON.stringify(all)});
+    console.log('saveToDb: saved',all.length,'records');
+  }catch(err){
+    console.error('saveToDb error:',err);
+  }
 }
 
 /* ══════════════════════════════════
