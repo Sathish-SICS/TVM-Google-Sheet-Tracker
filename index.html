@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Thiruvannamalai — Sheet Tracker</title>
-<script src="https://apis.google.com/js/api.js"></script>
-<script src="https://accounts.google.com/gsi/client"></script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;min-height:100vh;font-size:14px}
@@ -129,38 +128,22 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 <div id="signin-screen">
   <div class="auth-card">
     <span class="auth-logo">🏛️</span>
-    <div class="auth-title">Thiruvannamalai District</div>
+    <div class="auth-title">பொது விநியோக முறை அலுவலகம்</div>
     <div class="auth-sub">திருவண்ணாமலை மாவட்டம் — Sheet Tracker</div>
-
-    <div id="step-cid">
-      <div style="background:#f0f7ff;border:1px solid #b8d4f5;border-radius:8px;padding:14px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--blue-dk);margin-bottom:10px">⚙️ One-time Setup (Free)</div>
-        <ol class="step-list">
-          <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
-          <li>APIs & Services → Library → Enable <strong>Google Sheets API</strong></li>
-          <li>Same Library → Enable <strong>Google Drive API</strong></li>
-          <li>Credentials → + Create Credentials → <strong>OAuth 2.0 Client ID</strong></li>
-          <li>Configure consent screen if asked → External → fill app name & email</li>
-          <li>Audience → Test users → Add your Gmail</li>
-          <li>Application type: <strong>Web application</strong> → Authorised JS origins: <code style="background:#eee;padding:1px 4px;border-radius:3px;font-size:11px">https://sathish-sics.github.io</code></li>
-          <li>Copy the <strong>Client ID</strong> → paste below</li>
-        </ol>
-        <label class="flbl" style="margin-top:10px">Google OAuth Client ID</label>
-        <input class="finput" id="cid-input" placeholder="xxxxxxxxx.apps.googleusercontent.com" style="font-size:12px">
-        <button class="btn btn-primary" style="margin-top:8px;width:100%;justify-content:center" onclick="saveClientId()">Save & Sign In</button>
-      </div>
-      <div style="font-size:11px;color:#aaa;text-align:center">100% Free — Google Sheets & Drive APIs are in the free tier</div>
-    </div>
-
-    <div id="step-signin" class="hidden">
-      <div class="alert a-ok" style="margin-bottom:14px">✅ Client ID saved. Sign in with your Google account.</div>
-      <button id="g-btn" onclick="doSignIn()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:#fff;border:1.5px solid #dadce0;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:#3c4043">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="">
-        Sign in with Google
+    <div style="margin-top:20px">
+      <label class="flbl">கடவுச்சொல் / Password</label>
+      <input class="finput" id="pwd-input" type="password" placeholder="Enter password"
+        style="font-size:15px;letter-spacing:2px;text-align:center"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="remember-me" style="width:16px;height:16px">
+        என்னை நினைவில் வை (Remember me)
+      </label>
+      <button class="btn btn-primary" style="margin-top:14px;width:100%;justify-content:center;padding:12px;font-size:15px" onclick="doLogin()">
+        🔐 உள்நுழை / Login
       </button>
-      <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px;font-size:12px" onclick="resetCid()">← Change Client ID</button>
+      <div id="signin-msg" style="font-size:12px;color:#c0392b;text-align:center;margin-top:10px"></div>
     </div>
-    <div id="signin-msg" style="font-size:12px;color:#c0392b;text-align:center;margin-top:8px"></div>
   </div>
 </div>
 
@@ -173,9 +156,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
     </div>
     <div class="topbar-right">
 
-      <img class="topbar-avatar" id="user-avatar" src="" alt="">
-      <span class="topbar-uname" id="user-name"></span>
-      <button class="btn-sm" onclick="doSignOut()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">Sign Out</button>
+      <button class="btn-sm" onclick="doSignOut()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">🔓 Sign Out</button>
     </div>
   </div>
 
@@ -1026,1199 +1007,65 @@ const ALIASES={
 /* ══════════════════════════════════
    STATE
 ══════════════════════════════════ */
-let CLIENT_ID=localStorage.getItem('tvm_cid')||'274648150692-sfhciemsqnq1b8183178bcopmrvhp5pk.apps.googleusercontent.com';
-let accessToken=null;
-let dbSheetId=null;
-let sheets=[];
-let trashedSheets=[];
-let blockLang='ta';
-let selectedBlocks=new Set(BLOCKS.map((_,i)=>i));
-let repoFilter='all';
-let cdSec=300;
-let cdTimer=null;
-let newCreatedLink='';
-
-const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file';
-const DISC=['https://sheets.googleapis.com/$discovery/rest?version=v4','https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
-const DB_TITLE='TVM Tracker DB';
-
 /* ══════════════════════════════════
-   APPS SCRIPT API — replaces OAuth Sheets/Drive calls
+   PASSWORD AUTH — replaces Google OAuth
 ══════════════════════════════════ */
-const TVM_API='https://script.google.com/macros/s/AKfycbyLtEh7fnM3yrLxGm9wL4smISH6ZdXROH8DQxKUYB7PHg_Y2KGZlOzqyt7VroAfmZVWGg/exec';
-async function apiCall(params){
-  const url=TVM_API+'?action='+encodeURIComponent(params.action||'');
-  // Use POST for large payloads (saveDB), GET for others
-  let r;
-  if(params.payload){
-    // POST with form data to avoid URL length limits
-    const body=new URLSearchParams();
-    Object.entries(params).forEach(([k,v])=>body.append(k,v));
-    r=await fetch(url,{method:'POST',body:body,redirect:'follow'});
+const APP_PASSWORD='TVM@PDS2026';
+const SESSION_KEY='tvm_session';
+const REMEMBER_KEY='tvm_remember';
+
+function showSignMsg(m){
+  var el=document.getElementById('signin-msg');
+  if(el)el.textContent=m;
+}
+
+function doLogin(){
+  var pwd=document.getElementById('pwd-input').value;
+  var remember=document.getElementById('remember-me').checked;
+  if(pwd===APP_PASSWORD){
+    // Save session
+    sessionStorage.setItem(SESSION_KEY,'1');
+    if(remember){localStorage.setItem(REMEMBER_KEY,'1');}
+    else{localStorage.removeItem(REMEMBER_KEY);}
+    document.getElementById('signin-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    initApp();
   } else {
-    const q=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-    r=await fetch(TVM_API+'?'+q,{redirect:'follow'});
+    showSignMsg('தவறான கடவுச்சொல். Wrong password.');
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
   }
-  const j=await r.json();
-  if(j.status==='error')throw new Error(j.msg||'API error');
-  return j;
 }
 
-
-/* ── FILL DETECTION
-   We fetch data TWICE:
-   1. FORMATTED_VALUE  → what the cell shows
-   2. FORMULA          → raw formula if cell has one
-   A cell is "real data" if:
-   - Has a formula → the formula result is non-zero (>0)
-   - Has no formula (user typed) → any non-empty value including 0, -, 0.00
-   This way manually typed 0 = filled, formula-returned 0 = unfilled
-── */
-
-/* Direct fetch helpers — bypass gapi.client which sometimes drops scopes */
-async function gFetch(url,method,body){
-  method=method||'GET';
-  const opts={method,headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}};
-  if(body)opts.body=JSON.stringify(body);
-  const r=await fetch(url,opts);
-  const j=await r.json();
-  if(!r.ok){
-    var msg=(j.error&&j.error.message)?j.error.message:JSON.stringify(j);
-    var status=r.status;
-    var details=(j.error&&j.error.errors)?JSON.stringify(j.error.errors):'';
-    throw new Error('['+status+'] '+msg+(details?' | '+details:''));
-  }
-  return j;
-}
-async function sheetsGetMeta(sid){console.log('sheetsGetMeta sid=',sid);return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'?fields=sheets.properties');}
-async function sheetsGetRange(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueRenderOption=FORMATTED_VALUE');}
-async function sheetsBatchGet(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMATTED_VALUE');}
-async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
-async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
-async function sheetsBatchUpdate(sid,requests){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+':batchUpdate','POST',{requests:requests});}
-async function sheetsValuesநீக்கு(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+':clear','POST',{});}
-async function sheetsValuesUpdate(sid,range,values){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW','PUT',{values:values});}
-async function sheetsCreate(body){return gFetch('https://sheets.googleapis.com/v4/spreadsheets','POST',body);}
-async function driveCopy(sid,name){return gFetch('https://www.googleapis.com/drive/v3/files/'+sid+'/copy','POST',{name:name});}
-async function driveSearch(q){return gFetch('https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id,name)');}
-async function drivePermission(sid){return gFetch('https://www.googleapis.com/drive/v3/files/'+sid+'/permissions','POST',{role:'writer',type:'anyone'});}
-
-function today(){return new Date().toISOString().slice(0,10)}
-function nowStr(){return new Date().toLocaleString('en-IN')}
-function daysSince(d){if(!d)return 0;const x=Math.floor((new Date()-new Date(d))/86400000);return x<0?0:x}
-function sidFromUrl(u){const m=(u||'').match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m[1]:null}
-
-/* ══════════════════════════════════
-   AUTH
-══════════════════════════════════ */
-window.addEventListener('load',()=>{
-  // Check if returning from iOS OAuth redirect
-  if(window.location.hash&&window.location.hash.includes('access_token=')){
-    // Wait for gapi to load then handle callback
-    if(typeof gapi!=='undefined'){
-      handleRedirectCallback();
-    }else{
-      // gapi not ready yet — wait briefly
-      setTimeout(function(){handleRedirectCallback();},800);
-    }
-    return;
-  }
-  if(CLIENT_ID){
-    document.getElementById('cid-input').value=CLIENT_ID;
-    document.getElementById('step-cid').classList.add('hidden');
-    document.getElementById('step-signin').classList.remove('hidden');
-  }
-});
-function saveClientId(){
-  const v=document.getElementById('cid-input').value.trim();
-  if(!v){alert('Paste your Client ID first.');return;}
-  CLIENT_ID=v;localStorage.setItem('tvm_cid',v);
-  doSignIn();
-}
-function resetCid(){
-  document.getElementById('step-signin').classList.add('hidden');
-  document.getElementById('step-cid').classList.remove('hidden');
-}
-function isIOS(){
-  return /iPad|iPhone|iPod/.test(navigator.userAgent)||
-    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-}
-
-function doSignIn(){
-  if(!CLIENT_ID){alert('Set Client ID first.');return;}
-  showSignMsg('Opening Google sign-in...');
-  if(typeof gapi==='undefined'){showSignMsg('Error: Google API not loaded. Check internet connection.');return;}
-
-  // iOS Safari blocks popups — use redirect flow instead
-  if(isIOS()){
-    doSignInRedirect();
-    return;
-  }
-
-  gapi.load('client',async()=>{
-    try{
-      await gapi.client.init({discoveryDocs:DISC});
-      const tc=google.accounts.oauth2.initTokenClient({
-        client_id:CLIENT_ID,scope:SCOPES,
-        prompt:'consent',
-        callback:async r=>{
-          if(r.error){showSignMsg('Sign-in error: '+r.error);return;}
-          accessToken=r.access_token;
-          gapi.client.setToken({access_token:accessToken});
-          try{
-            const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}}).then(x=>x.json());
-            document.getElementById('user-name').textContent=ui.name||ui.email||'';
-            if(ui.picture)document.getElementById('user-avatar').src=ui.picture;
-          }catch(ue){}
-          document.getElementById('signin-screen').style.display='none';
-          document.getElementById('app').style.display='flex';
-          await initApp();
-        }
-      });
-      tc.requestAccessToken();
-    }catch(e){showSignMsg('Error: '+e.message);}
-  });
-}
-
-/* iOS redirect-based OAuth flow */
-function doSignInRedirect(){
-  const redirectUri=window.location.origin+window.location.pathname;
-  const params=new URLSearchParams({
-    client_id:CLIENT_ID,
-    redirect_uri:redirectUri,
-    response_type:'token',
-    scope:SCOPES,
-    prompt:'consent'
-  });
-  window.location.href='https://accounts.google.com/o/oauth2/v2/auth?'+params.toString();
-}
-
-/* Handle redirect callback — called on page load if token is in URL hash */
-function handleRedirectCallback(){
-  const hash=window.location.hash;
-  if(!hash||!hash.includes('access_token='))return false;
-  const params=new URLSearchParams(hash.replace('#',''));
-  const token=params.get('access_token');
-  if(!token)return false;
-  // Clear hash from URL without reload
-  history.replaceState(null,null,window.location.pathname);
-  accessToken=token;
-  // Complete sign-in with token
-  gapi.load('client',async()=>{
-    try{
-      await gapi.client.init({discoveryDocs:DISC});
-      gapi.client.setToken({access_token:token});
-      try{
-        const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json());
-        document.getElementById('user-name').textContent=ui.name||ui.email||'';
-        if(ui.picture)document.getElementById('user-avatar').src=ui.picture;
-      }catch(ue){}
-      document.getElementById('signin-screen').style.display='none';
-      document.getElementById('app').style.display='flex';
-      await initApp();
-    }catch(e){showSignMsg('Error after redirect: '+e.message);}
-  });
-  return true;
-}
 function doSignOut(){
-  if(accessToken)google.accounts.oauth2.revoke(accessToken);
-  accessToken=null;dbSheetId=null;sheets=[];trashedSheets=[];
-  clearInterval(cdTimer);
-  document.getElementById('signin-screen').style.display='flex';
+  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(REMEMBER_KEY);
   document.getElementById('app').style.display='none';
+  document.getElementById('signin-screen').style.display='flex';
+  document.getElementById('pwd-input').value='';
+  showSignMsg('');
 }
-function showSignMsg(m){document.getElementById('signin-msg').textContent=m;}
 
-/* Tab listeners — attached at page load, independent of initApp */
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.tab').forEach(t=>{
-    t.addEventListener('click',()=>{
-      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      const panelId='panel-'+t.dataset.tab;
-      const panel=document.getElementById(panelId);
-      if(panel)panel.classList.add('active');
-      if(typeof refreshDropdowns==='function')refreshDropdowns();
-      if(t.dataset.tab==='squad')initSquadPanel();
-      if(t.dataset.tab==='staff-master'){loadSquadData().then(()=>renderStaffMaster());}
-      if(t.dataset.tab==='dashboard'){
-        // Reset to overview sub-tab
-        showSubTab('sub-overview',document.querySelector('[data-sub="sub-overview"]'));
-        renderDashboard();
-      }
-    });
-  });
+function checkSession(){
+  // Already logged in this tab?
+  if(sessionStorage.getItem(SESSION_KEY)==='1')return true;
+  // Remember me checked on this device?
+  if(localStorage.getItem(REMEMBER_KEY)==='1'){
+    sessionStorage.setItem(SESSION_KEY,'1');
+    return true;
+  }
+  return false;
+}
+
+window.addEventListener('load',function(){
+  if(checkSession()){
+    document.getElementById('signin-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    initApp();
+  } else {
+    document.getElementById('pwd-input').focus();
+  }
 });
-
-/* ══════════════════════════════════
-   INIT
-══════════════════════════════════ */
-async function initApp(){
-  renderBlockChips();
-  const d=new Date();d.setDate(d.getDate()+7);
-  document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
-  await loadFromDb();
-  renderDashboard();renderRepo();refreshDropdowns();
-  await autoRefreshAll();
-  startCountdown();
-}
-
-/* ══════════════════════════════════
-   DB — TVM Tracker DB Google Sheet
-   Columns: id|title|type|link|sheetId|stateLink|deadline|notes|createdAt|status|lang|blockStatusJSON|lastRead|trashed
-══════════════════════════════════ */
-async function ensureDb(){
-  /* Apps Script handles DB creation — nothing to do here */
-  dbSheetId='apps-script'; // sentinel value
-}
-
-function sj(s){try{return JSON.parse(s);}catch{return [];}}
-
-let dbTabName='Sheet1'; // will be detected on load
-
-async function loadFromDb(){
-  try{
-    const resp=await apiCall({action:'loadDB'});
-    const records=resp.records||[];
-    sheets=records.filter(function(r){return !r.trashed;});
-    trashedSheets=records.filter(function(r){return r.trashed;});
-    console.log('loadFromDb: loaded',records.length,'records');
-  }catch(err){
-    console.error('loadFromDb error:',err);
-    // Show error on dashboard
-    var el=document.getElementById('last-refresh');
-    if(el)el.textContent='DB load error: '+err.message;
-    sheets=[];trashedSheets=[];
-  }
-}
-
-async function saveToDb(){
-  try{
-    const all=[...sheets,...trashedSheets];
-    await apiCall({action:'saveDB',payload:JSON.stringify(all)});
-    console.log('saveToDb: saved',all.length,'records');
-  }catch(err){
-    console.error('saveToDb error:',err);
-  }
-}
-
-/* ══════════════════════════════════
-   COUNTDOWN
-══════════════════════════════════ */
-let autoRunning=true;
-function toggleAutoRefresh(){
-  autoRunning=!autoRunning;
-  const btn=document.getElementById('stop-btn');
-  if(autoRunning){
-    btn.textContent='⏸ Stop';
-    btn.style.background='rgba(255,100,100,.3)';
-    startCountdown();
-  }else{
-    clearInterval(cdTimer);
-    btn.textContent='▶ Start';
-    btn.style.background='rgba(100,255,100,.3)';
-    document.getElementById('cd-text').textContent='Paused';
-  }
-}
-function startCountdown(){
-  clearInterval(cdTimer);
-  cdSec=300;updateCd();
-  cdTimer=setInterval(async()=>{
-    if(!autoRunning)return;
-    cdSec--;updateCd();
-    if(cdSec<=0){cdSec=300;await autoRefreshAll();}
-  },1000);
-}
-function updateCd(){
-  const m=Math.floor(cdSec/60),s=cdSec%60;
-  document.getElementById('cd-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
-  document.getElementById('cd-fill').style.width=(cdSec/300*100)+'%';
-}
-async function manualRefresh(){
-  await autoRefreshAll();cdSec=300;updateCd();
-}
-async function autoRefreshAll(){
-  const active=sheets.filter(s=>s.status==='active'&&s.sheetId);
-  for(const s of active){
-    try{await readSheetData(s);}
-    catch(e){console.warn('Read failed:',s.title,e.message);}
-  }
-  if(active.length)await saveToDb();
-  document.getElementById('last-refresh').textContent='Last refreshed: '+nowStr();
-  renderDashboard();refreshDropdowns();
-}
-
-/* ══════════════════════════════════
-   FILL DETECTION
-   Key rule: formula cells that return 0
-   are reported by Sheets API as "0" string.
-   We detect real user-typed data by:
-   1. Cell must be non-empty string
-   2. Value must not be 0/0.0/0.00/"-"/"—"
-   3. Value must be a meaningful number >0
-      OR a non-numeric non-empty string
-══════════════════════════════════ */
-/* isRealData(formattedVal, formulaVal)
-   formulaVal: if cell has a formula, this starts with '='
-   If formula exists and formatted result is 0/empty → unfilled
-   If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
-function isRealData(fmtCell, fmlCell){
-  const fmt=String(fmtCell||'').trim();
-  const fml=String(fmlCell||'').trim();
-  if(fmt==='')return false; // empty = unfilled regardless
-  const hasFormula=fml.startsWith('=');
-  if(hasFormula){
-    // Formula cell: only filled if result is meaningful non-zero
-    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
-    const n=parseFloat(fmt);
-    if(!isNaN(n))return n>0;
-    return fmt.length>0;
-  }
-  // User typed: any non-empty value counts as filled
-  return fmt.length>0;
-}
-
-function matchBlock(row){
-  for(const cell of row){
-    if(!cell)continue;
-    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
-    if(ALIASES[norm]!==undefined)return ALIASES[norm];
-    for(const [alias,idx] of Object.entries(ALIASES)){
-      if(norm===alias||norm.includes(alias)||alias.includes(norm))return idx;
-    }
-  }
-  return -1;
-}
-
-/* readSheetData — now uses Apps Script API */
-async function readSheetData(s){
-  const resp=await apiCall({action:'readFillStatus',sheetUrl:s.link});
-  s.blockStatus=resp.blockStatus;
-  s.lastRead=resp.lastRead;
-}
-
-/* ══════════════════════════════════
-   IMPORT EXISTING SHEET
-══════════════════════════════════ */
-async function importSheet(){
-  const title=document.getElementById('ns-title').value.trim();
-  const link=document.getElementById('ns-existing-link').value.trim();
-  if(!title){alert('Please enter a sheet title.');return;}
-  if(!link){alert('Please paste a Google Sheet link.');return;}
-  const sid=sidFromUrl(link);
-  if(!sid){alert('Invalid Google Sheet link.');return;}
-  const rec={
-    id:Date.now(),title,type:document.getElementById('ns-type').value,
-    link,sheetId:sid,
-    stateLink:document.getElementById('ns-state-link').value.trim(),
-    deadline:document.getElementById('ns-deadline').value,
-    notes:document.getElementById('ns-notes').value.trim(),
-    createdAt:today(),status:'active',lang:blockLang,
-    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
-    lastRead:'',trashed:false
-  };
-  showCMsg('<span class="spin spin-b"></span> Reading sheet cells...','info');
-  try{
-    await readSheetData(rec);
-    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
-    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
-    await saveToDb();
-    renderDashboard();refreshDropdowns();renderRepo();
-    showCMsg('✅ Sheet imported and read successfully!','ok');
-    document.getElementById('ns-title').value='';
-    document.getElementById('ns-existing-link').value='';
-    document.getElementById('ns-state-link').value='';
-  }catch(e){
-    console.error('importSheet error:',e);
-    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);await saveToDb();}
-    renderDashboard();refreshDropdowns();renderRepo();
-    showCMsg('⚠️ Sheet saved. Could not read cells: '+e.message,'warn');
-  }
-}
-
-
-/* ══════════════════════════════════
-   TRACK IMPORT SHEET (Track Sheet tab)
-══════════════════════════════════ */
-async function trackImportSheet(){
-  const title=document.getElementById('tr-title').value.trim();
-  const link=document.getElementById('tr-link').value.trim();
-  if(!title){alert('Please enter a sheet title.');return;}
-  if(!link){alert('Please paste a Google Sheet link.');return;}
-  const sid=sidFromUrl(link);
-  if(!sid){alert('Invalid Google Sheet link.');return;}
-  const msgEl=document.getElementById('tr-msg');
-  msgEl.className='alert a-info';msgEl.innerHTML='<span class="spin spin-b"></span> Reading sheet cells...';msgEl.classList.remove('hidden');
-  const rec={
-    id:Date.now(),
-    title,
-    type:document.getElementById('tr-type').value,
-    link,sheetId:sid,
-    stateLink:document.getElementById('tr-state-link').value.trim(),
-    deadline:document.getElementById('tr-deadline').value,
-    notes:document.getElementById('tr-notes').value.trim(),
-    createdAt:today(),status:'active',lang:'ta',
-    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
-    lastRead:'',trashed:false
-  };
-  try{
-    await readSheetData(rec);
-    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
-    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
-    await saveToDb();
-    renderDashboard();refreshDropdowns();renderRepo();
-    msgEl.className='alert a-ok';msgEl.innerHTML='✅ Sheet imported and read successfully! Check Dashboard.';
-    document.getElementById('tr-title').value='';
-    document.getElementById('tr-link').value='';
-    document.getElementById('tr-state-link').value='';
-    document.getElementById('tr-notes').value='';
-  }catch(e){
-    console.error('trackImport error:',e);
-    msgEl.className='alert a-err';msgEl.innerHTML='❌ '+e.message+'<br><small>Sheet must be shared (anyone with link can view/edit). Check if you are signed in properly.</small>';
-  }
-}
-/* ══════════════════════════════════
-   CREATE FROM STATE SHEET — via Apps Script
-══════════════════════════════════ */
-async function createFromStateSheet(){
-  const stateLink=document.getElementById('ns-state-src').value.trim();
-  const newTitle=document.getElementById('ns-new-title').value.trim()||document.getElementById('ns-title').value.trim();
-  if(!stateLink){alert('State sheet link தேவை.');return;}
-  if(!newTitle){alert('புதிய தாள் தலைப்பு தேவை.');return;}
-
-  if(!ALL_NAMES.length)buildAllNames();
-  const selIdx=[...selectedBlocks].sort(function(a,b){return a-b;});
-  const selBlockNames=selIdx.map(function(i){return ALL_NAMES[i]?ALL_NAMES[i].ta:BLOCKS[i]?BLOCKS[i].ta:'';}).filter(Boolean);
-
-  document.getElementById('create-spin').classList.remove('hidden');
-  document.getElementById('new-link-box').classList.add('hidden');
-  showCMsg('<span class="spin spin-b"></span> படி 1/3: State sheet நகலெடுக்கிறது...','info');
-
-  try{
-    const resp=await apiCall({
-      action:'copySheet',
-      stateUrl:stateLink,
-      newTitle:newTitle,
-      blocks:JSON.stringify(selBlockNames)
-    });
-
-    showCMsg('படி 2/3: தரவுத்தளத்தில் சேமிக்கிறது...','info');
-
-    const rec={
-      id:Date.now(),title:newTitle,type:'state',
-      link:resp.newUrl,sheetId:resp.newSheetId,
-      stateLink:stateLink,
-      deadline:document.getElementById('ns-deadline').value,
-      notes:document.getElementById('ns-notes').value.trim(),
-      createdAt:today(),status:'active',lang:'ta',
-      blockStatus:selIdx.map(function(i){return{idx:i,status:'unfilled',tabs:[],updatedAt:null};}),
-      lastRead:'',trashed:false
-    };
-    if(!sheets.find(function(x){return x.sheetId===rec.sheetId;})){sheets.unshift(rec);}
-    await saveToDb();
-    renderDashboard();refreshDropdowns();renderRepo();
-
-    newCreatedLink=resp.newUrl;
-    document.getElementById('new-link-url').textContent=resp.newUrl;
-    document.getElementById('new-link-open').href=resp.newUrl;
-    document.getElementById('new-link-box').classList.remove('hidden');
-    showCMsg('✅ மாவட்ட தாள் வெற்றிகரமாக உருவாக்கப்பட்டது! இணைப்பை WhatsApp-ல் பகிரவும்.','ok');
-  }catch(e){
-    showCMsg('❌ பிழை: '+e.message,'err');
-  }
-  document.getElementById('create-spin').classList.add('hidden');
-}
-
-function copyNewLink(){
-  navigator.clipboard.writeText(newCreatedLink).then(()=>{
-    alert('✅ Link copied!\nShare this in your WhatsApp group.');
-  });
-}
-
-function showCMsg(html,type){
-  const el=document.getElementById('create-msg');
-  const cls={info:'a-info',ok:'a-ok',warn:'a-warn',err:'a-err'};
-  el.className='alert '+cls[type];el.innerHTML=html;
-  el.classList.remove('hidden');
-}
-
-/* ══════════════════════════════════
-   MONITOR
-══════════════════════════════════ */
-function onMonChange(){
-  const id=parseInt(document.getElementById('mon-sel').value);
-  const s=sheets.find(x=>x.id===id);
-  if(s&&s.link){document.getElementById('mon-link').href=s.link;document.getElementById('mon-link-row').classList.remove('hidden');}
-  else document.getElementById('mon-link-row').classList.add('hidden');
-  document.getElementById('mon-result').innerHTML='';
-}
-async function readOneSheet(){
-  const id=parseInt(document.getElementById('mon-sel').value);
-  if(!id){alert('Select a sheet first.');return;}
-  const s=sheets.find(x=>x.id===id);
-  if(!s)return;
-  document.getElementById('read-spin').classList.remove('hidden');
-  document.getElementById('mon-result').innerHTML='<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells...</div>';
-  try{
-    await readSheetData(s);await saveToDb();
-    renderDashboard();refreshDropdowns();
-    renderMonTable(s);
-  }catch(e){
-    document.getElementById('mon-result').innerHTML=`<div class="alert a-err">❌ Error: ${e.message}<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>`;
-  }
-  document.getElementById('read-spin').classList.add('hidden');
-}
-
-function renderMonTable(s){
-  const f=s.blockStatus.filter(b=>b.status==='filled').length;
-  const p=s.blockStatus.filter(b=>b.status==='partial').length;
-  const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
-  const t=s.blockStatus.length;
-  const pct=Math.round((f/Math.max(t,1))*100);
-  const col=pct>=100?'green':pct>0?'amber':'red';
-  let html=`<div class="card" style="padding:14px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-      <div style="font-size:14px;font-weight:700">${s.title}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <span class="badge b-green">✓ ${f} நிரப்பினர்</span>
-        <span class="badge b-amber">◑ ${p} பகுதி</span>
-        <span class="badge b-red">✗ ${n} நிரப்பவில்லை</span>
-      </div>
-    </div>
-    <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
-    <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Last read: ${s.lastRead||'—'} · ${pct}% complete</div>
-    <div style="overflow-x:auto"><table class="tbl">
-    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
-  s.blockStatus.forEach((bs,i)=>{
-    const b=BLOCKS[bs.idx];
-    const sc=bs.status==='filled'?'b-green':bs.status==='partial'?'b-amber':'b-red';
-    const sl=bs.status==='filled'?'நிரப்பினர்':bs.status==='partial'?'பகுதி':'நிரப்பவில்லை';
-    const days=bs.updatedAt?daysSince(bs.updatedAt):daysSince(s.createdAt);
-    html+=`<tr>
-      <td style="color:var(--gray);font-size:11px">${i+1}</td>
-      <td style="font-weight:600">${b.ta}</td>
-      <td style="font-size:12px;color:var(--gray)">${b.en}</td>
-      <td><span class="badge ${sc}">${sl}</span></td>
-      <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
-      <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
-    </tr>`;
-  });
-  html+=`</tbody></table></div>
-    <div class="btn-row" style="margin-top:8px">
-      <button class="btn btn-outline" style="font-size:12px" onclick="goToWA(${s.id})">📤 Generate WhatsApp Message</button>
-    </div></div>`;
-  document.getElementById('mon-result').innerHTML=html;
-}
-
-/* ══════════════════════════════════
-   DASHBOARD
-══════════════════════════════════ */
-function renderDashboard(){
-  const active=sheets.filter(s=>s.status==='active');
-  let fc=0,pc=0,nc=0;
-  active.forEach(s=>{
-    const bs=s.blockStatus||[];
-    const f=bs.filter(b=>b.status==='filled').length;
-    const p=bs.filter(b=>b.status==='partial').length;
-    const t=bs.length;
-    if(f===t&&t>0)fc++;else if(f>0||p>0)pc++;else nc++;
-  });
-  document.getElementById('st-total').textContent=active.length;
-  document.getElementById('st-full').textContent=fc;
-  document.getElementById('st-partial').textContent=pc;
-  document.getElementById('st-none').textContent=nc;
-
-  if(!active.length){
-    document.getElementById('dash-list').innerHTML='<div class="alert a-info">No active sheets. Go to "Add Sheet" to begin.</div>';
-    return;
-  }
-  document.getElementById('dash-list').innerHTML=active.map(s=>{
-    const f=s.blockStatus.filter(b=>b.status==='filled').length;
-    const p=s.blockStatus.filter(b=>b.status==='partial').length;
-    const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
-    const t=Math.max(s.blockStatus.length,1);
-    const pct=Math.round((f/t)*100);
-    const col=pct>=100?'green':pct>0?'amber':'red';
-    const dl=s.deadline?Math.ceil((new Date(s.deadline)-new Date())/86400000):null;
-    let dlb='';
-    if(dl!==null){if(dl<0)dlb=`<span class="badge b-red">Overdue ${Math.abs(dl)}d</span>`;
-    else if(dl<=2)dlb=`<span class="badge b-amber">Due in ${dl}d</span>`;
-    else dlb=`<span class="badge b-gray">Due ${s.deadline}</span>`;}
-    const pendTa=s.blockStatus.filter(b=>b.status!=='filled').map(b=>BLOCKS[b.idx].ta);
-    return `<div class="sheet-item">
-      <div class="sheet-head">
-        <div>
-          <div class="sheet-title">${s.title}</div>
-          <div class="sheet-meta">${s.type==='state'?'🏛 State Sheet':'📁 My Sheet'} · ${s.createdAt}${s.lastRead?` · <span style="color:var(--green)">நேரடி: ${s.lastRead}</span>`:' · <span style="color:var(--amber)">Not yet read</span>'}</div>
-          ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Open Sheet ↗</a>`:''}
-          ${s.link?`<button class="btn-sm" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Link copied!'))" style="margin-left:6px;font-size:11px">📋 Copy Link</button>`:''}
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start;justify-content:flex-end">
-          ${dlb}
-          <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
-          <button class="btn-sm" onclick="quickRead(${s.id})">🔄</button>
-          <button class="btn-sm" onclick="archiveSheet(${s.id})">✓ Done</button>
-          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})">🗑</button>
-        </div>
-      </div>
-      <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
-      <div style="display:flex;gap:14px;font-size:12px;margin-top:6px;flex-wrap:wrap">
-        <span><span class="dot dot-g"></span>${f} நிரப்பினர்</span>
-        <span><span class="dot dot-a"></span>${p} பகுதி</span>
-        <span><span class="dot dot-r"></span>${n} நிரப்பவில்லை</span>
-        <span style="color:var(--gray)">${t} மொத்தம்</span>
-      </div>
-      ${n>0?`<div style="margin-top:7px;font-size:12px;color:var(--red);line-height:1.6">⏳ நிலுவை: ${pendTa.join(', ')}</div>`:''}
-      <div class="btn-row" style="margin-top:8px">
-        <button class="btn-sm-g" onclick="goToWA(${s.id})">💬 WhatsApp</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function quickRead(id){
-  const s=sheets.find(x=>x.id===id);if(!s)return;
-  try{await readSheetData(s);await saveToDb();renderDashboard();}
-  catch(e){alert('Error: '+e.message);}
-}
-async function archiveSheet(id){
-  if(!confirm('Mark this sheet as completed?'))return;
-  const s=sheets.find(x=>x.id===id);if(s)s.status='done';
-  await saveToDb();renderDashboard();refreshDropdowns();renderRepo();
-}
-async function trashSheet(id){
-  if(!confirm('Move to trash?'))return;
-  const idx=sheets.findIndex(x=>x.id===id);
-  if(idx>=0){
-    sheets[idx].trashed=true;
-    trashedSheets.push(sheets[idx]);
-    sheets.splice(idx,1);
-    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
-  }
-}
-async function restoreSheet(id){
-  const idx=trashedSheets.findIndex(x=>x.id===id);
-  if(idx>=0){
-    trashedSheets[idx].trashed=false;
-    sheets.push(trashedSheets[idx]);
-    trashedSheets.splice(idx,1);
-    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
-  }
-}
-async function permDelete(id){
-  if(!confirm('Permanently delete? This cannot be undone.'))return;
-  const idx=trashedSheets.findIndex(x=>x.id===id);
-  if(idx>=0){trashedSheets.splice(idx,1);await saveToDb();renderTrash();}
-}
-
-/* ══════════════════════════════════
-   DROPDOWNS
-══════════════════════════════════ */
-function refreshDropdowns(){
-  const active=sheets.filter(s=>s.status==='active');
-  const opts='<option value="">— Select a sheet —</option>'+active.map(s=>`<option value="${s.id}">${s.title}</option>`).join('');
-  document.getElementById('mon-sel').innerHTML=opts;
-  document.getElementById('wa-sel').innerHTML=opts;
-}
-
-/* ══════════════════════════════════
-   WHATSAPP — CORRECTED TAMIL TEXT
-══════════════════════════════════ */
-function goToWA(id){
-  // Switch to dashboard tab → whatsapp sub-tab
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  var dashTab=document.querySelector('[data-tab=dashboard]');
-  if(dashTab)dashTab.classList.add('active');
-  var dashPanel=document.getElementById('panel-dashboard');
-  if(dashPanel)dashPanel.classList.add('active');
-  showSubTab('sub-whatsapp',document.querySelector('[data-sub="sub-whatsapp"]'));
-  refreshDropdowns();
-  document.getElementById('wa-sel').value=id;
-  document.getElementById('wa-type').value='reminder';
-  genWA();
-}
-function genWA(){
-  const id=parseInt(document.getElementById('wa-sel').value);
-  const type=document.getElementById('wa-type').value;
-  const lang=document.querySelector('input[name=wa-lang]:checked').value;
-  const out=document.getElementById('wa-out');
-  if(!id){out.classList.add('hidden');return;}
-  const s=sheets.find(x=>x.id===id);
-  if(!s){out.classList.add('hidden');return;}
-
-  const filled=s.blockStatus.filter(b=>b.status==='filled');
-  const pending=s.blockStatus.filter(b=>b.status!=='filled');
-  const pct=Math.round((filled.length/Math.max(s.blockStatus.length,1))*100);
-  const days=daysSince(s.createdAt);
-  const lnk=s.link||'[இணைப்பு சேர்க்கப்படும்]';
-  const pTa=pending.map(b=>BLOCKS[b.idx].ta).join('\n');
-  const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
-  const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
-  const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
-  const showFilled=document.getElementById('wa-show-filled')&&document.getElementById('wa-show-filled').checked;
-  const showSignoff=!document.getElementById('wa-show-signoff')||document.getElementById('wa-show-signoff').checked;
-  const SIGN_TA=showSignoff?'\n— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை':'';
-  const SIGN_EN=showSignoff?'\n— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai':'';
-  const filledLineTa=showFilled?`\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n`:'';
-  const filledLineEn=showFilled?`\n✅ Filled (${filled.length}): ${fEn||'—'}\n`:'';
-
-  const msgs={
-    initial:{
-      ta:`அனைத்து பொவிதி களப்பணியாளர்கள் கவனத்திற்கு,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}${SIGN_TA}`,
-      en:`🏛 *Thiruvannamalai District*\n\nAll Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.${SIGN_EN}`
-    },
-    reminder:{
-      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n${filledLineTa}\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n\nநெடுவரிசைகளை முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது${SIGN_TA}`,
-      en:`⚠️ *REMINDER — ${s.title}*\n${filledLineEn}\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are asked to fill the columns completely.${SIGN_EN}`
-    },
-    final:{
-      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nகீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
-      en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report cannot be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are requested to fill IMMEDIATELY.\n${SIGN_EN}`
-    },
-    thanks:{
-      ta:`✅ *நன்றி — ${s.title}*\n\nஅனைத்து ${s.blockStatus.length} வட்டாரங்களும் தரவுகளை நிரப்பியதற்கு மிக்க நன்றி! 🙏\n\nமாவட்ட தரவுகள் தொகுக்கப்பட்டு மாநில அலுவலகத்திற்கு அனுப்பப்படும்.\n${SIGN_TA}`,
-      en:`✅ *Thank You — ${s.title}*\n\nAll ${s.blockStatus.length} block officers have submitted data! 🙏\n\nData will be compiled and submitted to State Head Office.\n${SIGN_EN}`
-    }
-  };
-
-  const m=msgs[type];
-  let txt='';
-  if(lang==='ta')txt=m.ta;
-  else if(lang==='en')txt=m.en;
-  else txt=m.ta+'\n\n────────────────\n\n'+m.en;
-  document.getElementById('wa-text').textContent=txt;
-  out.classList.remove('hidden');
-}
-function copyWA(){
-  navigator.clipboard.writeText(document.getElementById('wa-text').textContent)
-    .then(()=>alert('✅ செய்தி நகலெடுக்கப்பட்டது!\nMessage copied!'));
-}
-
-/* ══════════════════════════════════
-   REPOSITORY
-══════════════════════════════════ */
-function setRF(f){repoFilter=f;renderRepo();}
-function renderRepo(){
-  let list=sheets;
-  if(repoFilter==='state')list=sheets.filter(s=>s.type==='state');
-  else if(repoFilter==='own')list=sheets.filter(s=>s.type==='own');
-  else if(repoFilter==='active')list=sheets.filter(s=>s.status==='active');
-  else if(repoFilter==='done')list=sheets.filter(s=>s.status==='done');
-  const el=document.getElementById('repo-list');
-  if(!list.length){el.innerHTML='<div class="alert a-info">No sheets found.</div>';return;}
-  el.innerHTML=list.map(s=>{
-    const f=s.blockStatus.filter(b=>b.status==='filled').length;
-    const pct=Math.round((f/Math.max(s.blockStatus.length,1))*100);
-    const col=pct>=100?'green':pct>0?'amber':'red';
-    return `<div class="sheet-item" style="margin-bottom:8px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700">${s.title}</div>
-          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Deadline: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-            ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
-            ${s.link?`<button class="btn-sm" style="font-size:11px;padding:3px 8px" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Copied!'))">📋 Copy</button>`:''}
-            ${s.stateLink?`<a href="${s.stateLink}" target="_blank" class="link-sm" style="color:var(--gray)">State Sheet ↗</a>`:''}
-          </div>
-          ${s.notes?`<div style="font-size:11px;color:var(--gray);margin-top:4px;font-style:italic">${s.notes}</div>`:''}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
-          <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
-          <span class="badge b-${s.status==='active'?'blue':'gray'}">${s.status==='active'?'Active':'Done'}</span>
-          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})" style="font-size:11px">🗑 Delete</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* ══════════════════════════════════
-   TRASH
-══════════════════════════════════ */
-function renderTrash(){
-  const el=document.getElementById('trash-list');
-  if(!trashedSheets.length){el.innerHTML='<div class="alert a-info">Trash is empty.</div>';return;}
-  el.innerHTML=trashedSheets.map(s=>`
-    <div class="trash-item">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-        <div>
-          <div style="font-size:13px;font-weight:600">${s.title}</div>
-          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt}</div>
-          ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="restoreSheet(${s.id})">↩ Restore</button>
-          <button class="btn btn-red" style="font-size:12px;padding:5px 10px" onclick="permDelete(${s.id})">Delete Forever</button>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-/* ══════════════════════════════════
-   CHIPS & LANG
-══════════════════════════════════ */
-function setLang(l){
-  blockLang=l;
-  document.getElementById('lt-ta').classList.toggle('on',l==='ta');
-  document.getElementById('lt-en').classList.toggle('on',l==='en');
-  renderBlockChips();
-}
-/* selectedBlocks: Set of indices into ALL_NAMES (combined list) */
-var ALL_NAMES=[];
-function buildAllNames(){
-  ALL_NAMES=[];
-  var useBlocks=document.getElementById('grp-blocks')&&document.getElementById('grp-blocks').checked;
-  var useCMS=document.getElementById('grp-cms')&&document.getElementById('grp-cms').checked;
-  var useStores=document.getElementById('grp-stores')&&document.getElementById('grp-stores').checked;
-  var useLamps=document.getElementById('grp-lamps')&&document.getElementById('grp-lamps').checked;
-  if(useBlocks)BLOCKS.forEach(function(b){ALL_NAMES.push({label:b.ta,ta:b.ta,en:b.en});});
-  if(useCMS)CMS_NAMES.forEach(function(n){ALL_NAMES.push({label:n,ta:n,en:n});});
-  if(useStores)STORE_NAMES.forEach(function(n){ALL_NAMES.push({label:n,ta:n,en:n});});
-  if(useLamps)LAMP_NAMES.forEach(function(n){ALL_NAMES.push({label:n,ta:n,en:n});});
-}
-function updateGroupChips(){
-  buildAllNames();
-  selectedBlocks=new Set(ALL_NAMES.map(function(_,i){return i;}));
-  renderBlockChips();
-}
-function renderBlockChips(){
-  if(!ALL_NAMES.length)buildAllNames();
-  var el=document.getElementById('block-chips');
-  if(!el)return;
-  el.innerHTML=ALL_NAMES.map(function(b,i){
-    return '<span class="chip '+(selectedBlocks.has(i)?'on':'')+'" onclick="toggleChip('+i+')">'+(blockLang==='ta'?b.ta:b.en)+'</span>';
-  }).join('');
-}
-function toggleChip(i){selectedBlocks.has(i)?selectedBlocks.delete(i):selectedBlocks.add(i);renderBlockChips();}
-function selAll(){if(!ALL_NAMES.length)buildAllNames();selectedBlocks=new Set(ALL_NAMES.map(function(_,i){return i;}));renderBlockChips();}
-function selNone(){selectedBlocks=new Set();renderBlockChips();}
-
-
-/* ══════════════════════════════════
-   INSPECTION + SQUAD + STAFF JS
-══════════════════════════════════ */
-
-/* isRealData - final version */
-function isRealData(fmtCell,fmlCell){
-  var fmt=String(fmtCell||'').trim();
-  if(fmt==='')return false;
-  var ERRORS=['#div/0!','#ref!','#value!','#name?','#n/a!','#null!','#num!','#error!'];
-  if(ERRORS.indexOf(fmt.toLowerCase())>=0)return false;
-  return true;
-}
-
-function detectLastDataColumn(fmtCols,fmlCols){
-  var lastCol=0;
-  var totalCols=Math.max(fmtCols.length,fmlCols.length);
-  for(var ci=0;ci<totalCols;ci++){
-    var fmtCol=fmtCols[ci]||[];
-    var fmlCol=fmlCols[ci]||[];
-    for(var ri=0;ri<20;ri++){
-      var fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
-      var fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
-      if(isRealData(fmt,fml)){lastCol=ci;break;}
-    }
-  }
-  return lastCol;
-}
-
-function detectManualColumns(fmtCols,fmlCols,startCol,lastCol){
-  var isManualCol=[];
-  for(var ci=startCol;ci<=lastCol;ci++){
-    var colIdx=ci-startCol;
-    var fmtCol=fmtCols[colIdx]||[];
-    var fmlCol=fmlCols[colIdx]||[];
-    var manualFound=false;
-    for(var ri=0;ri<20;ri++){
-      var fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
-      var fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
-      if(fmt!==''&&fml===''){manualFound=true;break;}
-    }
-    isManualCol[ci]=manualFound;
-  }
-  return isManualCol;
-}
-
-function calcFillStatus(fV,tV){
-  if(tV===0)return{status:'unfilled',reason:'No fillable fields'};
-  var rem=tV-fV,pct=Math.round(fV/tV*100);
-  if(tV<=5){
-    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
-    return{status:'unfilled',reason:fV+'/'+tV+' fields - all required'};
-  }
-  if(tV<=10){
-    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
-    if(fV>=3){var note=rem===1?' - 1 field yet to be filled':'';return{status:'partial',reason:fV+'/'+tV+' fields filled'+note};}
-    return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields filled'};
-  }
-  var minP=Math.max(6,Math.ceil(tV*0.30));
-  var nearC=Math.ceil(tV*0.10);
-  if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
-  if(fV>=minP){
-    var note2=(rem>0&&rem<=nearC)?' - only '+rem+' field'+(rem>1?'s':'')+' yet to be filled':'';
-    return{status:'partial',reason:fV+'/'+tV+' fields ('+pct+'%) filled'+note2};
-  }
-  return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields ('+pct+'%) - below minimum'};
-}
-
-/* readSheetData defined above — Apps Script version */
-
-/* ─── INSPECTION DATA MAPS ─── */
-var SHOP_BLOCK_MAP={'05EP054PY':'ஆரணி (மேற்கு)','05EP045P1':'ஆரணி (மேற்கு)','05EP013PN':'ஆரணி (கிழக்கு)','05EP006PN':'ஆரணி (கிழக்கு)','05EP002PN':'ஆரணி (கிழக்கு)','05EP025P1':'ஆரணி (கிழக்கு)','05EB007P1':'ஆரணி (மேற்கு)','05EP048PN':'ஆரணி (மேற்கு)','05EP011P1':'ஆரணி (கிழக்கு)','05EP014P1':'ஆரணி (கிழக்கு)','05EP031PN':'ஆரணி (மேற்கு)','05EP001PY':'ஆரணி (கிழக்கு)','05EB001PN':'ஆரணி (கிழக்கு)','05EB002PN':'ஆரணி (கிழக்கு)','05EB003PN':'ஆரணி (கிழக்கு)','05EB004PN':'ஆரணி (கிழக்கு)','05EB005PN':'ஆரணி (கிழக்கு)','05EB009PN':'ஆரணி (கிழக்கு)','05EC001PN':'ஆரணி (கிழக்கு)','05EC002PN':'ஆரணி (கிழக்கு)','05EO001PN':'ஆரணி (கிழக்கு)','05EO002PN':'ஆரணி (கிழக்கு)','05EO003PN':'ஆரணி (கிழக்கு)','05EO004PN':'ஆரணி (கிழக்கு)','05EO005PN':'ஆரணி (கிழக்கு)','05EO006PN':'ஆரணி (கிழக்கு)','05EO007PN':'ஆரணி (கிழக்கு)','05EO008PN':'ஆரணி (கிழக்கு)','05EO009PN':'ஆரணி (கிழக்கு)','05EP051PY':'ஆரணி (மேற்கு)','05EP020P1':'ஆரணி (கிழக்கு)','05EP052PY':'ஆரணி (மேற்கு)','05EP012P1':'ஆரணி (கிழக்கு)','05EP052P1':'ஆரணி (மேற்கு)','05EP046P1':'ஆரணி (மேற்கு)','05EP007P1':'ஆரணி (கிழக்கு)','05EP044P1':'ஆரணி (மேற்கு)','05EP008P2':'ஆரணி (கிழக்கு)','05EP008PY':'ஆரணி (கிழக்கு)','05EP018P2':'ஆரணி (கிழக்கு)','05EP028PY':'ஆரணி (கிழக்கு)','05EP038PY':'ஆரணி (மேற்கு)','05EP022P2':'ஆரணி (கிழக்கு)','05EP054P1':'ஆரணி (மேற்கு)','05EP009P1':'ஆரணி (கிழக்கு)','05EP050PY':'ஆரணி (மேற்கு)','05EP044PY':'ஆரணி (மேற்கு)','05EP078PN':'ஆரணி (மேற்கு)','05EP042PN':'ஆரணி (மேற்கு)','05EP019P1':'ஆரணி (கிழக்கு)','05EP037PN':'ஆரணி (மேற்கு)','05EP018P1':'ஆரணி (கிழக்கு)','05EP023P1':'ஆரணி (கிழக்கு)','05EP017P1':'ஆரணி (கிழக்கு)','05EP024P1':'ஆரணி (கிழக்கு)','05EP004P1':'ஆரணி (கிழக்கு)','05EP011PY':'ஆரணி (கிழக்கு)','05EP020P2':'ஆரணி (கிழக்கு)','05EP023PY':'ஆரணி (கிழக்கு)','05EP033PN':'ஆரணி (மேற்கு)','05EP016PY':'ஆரணி (கிழக்கு)','05EP016P1':'ஆரணி (கிழக்கு)','05EP049PY':'ஆரணி (மேற்கு)','05EP051P1':'ஆரணி (மேற்கு)','05EP009PY':'ஆரணி (கிழக்கு)','05EP015PY':'ஆரணி (கிழக்கு)','05EP035P2':'ஆரணி (மேற்கு)','05EP028P1':'ஆரணி (கிழக்கு)','05EP018PY':'ஆரணி (கிழக்கு)','05EP010PY':'ஆரணி (கிழக்கு)','05EP010P1':'ஆரணி (கிழக்கு)','05EP010P2':'ஆரணி (கிழக்கு)','05EP036P1':'ஆரணி (மேற்கு)','05EP053P1':'ஆரணி (மேற்கு)','05EP029PY':'ஆரணி (கிழக்கு)','05EP015P1':'ஆரணி (கிழக்கு)','05EB008PN':'ஆரணி (மேற்கு)','05EP049P1':'ஆரணி (மேற்கு)','05EP024PY':'ஆரணி (கிழக்கு)','05EP036P2':'ஆரணி (மேற்கு)','05EP025PY':'ஆரணி (கிழக்கு)','05EP051P2':'ஆரணி (மேற்கு)','05EP008P1':'ஆரணி (கிழக்கு)','05EP020PY':'ஆரணி (கிழக்கு)','05EP050P1':'ஆரணி (மேற்கு)','05EP029P1':'ஆரணி (கிழக்கு)','05EP034PY':'ஆரணி (மேற்கு)','05EP011P2':'ஆரணி (கிழக்கு)','05EP019PY':'ஆரணி (கிழக்கு)','05EP046PY':'ஆரணி (மேற்கு)','05EP012PY':'ஆரணி (கிழக்கு)','05EP043P1':'ஆரணி (மேற்கு)','05EP080PN':'ஆரணி (மேற்கு)','05EP017PY':'ஆரணி (கிழக்கு)','05EP007PY':'ஆரணி (கிழக்கு)','05EP047PN':'ஆரணி (மேற்கு)','05EP003P1':'ஆரணி (கிழக்கு)','05EP021PN':'ஆரணி (கிழக்கு)','05EP022PY':'ஆரணி (கிழக்கு)','05EP036PY':'ஆரணி (மேற்கு)','05EP035P1':'ஆரணி (மேற்கு)','05EP014P2':'ஆரணி (கிழக்கு)','05EP032PN':'ஆரணி (மேற்கு)','05EP030P1':'ஆரணி (கிழக்கு)','05EP005PY':'ஆரணி (கிழக்கு)','05EP064PN':'ஆரணி (கிழக்கு)','05EP005P1':'ஆரணி (கிழக்கு)','05EP003PY':'ஆரணி (கிழக்கு)','05EP072P1':'ஆரணி (கிழக்கு)','05EP001P1':'ஆரணி (கிழக்கு)','05EP034P1':'ஆரணி (மேற்கு)','05EP022P1':'ஆரணி (கிழக்கு)','05EP035PY':'ஆரணி (மேற்கு)','05EP001P2':'ஆரணி (கிழக்கு)','05EP072PY':'ஆரணி (கிழக்கு)','05EP025P2':'ஆரணி (கிழக்கு)','05EP030PY':'ஆரணி (கிழக்கு)','05EP077PN':'ஆரணி (கிழக்கு)','05EP045PY':'ஆரணி (மேற்கு)','05EP018P3':'ஆரணி (கிழக்கு)','05EP027PY':'ஆரணி (கிழக்கு)','05EP027P3':'ஆரணி (கிழக்கு)','05EP014PY':'ஆரணி (கிழக்கு)','05EP004PY':'ஆரணி (கிழக்கு)','05EP029P2':'ஆரணி (கிழக்கு)','05EP053PY':'ஆரணி (மேற்கு)','05EP038P1':'ஆரணி (மேற்கு)','05EP027P2':'ஆரணி (கிழக்கு)','05EP027P1':'ஆரணி (கிழக்கு)','05EB006PN':'ஆரணி (மேற்கு)','05EB007PY':'ஆரணி (மேற்கு)','05EP023P2':'ஆரணி (கிழக்கு)','05EP079PN':'ஆரணி (மேற்கு)','05EP043PY':'ஆரணி (மேற்கு)','05CP061P2':'புதுப்பாளையம்','05CP017PN':'செங்கம்','05CP078PY':'புதுப்பாளையம்','05CP069PN':'புதுப்பாளையம்','05CP065P1':'புதுப்பாளையம்','05CP022P1':'செங்கம்','05CP028P1':'செங்கம்','05CP084P1':'புதுப்பாளையம்','05CP192PN':'புதுப்பாளையம்','05CP026PY':'செங்கம்','05CP026P1':'செங்கம்','05CP021P1':'செங்கம்','05CP030PY':'செங்கம்','05CC006P1':'புதுப்பாளையம்','05CP008P1':'செங்கம்','05CP068PN':'புதுப்பாளையம்','05CP024PN':'செங்கம்','05CP015PN':'செங்கம்','05CP026P2':'செங்கம்','05CP090P1':'புதுப்பாளையம்','05CP039PY':'செங்கம்','05CP077PY':'புதுப்பாளையம்','05CP077P1':'புதுப்பாளையம்','05CP039P1':'செங்கம்','05CP056PN':'செங்கம்','05CP036P1':'செங்கம்','05CP013PN':'செங்கம்','05CP165P1':'புதுப்பாளையம்','05CP049PN':'செங்கம்','05CP089PN':'புதுப்பாளையம்','05CP043PY':'செங்கம்','05CC004PN':'புதுப்பாளையம்','05CC007PN':'புதுப்பாளையம்','05CC005PN':'புதுப்பாளையம்','05CC006PY':'புதுப்பாளையம்','05CP055PN':'செங்கம்','05CP018PY':'செங்கம்','05CC003P1':'செங்கம்','05CC001PN':'செங்கம்','05CC003PY':'செங்கம்','05CC008PY':'செங்கம்','05CB001PN':'செங்கம்','05CP001PY':'செங்கம்','05CC008P1':'செங்கம்','05CP001P1':'செங்கம்','05CC002P1':'செங்கம்','05CC002PY':'செங்கம்','05CP005PY':'செங்கம்','05CP004P1':'செங்கம்','05CP053PN':'செங்கம்','05CP066P1':'புதுப்பாளையம்','05CP005P1':'செங்கம்','05CP038PY':'செங்கம்','05CP084PY':'புதுப்பாளையம்','05CP168PN':'செங்கம்','05CP080PN':'புதுப்பாளையம்','05CP030P2':'செங்கம்','05CP038P2':'செங்கம்','05CP010PY':'செங்கம்','05CP007PN':'செங்கம்','05CP076PN':'புதுப்பாளையம்','05CP165PY':'புதுப்பாளையம்','05CP048PN':'செங்கம்','05CP072PN':'புதுப்பாளையம்','05CP164PN':'புதுப்பாளையம்','05CP033PN':'செங்கம்','05CP021PY':'செங்கம்','05CP044P1':'செங்கம்','05CP034PN':'செங்கம்','05CP036PY':'செங்கம்','05CP004PY':'செங்கம்','05CP081P1':'புதுப்பாளையம்','05CP011PN':'செங்கம்','05CP093PN':'புதுப்பாளையம்','05CP073PN':'புதுப்பாளையம்','05CP018P1':'செங்கம்','05CP021P2':'செங்கம்','05CP074PN':'புதுப்பாளையம்','05CP020PY':'செங்கம்','05CP008PY':'செங்கம்','05CP088PN':'புதுப்பாளையம்','05CP002P1':'செங்கம்','05CP009PN':'செங்கம்','05CP038P1':'செங்கம்','05CP178PN':'செங்கம்','05CP019PY':'செங்கம்','05CP030P1':'செங்கம்','05CB003PN':'செங்கம்','05CP094PN':'புதுப்பாளையம்','05CP027PY':'செங்கம்','05CP058PN':'புதுப்பாளையம்','05CP082PY':'புதுப்பாளையம்','05CP092PN':'புதுப்பாளையம்','05CP028PY':'செங்கம்','05CP044PY':'செங்கம்','05CP022PY':'செங்கம்','05CP031PY':'செங்கம்','05CP029PY':'செங்கம்','05CP006P1':'செங்கம்','05CP065PY':'புதுப்பாளையம்','05CP083PN':'புதுப்பாளையம்','05CP189PN':'புதுப்பாளையம்','05CP047PN':'செங்கம்','05CP075PN':'புதுப்பாளையம்','05CP032PN':'செங்கம்','05CP071PY':'புதுப்பாளையம்','05CP071P1':'புதுப்பாளையம்','05CP087PN':'புதுப்பாளையம்','05CP037PN':'செங்கம்','05CP012PN':'செங்கம்','05CP079PY':'புதுப்பாளையம்','05CP046PN':'செங்கம்','05CP067PN':'புதுப்பாளையம்','05CP023PN':'செங்கம்','05CP175PY':'செங்கம்','05CP054PN':'செங்கம்','05CP066PY':'புதுப்பாளையம்','05CP006PY':'செங்கம்','05CP041P1':'செங்கம்','05CP043P1':'செங்கம்','05CP063PY':'புதுப்பாளையம்','05CP063P1':'புதுப்பாளையம்','05CP057PN':'செங்கம்','05CP025PN':'செங்கம்','05CP052PN':'செங்கம்','05CP019P1':'செங்கம்','05CP040PY':'செங்கம்','05CP042PY':'செங்கம்','05CP042P1':'செங்கம்','05CP014P1':'செங்கம்','05CC011PN':'புதுப்பாளையம்','05CP060PN':'புதுப்பாளையம்','05CB002PN':'புதுப்பாளையம்','05CP059PN':'புதுப்பாளையம்','05CP061P1':'புதுப்பாளையம்','05CP061PY':'புதுப்பாளையம்','05CP016PN':'செங்கம்','05CP064PN':'புதுப்பாளையம்','05CP035PN':'செங்கம்','05CP014PY':'செங்கம்','05CP031P1':'செங்கம்','05CP040P1':'செங்கம்','05CP091PN':'புதுப்பாளையம்','05CP020P1':'செங்கம்','05CP003P1':'செங்கம்','05CP081PY':'புதுப்பாளையம்','05CP082P1':'புதுப்பாளையம்','05CP041PY':'செங்கம்','05CP029P2':'செங்கம்','05CP003PY':'செங்கம்','05CP085PY':'புதுப்பாளையம்','05CP027P1':'செங்கம்','05CP010P1':'செங்கம்','05CP045PN':'செங்கம்','05CP065P2':'புதுப்பாளையம்','05CP062PN':'புதுப்பாளையம்','05CP085P1':'புதுப்பாளையம்','05CP086PN':'புதுப்பாளையம்','05CP090PY':'புதுப்பாளையம்','05CP002PY':'செங்கம்','05CP070PN':'புதுப்பாளையம்','05CP029P1':'செங்கம்','05CP079P1':'புதுப்பாளையம்','05CP038P3':'செங்கம்','05CP051PN':'செங்கம்','05CP175P1':'செங்கம்','05CP078P1':'புதுப்பாளையம்','05IP133P1':'பெரணமல்லூர்','05IP179PN':'பெரணமல்லூர்','05IP175P1':'பெரணமல்லூர்','05IP155PN':'பெரணமல்லூர்','05IP144PY':'பெரணமல்லூர்','05IP174PN':'பெரணமல்லூர்','05IP115PN':'சேத்பட்','05IP131PN':'பெரணமல்லூர்','05IP118PN':'சேத்பட்','05IP156PN':'பெரணமல்லூர்','05IP237PN':'சேத்பட்','05IP003PN':'சேத்பட்','05IB003PN':'சேத்பட்','05IB004PY':'சேத்பட்','05IB005PN':'சேத்பட்','05IP039PY':'ஆரணி (மேற்கு)','05IP088PN':'ஆரணி (மேற்கு)','05IP087PN':'ஆரணி (மேற்கு)','05IP143PN':'சேத்பட்','05IP123PN':'தெள்ளார்','05IP111PN':'சேத்பட்','05IP140PY':'பெரணமல்லூர்','05IP112PY':'சேத்பட்','05IP139PY':'பெரணமல்லூர்','05IP180P1':'பெரணமல்லூர்','05IP117PY':'சேத்பட்','05IP134PN':'பெரணமல்லூர்','05IP132PN':'பெரணமல்லூர்','05IP206PN':'சேத்பட்','05IP130PN':'பெரணமல்லூர்','05IP056P1':'ஆரணி (மேற்கு)','05IP004PN':'சேத்பட்','05IP041P1':'ஆரணி (மேற்கு)','05IP157PN':'பெரணமல்லூர்','05IP120P1':'சேத்பட்','05IP141P1':'சேத்பட்','05IP140P1':'பெரணமல்லூர்','05IP203PN':'சேத்பட்','05IP180PY':'பெரணமல்லூர்','05IV017PY':'பெரணமல்லூர்','05IP122P1':'சேத்பட்','05IP116PN':'சேத்பட்','05IP128PN':'பெரணமல்லூர்','05IP138PY':'பெரணமல்லூர்','05IP138P1':'பெரணமல்லூர்','05IP129PN':'பெரணமல்லூர்','05IP204P1':'சேத்பட்','05IP120P2':'சேத்பட்','05IP133PY':'பெரணமல்லூர்','05IP039P1':'ஆரணி (மேற்கு)','05IP120PY':'சேத்பட்','05IP142PN':'பெரணமல்லூர்','05IP113PN':'சேத்பட்','05IP146P2':'சேத்பட்','05IP127PN':'பெரணமல்லூர்','05IP175PY':'பெரணமல்லூர்','05IV017P1':'பெரணமல்லூர்','05IP124PN':'பெரணமல்லூர்','05IP169PN':'பெரணமல்லூர்','05IP181PN':'பெரணமல்லூர்','05IP168PN':'பெரணமல்லூர்','05IP171PN':'பெரணமல்லூர்','05IP148PN':'சேத்பட்','05IP040PN':'ஆரணி (மேற்கு)','05IP056PY':'ஆரணி (மேற்கு)','05IP135PN':'பெரணமல்லூர்','05IP143PY':'பெரணமல்லூர்','05IP140PN':'சேத்பட்','05IP204PY':'சேத்பட்','05IP141PN':'பெரணமல்லூர்','05IP177PN':'பெரணமல்லூர்','05IP041PY':'ஆரணி (மேற்கு)','05IP167PN':'பெரணமல்லூர்','05IB004P1':'சேத்பட்','05IP205PN':'சேத்பட்','05IP146PY':'சேத்பட்','05IP122PY':'சேத்பட்','05IP146P1':'சேத்பட்','05IP173PN':'பெரணமல்லூர்','05IP137PN':'பெரணமல்லூர்','05IP141P2':'சேத்பட்','05IP144P1':'பெரணமல்லூர்','05IP202P2':'சேத்பட்','05IP055PY':'ஆரணி (மேற்கு)','05IP178PN':'பெரணமல்லூர்','05IP139P1':'பெரணமல்லூர்','05IP139PN':'சேத்பட்','05IP145PN':'பெரணமல்லூர்','05IP141PY':'சேத்பட்','05IP119PN':'சேத்பட்','05IP133P2':'பெரணமல்லூர்','05IP158PN':'பெரணமல்லூர்','05IP202PY':'சேத்பட்','05IP112P1':'சேத்பட்','05IP055P1':'ஆரணி (மேற்கு)','05IP172PN':'பெரணமல்லூர்','05IP202P1':'சேத்பட்','05IP149PN':'சேத்பட்','05IP114PN':'சேத்பட்','05IP136PN':'பெரணமல்லூர்','05IP147PN':'சேத்பட்','05IP125P1':'பெரணமல்லூர்','05IP170PN':'பெரணமல்லூர்','05IP117P1':'சேத்பட்','05IP176PN':'பெரணமல்லூர்','05IP125PY':'பெரணமல்லூர்','05FP021PN':'செய்யார்','05FP038P1':'செய்யார்','05FP082PN':'அனக்காவூர்','05FP090PN':'அனக்காவூர்','05FP091PN':'அனக்காவூர்','05FP049PN':'அனக்காவூர்','05FP050PY':'அனக்காவூர்','05FP051PN':'அனக்காவூர்','05FP062PN':'அனக்காவூர்','05FP022PN':'செய்யார்','05FV033PY':'வெம்பாக்கம் 1','05FP079PN':'அனக்காவூர்','05FP095P1':'அனக்காவூர்','05FP018P2':'செய்யார்','05FP039P2':'செய்யார்','05FP050P1':'அனக்காவூர்','05FA001PN':'செய்யார்','05FA002PN':'செய்யார்','05FA003PN':'செய்யார்','05FB002PN':'செய்யார்','05FB003PN':'செய்யார்','05FB004PN':'செய்யார்','05FB007PN':'செய்யார்','05FB005PN':'செய்யார்','05FB006PN':'செய்யார்','05FC001PN':'செய்யார்','05FC002PN':'செய்யார்','05FB001PN':'செய்யார்','05FP055PY':'அனக்காவூர்','05FP068P1':'அனக்காவூர்','05FP060PN':'அனக்காவூர்','05FP041PN':'செய்யார்','05FP027P1':'செய்யார்','05FP179PN':'செய்யார்','05FP098PY':'அனக்காவூர்','05FP081PN':'அனக்காவூர்','05FP027PY':'செய்யார்','05FP030PN':'செய்யார்','05FP065P1':'அனக்காவூர்','05FP069PN':'அனக்காவூர்','05FP184P2':'செய்யார்','05FP043PN':'செய்யார்','05FP085PN':'அனக்காவூர்','05FP077P1':'அனக்காவூர்','05FP034PN':'செய்யார்','05FP008PN':'செய்யார்','05FP196PN':'செய்யார்','05FP032PN':'செய்யார்','05FP056PN':'அனக்காவூர்','05FP066PN':'அனக்காவூர்','05FP178PY':'அனக்காவூர்','05FP080PN':'அனக்காவூர்','05FP088PN':'அனக்காவூர்','05FP006PN':'செய்யார்','05FP065PY':'அனக்காவூர்','05FP084PN':'அனக்காவூர்','05FP029PN':'செய்யார்','05FP042PY':'செய்யார்','05FP073PN':'அனக்காவூர்','05FP058PN':'அனக்காவூர்','05FP031P1':'செய்யார்','05FP149PN':'வெம்பாக்கம் 1','05FP086PN':'அனக்காவூர்','05FP077PY':'அனக்காவூர்','05FP017PN':'செய்யார்','05FP035P1':'செய்யார்','05FP087PN':'அனக்காவூர்','05FP038PY':'செய்யார்','05FP042P1':'செய்யார்','05FP181PY':'செய்யார்','05FP001PN':'செய்யார்','05FP184PY':'செய்யார்','05FP071PN':'அனக்காவூர்','05FP095PY':'அனக்காவூர்','05FP040P1':'செய்யார்','05FP176PY':'செய்யார்','05FV005PN':'அனக்காவூர்','05FP074PN':'அனக்காவூர்','05FP195PN':'செய்யார்','05FP046PY':'செய்யார்','05FP047PY':'செய்யார்','05FP055P1':'அனக்காவூர்','05FP036PN':'செய்யார்','05FP057PN':'அனக்காவூர்','05FP048PN':'செய்யார்','05FP186P1':'செய்யார்','05FP059PN':'அனக்காவூர்','05FV033P1':'வெம்பாக்கம் 1','05FP078PN':'அனக்காவூர்','05FP037PN':'செய்யார்','05FP039PY':'செய்யார்','05FP004PN':'செய்யார்','05FP076PN':'அனக்காவூர்','05FP054PN':'அனக்காவூர்','05FP018PY':'செய்யார்','05FP018P1':'செய்யார்','05FP092PN':'அனக்காவூர்','05FP175P1':'செய்யார்','05FP061PN':'அனக்காவூர்','05FP046P1':'செய்யார்','05FP098P1':'அனக்காவூர்','05FP014P1':'செய்யார்','05FP014PY':'செய்யார்','05FP089PN':'அனக்காவூர்','05FP183PN':'செய்யார்','05FP035PY':'செய்யார்','05FP005PN':'செய்யார்','05FP052PN':'அனக்காவூர்','05FP023PN':'செய்யார்','05FP011PY':'செய்யார்','05FP040PY':'செய்யார்','05FP175P2':'செய்யார்','05FP093P1':'அனக்காவூர்','05FP044PN':'செய்யார்','05FP010PN':'செய்யார்','05FV029P1':'வெம்பாக்கம் 1','05FP063PN':'அனக்காவூர்','05FP020PN':'செய்யார்','05FV029P2':'வெம்பாக்கம் 1','05FP028PN':'செய்யார்','05FP068PY':'அனக்காவூர்','05FP025PN':'செய்யார்','05FP155PN':'வெம்பாக்கம் 1','05FP016PN':'செய்யார்','05FP096PN':'அனக்காவூர்','05FP047P1':'செய்யார்','05FP186PY':'செய்யார்','05FV029PY':'வெம்பாக்கம் 1','05FP024PN':'செய்யார்','05FP070PY':'அனக்காவூர்','05FP070P1':'அனக்காவூர்','05FP100PN':'அனக்காவூர்','05FP067PN':'அனக்காவூர்','05FP101PN':'அனக்காவூர்','05FV001PY':'அனக்காவூர்','05FP184P1':'செய்யார்','05FP053PN':'அனக்காவூர்','05FP075PN':'அனக்காவூர்','05FP045PY':'செய்யார்','05FP064PN':'அனக்காவூர்','05FP031PY':'செய்யார்','05FP013PN':'செய்யார்','05FP083PY':'அனக்காவூர்','05FP083P1':'அனக்காவூர்','05FP094PN':'அனக்காவூர்','05FP181P1':'செய்யார்','05FV036PY':'அனக்காவூர்','05FV036P1':'அனக்காவூர்','05FP097PN':'அனக்காவூர்','05FP015PN':'செய்யார்','05FP003PN':'செய்யார்','05FP007PN':'செய்யார்','05FP072PN':'அனக்காவூர்','05FP026PN':'செய்யார்','05FP033PN':'செய்யார்','05FP011P1':'செய்யார்','05FP099PN':'அனக்காவூர்','05FP009PN':'செய்யார்','05FP178P1':'அனக்காவூர்','05FP039P1':'செய்யார்','05FP176P1':'செய்யார்','05FP093PY':'அனக்காவூர்','05FP045P1':'செய்யார்','05FV001P1':'அனக்காவூர்','05FP175PY':'செய்யார்','05FP012PN':'செய்யார்','05HO002PY':'ஜமுனாமரத்தூர்','05HO003P1':'ஜமுனாமரத்தூர்','05BP002PN':'போளூர்','05HO002P1':'ஜமுனாமரத்தூர்','05HO007PN':'ஜமுனாமரத்தூர்','05HO001PY':'ஜமுனாமரத்தூர்','05CO001P1':'ஜமுனாமரத்தூர்','05HO001P1':'ஜமுனாமரத்தூர்','05BP052P1':'போளூர்','05BO008P1':'ஜமுனாமரத்தூர்','05BO008P2':'ஜமுனாமரத்தூர்','05CO003P2':'ஜமுனாமரத்தூர்','05CO003PY':'ஜமுனாமரத்தூர்','05BO005P1':'ஜமுனாமரத்தூர்','05BO004P1':'ஜமுனாமரத்தூர்','05BO006P1':'ஜமுனாமரத்தூர்','05CO004PN':'ஜமுனாமரத்தூர்','05BO005PY':'ஜமுனாமரத்தூர்','05BP052PY':'போளூர்','05CO002P1':'ஜமுனாமரத்தூர்','05CO003P1':'ஜமுனாமரத்தூர்','05BO008P3':'ஜமுனாமரத்தூர்','05BO004PY':'ஜமுனாமரத்தூர்','05CO002PY':'ஜமுனாமரத்தூர்','05BP238PY':'ஜமுனாமரத்தூர்','05BP238P1':'ஜமுனாமரத்தூர்','05BP026P1':'போளூர்','05BO008PY':'ஜமுனாமரத்தூர்','05HO003PY':'ஜமுனாமரத்தூர்','05CO001PY':'ஜமுனாமரத்தூர்','05BP016P1':'போளூர்','05BO006PY':'ஜமுனாமரத்தூர்','05HP061PY':'கலசபாக்கம்','05HP084PY':'கலசபாக்கம்','05HP084P1':'கலசபாக்கம்','05HP079PY':'கலசபாக்கம்','05HP163PN':'கலசபாக்கம்','05HP094PY':'கலசபாக்கம்','05HP094P1':'கலசபாக்கம்','05HP096P1':'கலசபாக்கம்','05HP087P1':'கலசபாக்கம்','05HP075P1':'கலசபாக்கம்','05HP074P2':'கலசபாக்கம்','05HP110PY':'கலசபாக்கம்','05HP074P1':'கலசபாக்கம்','05HP091PY':'கலசபாக்கம்','05HP063P1':'கலசபாக்கம்','05HP090P1':'கலசபாக்கம்','05HP064PN':'கலசபாக்கம்','05HP082P1':'கலசபாக்கம்','05HP164PN':'கலசபாக்கம்','05HP082PY':'கலசபாக்கம்','05HP097PY':'கலசபாக்கம்','05HP097P1':'கலசபாக்கம்','05HP065PY':'கலசபாக்கம்','05HP066PN':'கலசபாக்கம்','05HP067PN':'கலசபாக்கம்','05HC008PN':'கலசபாக்கம்','05HP071PN':'கலசபாக்கம்','05HP075PY':'கலசபாக்கம்','05HP085PN':'கலசபாக்கம்','05HP109PN':'கலசபாக்கம்','05HP074PY':'கலசபாக்கம்','05HP079P1':'கலசபாக்கம்','05HP093PY':'கலசபாக்கம்','05HP093P3':'கலசபாக்கம்','05HP093P2':'கலசபாக்கம்','05HP103PN':'கலசபாக்கம்','05HP098PY':'கலசபாக்கம்','05HP073PY':'கலசபாக்கம்','05HP070P1':'கலசபாக்கம்','05HP068PN':'கலசபாக்கம்','05HP111PN':'கலசபாக்கம்','05HP172PN':'கலசபாக்கம்','05HP077PN':'கலசபாக்கம்','05HP106PY':'கலசபாக்கம்','05HP106P1':'கலசபாக்கம்','05HP088PN':'கலசபாக்கம்','05HP095P1':'கலசபாக்கம்','05HP073P1':'கலசபாக்கம்','05HP070PY':'கலசபாக்கம்','05HP089PN':'கலசபாக்கம்','05HP069PY':'கலசபாக்கம்','05HP091P1':'கலசபாக்கம்','05HP165PN':'கலசபாக்கம்','05HP061P1':'கலசபாக்கம்','05HP091P2':'கலசபாக்கம்','05HP097P2':'கலசபாக்கம்','05HP098P1':'கலசபாக்கம்','05HP083PY':'கலசபாக்கம்','05HP087PY':'கலசபாக்கம்','05HP072P1':'கலசபாக்கம்','05HP063PY':'கலசபாக்கம்','05HP087P2':'கலசபாக்கம்','05HP072PY':'கலசபாக்கம்','05HP065P1':'கலசபாக்கம்','05HP100PN':'கலசபாக்கம்','05HP110P1':'கலசபாக்கம்','05HP099PY':'கலசபாக்கம்','05HP102PN':'கலசபாக்கம்','05HP099P1':'கலசபாக்கம்','05HP101PN':'கலசபாக்கம்','05HP092P1':'கலசபாக்கம்','05HP069P1':'கலசபாக்கம்','05HP093P1':'கலசபாக்கம்','05HP080P1':'கலசபாக்கம்','05HP108PN':'கலசபாக்கம்','05HP090PY':'கலசபாக்கம்','05HP107P1':'கலசபாக்கம்','05HP086PN':'கலசபாக்கம்','05HP065P2':'கலசபாக்கம்','05HP095PY':'கலசபாக்கம்','05HP096PY':'கலசபாக்கம்','05HP092PY':'கலசபாக்கம்','05HP062PN':'கலசபாக்கம்','05HP170PN':'கலசபாக்கம்','05HP104PN':'கலசபாக்கம்','05HP078P1':'கலசபாக்கம்','05HP078PY':'கலசபாக்கம்','05HP083P1':'கலசபாக்கம்','05HP107PY':'கலசபாக்கம்','05HP105P1':'கலசபாக்கம்','05HP105PY':'கலசபாக்கம்','05HP171PN':'கலசபாக்கம்','05HP080PY':'கலசபாக்கம்','05KP088PN':'திருவண்ணாமலை 2','05KP067P2':'திருவண்ணாமலை 2','05KP144PY':'கீழ்பென்னாத்தூர்','05KP144P1':'கீழ்பென்னாத்தூர்','05KP164PN':'கீழ்பென்னாத்தூர்','05KP009PY':'துரிஞ்சாபுரம்','05KP006P1':'துரிஞ்சாபுரம்','05KP067PY':'திருவண்ணாமலை 2','05KP067P1':'திருவண்ணாமலை 2','05KP066PN':'திருவண்ணாமலை 2','05KP181PN':'கீழ்பென்னாத்தூர்','05KP178PY':'கீழ்பென்னாத்தூர்','05KP155PY':'கீழ்பென்னாத்தூர்','05KP062P2':'கீழ்பென்னாத்தூர்','05KP062PY':'கீழ்பென்னாத்தூர்','05KP062P1':'கீழ்பென்னாத்தூர்','05KP162P1':'கீழ்பென்னாத்தூர்','05KP156P1':'கீழ்பென்னாத்தூர்','05KP151PN':'கீழ்பென்னாத்தூர்','05KP057PN':'துரிஞ்சாபுரம்','05KP063PN':'திருவண்ணாமலை 2','05KP196PN':'திருவண்ணாமலை 2','05KP090PN':'திருவண்ணாமலை 2','05KP059P1':'கீழ்பென்னாத்தூர்','05KP174PY':'கீழ்பென்னாத்தூர்','05KP176PY':'கீழ்பென்னாத்தூர்','05KP009P3':'துரிஞ்சாபுரம்','05KP155P2':'கீழ்பென்னாத்தூர்','05KP179PN':'கீழ்பென்னாத்தூர்','05KP156PY':'கீழ்பென்னாத்தூர்','05KP177PN':'கீழ்பென்னாத்தூர்','05KP175PN':'கீழ்பென்னாத்தூர்','05KP168PY':'கீழ்பென்னாத்தூர்','05KP160PN':'கீழ்பென்னாத்தூர்','05KP167PN':'கீழ்பென்னாத்தூர்','05KP159PN':'கீழ்பென்னாத்தூர்','05KP056P1':'துரிஞ்சாபுரம்','05KP161PY':'கீழ்பென்னாத்தூர்','05KP161P1':'கீழ்பென்னாத்தூர்','05KP183PN':'கீழ்பென்னாத்தூர்','05KP059PY':'கீழ்பென்னாத்தூர்','05KP007P2':'துரிஞ்சாபுரம்','05KP155P1':'கீழ்பென்னாத்தூர்','05KP169PN':'கீழ்பென்னாத்தூர்','05KP185PY':'கீழ்பென்னாத்தூர்','05KP064PY':'திருவண்ணாமலை 2','05KP064P1':'திருவண்ணாமலை 2','05KP003PY':'கீழ்பென்னாத்தூர்','05KP004PN':'கீழ்பென்னாத்தூர்','05KP150PY':'கீழ்பென்னாத்தூர்','05KP060PY':'கீழ்பென்னாத்தூர்','05KP056PY':'துரிஞ்சாபுரம்','05KP178P1':'கீழ்பென்னாத்தூர்','05KP170PN':'கீழ்பென்னாத்தூர்','05KP089PN':'திருவண்ணாமலை 2','05KP158PN':'கீழ்பென்னாத்தூர்','05KP182P2':'கீழ்பென்னாத்தூர்','05KP182PY':'கீழ்பென்னாத்தூர்','05KP182P3':'கீழ்பென்னாத்தூர்','05KP058P1':'கீழ்பென்னாத்தூர்','05KP058PY':'கீழ்பென்னாத்தூர்','05KP145P1':'கீழ்பென்னாத்தூர்','05KP163PY':'கீழ்பென்னாத்தூர்','05KP163P1':'கீழ்பென்னாத்தூர்','05KP166PY':'கீழ்பென்னாத்தூர்','05KP166P1':'கீழ்பென்னாத்தூர்','05KP003P1':'கீழ்பென்னாத்தூர்','05KP148P1':'கீழ்பென்னாத்தூர்','05KP145PY':'கீழ்பென்னாத்தூர்','05KP065PN':'திருவண்ணாமலை 2','05KP162PY':'கீழ்பென்னாத்தூர்','05KP009P1':'துரிஞ்சாபுரம்','05KP154PN':'கீழ்பென்னாத்தூர்','05KP150P1':'கீழ்பென்னாத்தூர்','05KP006P2':'துரிஞ்சாபுரம்','05KP006PY':'துரிஞ்சாபுரம்','05KP185P1':'கீழ்பென்னாத்தூர்','05KP003P2':'கீழ்பென்னாத்தூர்','05KP153PY':'கீழ்பென்னாத்தூர்','05KP153P1':'கீழ்பென்னாத்தூர்','05KP152PN':'கீழ்பென்னாத்தூர்','05KP157PN':'கீழ்பென்னாத்தூர்','05KP168P1':'கீழ்பென்னாத்தூர்','05KP182P1':'கீழ்பென்னாத்தூர்','05KP146PY':'கீழ்பென்னாத்தூர்','05KP146P1':'கீழ்பென்னாத்தூர்','05KP059P2':'கீழ்பென்னாத்தூர்','05KP176P1':'கீழ்பென்னாத்தூர்','05KP186PN':'கீழ்பென்னாத்தூர்','05KP165PN':'கீழ்பென்னாத்தூர்','05KP173PN':'கீழ்பென்னாத்தூர்','05KP198P1':'கீழ்பென்னாத்தூர்','05KP172P2':'கீழ்பென்னாத்தூர்','05KP172P1':'கீழ்பென்னாத்தூர்','05KP198PY':'கீழ்பென்னாத்தூர்','05KP172PY':'கீழ்பென்னாத்தூர்','05KP060P1':'கீழ்பென்னாத்தூர்','05KP086PN':'திருவண்ணாமலை 2','05KP009P2':'துரிஞ்சாபுரம்','05KP180PN':'கீழ்பென்னாத்தூர்','05KP008PN':'துரிஞ்சாபுரம்','05KP174P1':'கீழ்பென்னாத்தூர்','05KP149PN':'கீழ்பென்னாத்தூர்','05KP184P1':'கீழ்பென்னாத்தூர்','05KP184PY':'கீழ்பென்னாத்தூர்','05KP171PN':'கீழ்பென்னாத்தூர்','05KP007PY':'துரிஞ்சாபுரம்','05KP007P1':'துரிஞ்சாபுரம்','05KP061PN':'கீழ்பென்னாத்தூர்','05KP147PN':'கீழ்பென்னாத்தூர்','05KP001PN':'கீழ்பென்னாத்தூர்','05KP002PN':'கீழ்பென்னாத்தூர்','05KP195PN':'கீழ்பென்னாத்தூர்','05KB031PN':'கீழ்பென்னாத்தூர்','05KB032PN':'கீழ்பென்னாத்தூர்','05KP056P2':'துரிஞ்சாபுரம்','05KP148PY':'கீழ்பென்னாத்தூர்','05BP158PN':'சேத்பட்','05BP136PN':'சேத்பட்','05BP019PY':'போளூர்','05BP008PY':'போளூர்','05BC010PN':'போளூர்','05BP055P1':'போளூர்','05BP020P1':'போளூர்','05BP155PN':'சேத்பட்','05BP133PN':'சேத்பட்','05BP017PN':'போளூர்','05BP010PN':'போளூர்','05BP046P1':'போளூர்','05BP015P1':'போளூர்','05BP035PN':'போளூர்','05BP169P1':'போளூர்','05BP014PN':'போளூர்','05BP160PN':'சேத்பட்','05BP011PN':'போளூர்','05BP127PN':'சேத்பட்','05BP029PN':'போளூர்','05BP034PN':'போளூர்','05BP175PN':'போளூர்','05BP162P1':'போளூர்','05BP007P1':'போளூர்','05BP153PY':'சேத்பட்','05BP033PN':'போளூர்','05BP008P1':'போளூர்','05BP019P1':'போளூர்','05BP005PN':'போளூர்','05BP006PY':'போளூர்','05BP007PY':'போளூர்','05BP028PY':'போளூர்','05BP009PN':'போளூர்','05BP027PN':'போளூர்','05BP030PY':'போளூர்','05BP022PN':'போளூர்','05BP169PY':'போளூர்','05BP057PN':'போளூர்','05BP081PN':'கலசபாக்கம்','05BP013P1':'போளூர்','05BC004PY':'போளூர்','05BP013PY':'போளூர்','05BP124PY':'சேத்பட்','05BP018PN':'போளூர்','05BP016PY':'போளூர்','05BP047P1':'போளூர்','05BP125PN':'சேத்பட்','05BP152PN':'சேத்பட்','05BC005PN':'போளூர்','05BP056P1':'போளூர்','05BP137PN':'சேத்பட்','05BP173P1':'போளூர்','05BP040PN':'போளூர்','05BP173PY':'போளூர்','05BP026PY':'போளூர்','05BP041PN':'போளூர்','05BP030P1':'போளூர்','05BP161PN':'சேத்பட்','05BB007P2':'போளூர்','05BP032PY':'போளூர்','05BP123PN':'சேத்பட்','05BP166PN':'சேத்பட்','05BP135PN':'சேத்பட்','05BP132PN':'சேத்பட்','05BP012PN':'போளூர்','05BP023PN':'போளூர்','05BP042PY':'போளூர்','05BP038PN':'போளூர்','05BP056PY':'போளூர்','05BP006P1':'போளூர்','05BP031PN':'போளூர்','05BP167PN':'சேத்பட்','05BP126PN':'சேத்பட்','05BP134PN':'சேத்பட்','05BP050P1':'போளூர்','05BP050PY':'போளூர்','05BB006PY':'போளூர்','05BB007PY':'போளூர்','05BB008PN':'போளூர்','05BP037PY':'போளூர்','05BP176PN':'போளூர்','05BP025PN':'போளூர்','05BP044PN':'போளூர்','05BP015PY':'போளூர்','05BC007PN':'போளூர்','05BP043PN':'போளூர்','05BB007P1':'போளூர்','05BP037P1':'போளூர்','05BP001PN':'போளூர்','05BB001PN':'போளூர்','05BB002PN':'போளூர்','05BC003PN':'போளூர்','05BC009PN':'போளூர்','05BC001PN':'போளூர்','05BC002PN':'போளூர்','05BP045P1':'போளூர்','05BP045PY':'போளூர்','05BP055PY':'போளூர்','05BP032P1':'போளூர்','05BP124P1':'சேத்பட்','05BP076PN':'கலசபாக்கம்','05BP128PN':'சேத்பட்','05BP046PY':'போளூர்','05BP028P1':'போளூர்','05BP131PN':'சேத்பட்','05BP156PN':'சேத்பட்','05BC004P1':'போளூர்','05BP162PY':'போளூர்','05BP154PN':'சேத்பட்','05BP047PY':'போளூர்','05BC006PN':'போளூர்','05BP054PN':'போளூர்','05BP060PN':'போளூர்','05BP039PY':'போளூர்','05BP121PN':'சேத்பட்','05BP039P1':'போளூர்','05BP129PN':'சேத்பட்','05BP024PN':'போளூர்','05BB006P1':'போளூர்','05BP036PN':'போளூர்','05BP153P1':'சேத்பட்','05BP059PN':'போளூர்','05BP157PN':'சேத்பட்','05BP168PN':'போளூர்','05BP020PY':'போளூர்','05BP150P1':'சேத்பட்','05BP151PN':'சேத்பட்','05BP150PY':'சேத்பட்','05BP159PN':'சேத்பட்','05BP049PN':'போளூர்','05BP053PY':'போளூர்','05BP053P1':'போளூர்','05BP058P1':'போளூர்','05BP058PY':'போளூர்','05BP048PN':'போளூர்','05BP051PN':'போளூர்','05BP130PN':'சேத்பட்','05GP140PY':'தண்டராம்பட்டு','05GP159P1':'தண்டராம்பட்டு','05GP149PN':'தண்டராம்பட்டு','05GP097P3':'தண்டராம்பட்டு','05GP106PN':'தண்டராம்பட்டு','05GP103P1':'தண்டராம்பட்டு','05GP137P1':'தண்டராம்பட்டு','05GP126P1':'தண்டராம்பட்டு','05GP137PN':'தண்டராம்பட்டு','05GP114PY':'தண்டராம்பட்டு','05GP124PY':'தண்டராம்பட்டு','05GP128P1':'தண்டராம்பட்டு','05GP114P2':'தண்டராம்பட்டு','05GP128PY':'தண்டராம்பட்டு','05GP129PN':'தண்டராம்பட்டு','05GP160P1':'தண்டராம்பட்டு','05GP123P1':'தண்டராம்பட்டு','05GP143PN':'தண்டராம்பட்டு','05GP109PN':'தண்டராம்பட்டு','05GP120PY':'தண்டராம்பட்டு','05GP120P1':'தண்டராம்பட்டு','05GP100P1':'தண்டராம்பட்டு','05GP100P2':'தண்டராம்பட்டு','05GP124P1':'தண்டராம்பட்டு','05GP126PY':'தண்டராம்பட்டு','05GP147PN':'தண்டராம்பட்டு','05GP127P2':'தண்டராம்பட்டு','05GP157PN':'தண்டராம்பட்டு','05GP108PN':'தண்டராம்பட்டு','05GP163PN':'தண்டராம்பட்டு','05GP140P1':'தண்டராம்பட்டு','05GP135PN':'தண்டராம்பட்டு','05GP103PY':'தண்டராம்பட்டு','05GP160PY':'தண்டராம்பட்டு','05GP116PN':'தண்டராம்பட்டு','05GP100PY':'தண்டராம்பட்டு','05GP133P2':'தண்டராம்பட்டு','05GP145PN':'தண்டராம்பட்டு','05GP137P2':'தண்டராம்பட்டு','05GP142PN':'தண்டராம்பட்டு','05GP133PY':'தண்டராம்பட்டு','05GP115P1':'தண்டராம்பட்டு','05GP115PY':'தண்டராம்பட்டு','05GP133P1':'தண்டராம்பட்டு','05GP097P2':'தண்டராம்பட்டு','05GP134PY':'தண்டராம்பட்டு','05GP110P1':'தண்டராம்பட்டு','05GP162P1':'தண்டராம்பட்டு','05GP137PY':'தண்டராம்பட்டு','05GP162PY':'தண்டராம்பட்டு','05GP099PN':'தண்டராம்பட்டு','05GP134P1':'தண்டராம்பட்டு','05GP136PN':'தண்டராம்பட்டு','05GP158PN':'தண்டராம்பட்டு','05GP113PY':'தண்டராம்பட்டு','05GP119PY':'தண்டராம்பட்டு','05GP098P1':'தண்டராம்பட்டு','05GP050PN':'செங்கம்','05GP113P1':'தண்டராம்பட்டு','05GP105P3':'தண்டராம்பட்டு','05GP104PN':'தண்டராம்பட்டு','05GP119P1':'தண்டராம்பட்டு','05GP141PN':'தண்டராம்பட்டு','05GP114P1':'தண்டராம்பட்டு','05GP144PN':'தண்டராம்பட்டு','05GP117PN':'தண்டராம்பட்டு','05GP118PN':'தண்டராம்பட்டு','05GP127PY':'தண்டராம்பட்டு','05GP111PN':'தண்டராம்பட்டு','05GP127P3':'தண்டராம்பட்டு','05GP159PY':'தண்டராம்பட்டு','05GP112PY':'தண்டராம்பட்டு','05GP131PY':'தண்டராம்பட்டு','05GP132PN':'தண்டராம்பட்டு','05GP131P1':'தண்டராம்பட்டு','05GP102P1':'தண்டராம்பட்டு','05GP161P1':'தண்டராம்பட்டு','05GP148PN':'தண்டராம்பட்டு','05GP095PN':'தண்டராம்பட்டு','05GP096PN':'தண்டராம்பட்டு','05GP097PY':'தண்டராம்பட்டு','05GO005PN':'தண்டராம்பட்டு','05GP139PN':'தண்டராம்பட்டு','05GP058PN':'செங்கம்','05GP152PN':'தண்டராம்பட்டு','05GP161PY':'தண்டராம்பட்டு','05GP105P1':'தண்டராம்பட்டு','05GP130P1':'தண்டராம்பட்டு','05GP125P1':'தண்டராம்பட்டு','05GP125PY':'தண்டராம்பட்டு','05GP159P2':'தண்டராம்பட்டு','05GP101P1':'தண்டராம்பட்டு','05GP101PY':'தண்டராம்பட்டு','05GP102PY':'தண்டராம்பட்டு','05GP121PN':'தண்டராம்பட்டு','05GP122PN':'தண்டராம்பட்டு','05GP123PY':'தண்டராம்பட்டு','05GP107PN':'தண்டராம்பட்டு','05GP151PN':'தண்டராம்பட்டு','05GP105PY':'தண்டராம்பட்டு','05GP105P2':'தண்டராம்பட்டு','05GP110PY':'தண்டராம்பட்டு','05GP150PN':'தண்டராம்பட்டு','05GP127P1':'தண்டராம்பட்டு','05GP153PN':'தண்டராம்பட்டு','05GP154PN':'தண்டராம்பட்டு','05GP155PN':'தண்டராம்பட்டு','05GP156PN':'தண்டராம்பட்டு','05GP146PN':'தண்டராம்பட்டு','05GP097P1':'தண்டராம்பட்டு','05GP130PY':'தண்டராம்பட்டு','05GP098PY':'தண்டராம்பட்டு','05GP112P1':'தண்டராம்பட்டு','05AP079PN':'திருவண்ணாமலை 1','05AP112PY':'திருவண்ணாமலை 2','05AP111PY':'திருவண்ணாமலை 2','05AP040P2':'துரிஞ்சாபுரம்','05AP084PN':'திருவண்ணாமலை 1','05AP032P2':'துரிஞ்சாபுரம்','05AP032P1':'துரிஞ்சாபுரம்','05AB021PN':'திருவண்ணாமலை HQ','05AB007PN':'திருவண்ணாமலை HQ','05AB038PN':'திருவண்ணாமலை HQ','05AP128PN':'திருவண்ணாமலை 2','05AP129PN':'திருவண்ணாமலை 2','05AP073P1':'திருவண்ணாமலை 1','05AP005PY':'துரிஞ்சாபுரம்','05AP005P1':'துரிஞ்சாபுரம்','05AP091P1':'திருவண்ணாமலை 1','05AP096P1':'திருவண்ணாமலை 1','05AP142P1':'திருவண்ணாமலை 1','05AP136PN':'திருவண்ணாமலை 1','05AP099PN':'திருவண்ணாமலை 1','05AP080PY':'திருவண்ணாமலை 1','05AP081PY':'திருவண்ணாமலை 1','05AB011PN':'திருவண்ணாமலை HQ','05AP117P1':'திருவண்ணாமலை 2','05AP117PY':'திருவண்ணாமலை 2','05AP093PN':'திருவண்ணாமலை 1','05AB004PN':'திருவண்ணாமலை HQ','05AB024PN':'திருவண்ணாமலை HQ','05AP143PN':'திருவண்ணாமலை 1','05AP106PN':'திருவண்ணாமலை 1','05AB003PN':'திருவண்ணாமலை HQ','05AB036PN':'திருவண்ணாமலை HQ','05AP080P3':'திருவண்ணாமலை 1','05AP036PY':'துரிஞ்சாபுரம்','05AP036P1':'துரிஞ்சாபுரம்','05AP116PN':'திருவண்ணாமலை 2','05AP139PY':'திருவண்ணாமலை 1','05AP011P1':'துரிஞ்சாபுரம்','05AP010PN':'துரிஞ்சாபுரம்','05AP026P1':'துரிஞ்சாபுரம்','05AP141P2':'திருவண்ணாமலை 1','05AP141P1':'திருவண்ணாமலை 1','05AP011PY':'துரிஞ்சாபுரம்','05AP074P1':'திருவண்ணாமலை 1','05AP085P1':'திருவண்ணாமலை 1','05AB005PN':'திருவண்ணாமலை HQ','05AB037PN':'திருவண்ணாமலை HQ','05AP049P1':'துரிஞ்சாபுரம்','05AP134PN':'திருவண்ணாமலை 2','05AP073P2':'திருவண்ணாமலை 1','05AP049PY':'துரிஞ்சாபுரம்','05AB013PN':'திருவண்ணாமலை HQ','05AP095PN':'திருவண்ணாமலை 1','05AP015PN':'துரிஞ்சாபுரம்','05AP123P1':'திருவண்ணாமலை 2','05AP080P2':'திருவண்ணாமலை 1','05AP098PN':'திருவண்ணாமலை 1','05AP118PN':'திருவண்ணாமலை 2','05AP041P1':'துரிஞ்சாபுரம்','05AB026PN':'திருவண்ணாமலை HQ','05AP016PN':'துரிஞ்சாபுரம்','05AP025PN':'துரிஞ்சாபுரம்','05AP140PY':'திருவண்ணாமலை 1','05AP080P1':'திருவண்ணாமலை 1','05AP053P1':'துரிஞ்சாபுரம்','05AP100PN':'திருவண்ணாமலை 1','05AP071PN':'திருவண்ணாமலை 1','05AP077PN':'திருவண்ணாமலை 1','05AP051PN':'துரிஞ்சாபுரம்','05AC003PN':'திருவண்ணாமலை HQ','05AP102PN':'திருவண்ணாமலை 1','05AB016PN':'திருவண்ணாமலை HQ','05AB040PN':'திருவண்ணாமலை HQ','05AP054P1':'துரிஞ்சாபுரம்','05AP039PN':'துரிஞ்சாபுரம்','05AP026PY':'துரிஞ்சாபுரம்','05AP119PN':'திருவண்ணாமலை 2','05AP139P1':'திருவண்ணாமலை 1','05AP115PN':'திருவண்ணாமலை 2','05AB010PN':'திருவண்ணாமலை HQ','05AP111P1':'திருவண்ணாமலை 2','05AP017PN':'துரிஞ்சாபுரம்','05AP052PY':'துரிஞ்சாபுரம்','05AP044P2':'துரிஞ்சாபுரம்','05AP045PN':'துரிஞ்சாபுரம்','05AP040P1':'துரிஞ்சாபுரம்','05AP018P1':'துரிஞ்சாபுரம்','05AP018PY':'துரிஞ்சாபுரம்','05AP027PN':'துரிஞ்சாபுரம்','05AP078P1':'திருவண்ணாமலை 1','05AP105PY':'திருவண்ணாமலை 1','05AP019PY':'துரிஞ்சாபுரம்','05AP054PY':'துரிஞ்சாபுரம்','05AB001PN':'திருவண்ணாமலை HQ','05AP053PY':'துரிஞ்சாபுரம்','05AP196PY':'துரிஞ்சாபுரம்','05AB035PN':'திருவண்ணாமலை HQ','05AB028PN':'திருவண்ணாமலை HQ','05AP031PN':'துரிஞ்சாபுரம்','05AB006PN':'திருவண்ணாமலை HQ','05AP126P2':'திருவண்ணாமலை 2','05AP072PN':'திருவண்ணாமலை 1','05AP076PN':'திருவண்ணாமலை 1','05AP055PN':'துரிஞ்சாபுரம்','05AP101PN':'திருவண்ணாமலை 1','05AP038PN':'துரிஞ்சாபுரம்','05AP074PY':'திருவண்ணாமலை 1','05AB014PN':'திருவண்ணாமலை HQ','05AB039PN':'திருவண்ணாமலை HQ','05AP013PN':'துரிஞ்சாபுரம்','05AP030P1':'துரிஞ்சாபுரம்','05AP033PN':'துரிஞ்சாபுரம்','05AB012PN':'திருவண்ணாமலை HQ','05AP110P1':'திருவண்ணாமலை 1','05AP075PN':'திருவண்ணாமலை 1','05AP120PN':'திருவண்ணாமலை 2','05AP028PN':'துரிஞ்சாபுரம்','05AP110PY':'திருவண்ணாமலை 1','05AP069PN':'திருவண்ணாமலை 1','05AP092PN':'திருவண்ணாமலை 1','05AP032PY':'துரிஞ்சாபுரம்','05AP085PY':'திருவண்ணாமலை 1','05AP048PY':'துரிஞ்சாபுரம்','05AP048P1':'துரிஞ்சாபுரம்','05AP108PN':'திருவண்ணாமலை 1','05AP081P1':'திருவண்ணாமலை 1','05AP096P2':'திருவண்ணாமலை 1','05AP096PY':'திருவண்ணாமலை 1','05AP103PN':'திருவண்ணாமலை 1','05AP138PN':'திருவண்ணாமலை 1','05AP082PN':'திருவண்ணாமலை 1','05AP094PN':'திருவண்ணாமலை 1','05AP126PY':'திருவண்ணாமலை 2','05AP141PY':'திருவண்ணாமலை 1','05AC005PN':'திருவண்ணாமலை HQ','05AC007PN':'திருவண்ணாமலை HQ','05AC002PN':'திருவண்ணாமலை HQ','05AP142PY':'திருவண்ணாமலை 1','05AP034PN':'துரிஞ்சாபுரம்','05AP126P3':'திருவண்ணாமலை 2','05AB027PN':'திருவண்ணாமலை HQ','05AP137PY':'திருவண்ணாமலை 1','05AP137P1':'திருவண்ணாமலை 1','05AP024PN':'துரிஞ்சாபுரம்','05AB023PN':'திருவண்ணாமலை HQ','05AP133PN':'திருவண்ணாமலை 2','05AP042PY':'துரிஞ்சாபுரம்','05AB025PN':'திருவண்ணாமலை HQ','05AB017PN':'திருவண்ணாமலை HQ','05AP112P1':'திருவண்ணாமலை 2','05AP019P1':'துரிஞ்சாபுரம்','05AB041PN':'திருவண்ணாமலை HQ','05AB018PN':'திருவண்ணாமலை HQ','05AB029PN':'திருவண்ணாமலை HQ','05AB043PN':'திருவண்ணாமலை HQ','05AP047PN':'துரிஞ்சாபுரம்','05AP012PN':'துரிஞ்சாபுரம்','05AP029PN':'துரிஞ்சாபுரம்','05AP109PN':'திருவண்ணாமலை 1','05AP070PN':'திருவண்ணாமலை 1','05AP131P1':'திருவண்ணாமலை 2','05AP050PN':'துரிஞ்சாபுரம்','05AP105P1':'திருவண்ணாமலை 1','05AB008PN':'திருவண்ணாமலை HQ','05AB009PN':'திருவண்ணாமலை HQ','05AB019PN':'திருவண்ணாமலை HQ','05AB042PN':'திருவண்ணாமலை HQ','05AP078PY':'திருவண்ணாமலை 1','05AP023PN':'துரிஞ்சாபுரம்','05AP035PN':'துரிஞ்சாபுரம்','05AP104PY':'திருவண்ணாமலை 1','05AP040PY':'துரிஞ்சாபுரம்','05AP121PN':'திருவண்ணாமலை 2','05AP126P1':'திருவண்ணாமலை 2','05AP125PN':'திருவண்ணாமலை 2','05AP127PN':'திருவண்ணாமலை 2','05AP132PN':'திருவண்ணாமலை 2','05AP194PN':'திருவண்ணாமலை 1','05AP087PN':'திருவண்ணாமலை 2','05AP068PN':'திருவண்ணாமலை 2','05AP131PY':'திருவண்ணாமலை 2','05AP130PN':'திருவண்ணாமலை 2','05AB033PN':'திருவண்ணாமலை HQ','05AP083PN':'திருவண்ணாமலை 1','05AP091PY':'திருவண்ணாமலை 1','05AB030PN':'திருவண்ணாமலை HQ','05AB044PN':'திருவண்ணாமலை HQ','05AP042P1':'துரிஞ்சாபுரம்','05AB020PN':'திருவண்ணாமலை HQ','05AP123PY':'திருவண்ணாமலை 2','05AP104P1':'திருவண்ணாமலை 1','05AC004PN':'திருவண்ணாமலை HQ','05AC006PN':'திருவண்ணாமலை HQ','05AC001PN':'திருவண்ணாமலை HQ','05AB034PN':'திருவண்ணாமலை HQ','05AB022PN':'திருவண்ணாமலை HQ','05AP020PN':'துரிஞ்சாபுரம்','05AP124PN':'திருவண்ணாமலை 2','05AP022PN':'துரிஞ்சாபுரம்','05AP196P1':'துரிஞ்சாபுரம்','05AP037PN':'துரிஞ்சாபுரம்','05AP046PN':'துரிஞ்சாபுரம்','05AB015PN':'திருவண்ணாமலை HQ','05AB045PN':'திருவண்ணாமலை HQ','05AP052P1':'துரிஞ்சாபுரம்','05AP041PY':'துரிஞ்சாபுரம்','05AP021PN':'துரிஞ்சாபுரம்','05AP030PY':'துரிஞ்சாபுரம்','05AP140P1':'திருவண்ணாமலை 1','05AP044PY':'துரிஞ்சாபுரம்','05AP044P1':'துரிஞ்சாபுரம்','05AP107PN':'திருவண்ணாமலை 1','05AP097PN':'திருவண்ணாமலை 1','05AP043PN':'துரிஞ்சாபுரம்','05AP014PN':'துரிஞ்சாபுரம்','05AP198PN':'திருவண்ணாமலை 2','05AP113PY':'திருவண்ணாமலை 2','05AP114PN':'திருவண்ணாமலை 2','05AP193PN':'திருவண்ணாமலை 2','05AP197PN':'திருவண்ணாமலை 2','05AP113P1':'திருவண்ணாமலை 2','05AP122PN':'திருவண்ணாமலை 2','05AB002PN':'திருவண்ணாமலை HQ','05AP074P2':'திருவண்ணாமலை 1','05AP135PN':'திருவண்ணாமலை 2','05AP073PY':'திருவண்ணாமலை 1','05DP077PN':'தெள்ளார்','05DP047PY':'வந்தவாசி','05DP047P1':'வந்தவாசி','05DP047P2':'வந்தவாசி','05DP014PN':'வந்தவாசி','05DP161PY':'பெரணமல்லூர்','05DP105PY':'தெள்ளார்','05DP044P1':'வந்தவாசி','05DP008P1':'வந்தவாசி','05DP058P1':'வந்தவாசி','05DP041PY':'வந்தவாசி','05DP027PN':'வந்தவாசி','05DP160PY':'பெரணமல்லூர்','05DP064PN':'தெள்ளார்','05DP152PN':'பெரணமல்லூர்','05DP103PN':'தெள்ளார்','05DP065PN':'தெள்ளார்','05DP007P1':'வந்தவாசி','05DB003P1':'தெள்ளார்','05DP006PY':'வந்தவாசி','05DP032P1':'வந்தவாசி','05DP032PY':'வந்தவாசி','05DP049PN':'வந்தவாசி','05DP033PY':'வந்தவாசி','05DP126P1':'பெரணமல்லூர்','05DP019PN':'வந்தவாசி','05DP106P1':'தெள்ளார்','05DP068PN':'தெள்ளார்','05DB005PN':'தெள்ளார்','05DP097PN':'தெள்ளார்','05DP002PN':'வந்தவாசி','05DP090PN':'தெள்ளார்','05DP007PY':'வந்தவாசி','05DP016PY':'வந்தவாசி','05DP164PY':'பெரணமல்லூர்','05DP023P1':'வந்தவாசி','05DP034PN':'வந்தவாசி','05DP080PN':'தெள்ளார்','05DP107PY':'தெள்ளார்','05DP106PY':'தெள்ளார்','05DP148PY':'பெரணமல்லூர்','05DP051P1':'வந்தவாசி','05DP101PN':'தெள்ளார்','05DP108P1':'தெள்ளார்','05DP108PY':'தெள்ளார்','05DP018P1':'வந்தவாசி','05DP121PN':'தெள்ளார்','05DP017PN':'வந்தவாசி','05DP033P2':'வந்தவாசி','05DP123PN':'தெள்ளார்','05DP096PN':'தெள்ளார்','05DP008P2':'வந்தவாசி','05DP062PY':'வந்தவாசி','05DP056PN':'வந்தவாசி','05DP189P1':'வந்தவாசி','05DP024PN':'வந்தவாசி','05DP010PN':'வந்தவாசி','05DP082PN':'தெள்ளார்','05DP008PY':'வந்தவாசி','05DP053PN':'வந்தவாசி','05DP109PN':'தெள்ளார்','05DV023P1':'பெரணமல்லூர்','05DP012PN':'வந்தவாசி','05DP013PN':'வந்தவாசி','05DP066PY':'தெள்ளார்','05DP051PY':'வந்தவாசி','05DP038PN':'வந்தவாசி','05DP026PY':'வந்தவாசி','05DP122PN':'தெள்ளார்','05DP095PY':'தெள்ளார்','05DP095P1':'தெள்ளார்','05DP020PN':'வந்தவாசி','05DP118PY':'தெள்ளார்','05DP045P1':'வந்தவாசி','05DP089PY':'தெள்ளார்','05DP120PN':'தெள்ளார்','05DP106P3':'தெள்ளார்','05DP110PY':'தெள்ளார்','05DP110P1':'தெள்ளார்','05DV002P2':'தெள்ளார்','05DP062P2':'வந்தவாசி','05DP086PN':'தெள்ளார்','05DP036PN':'வந்தவாசி','05DP011PN':'வந்தவாசி','05DP066P1':'தெள்ளார்','05DP075PN':'தெள்ளார்','05DP190PN':'வந்தவாசி','05DP107P1':'தெள்ளார்','05DP149PN':'பெரணமல்லூர்','05DP079PY':'தெள்ளார்','05DP062P1':'வந்தவாசி','05DP040PN':'வந்தவாசி','05DP050PY':'வந்தவாசி','05DP050P1':'வந்தவாசி','05DP037PN':'வந்தவாசி','05DP021PN':'வந்தவாசி','05DP151P1':'பெரணமல்லூர்','05DP033P1':'வந்தவாசி','05DP073P1':'தெள்ளார்','05DP079P1':'தெள்ளார்','05DP018PY':'வந்தவாசி','05DP006P1':'வந்தவாசி','05DP104PN':'தெள்ளார்','05DP084PY':'தெள்ளார்','05DP030PN':'வந்தவாசி','05DP111PN':'தெள்ளார்','05DP009PY':'வந்தவாசி','05DP150P1':'பெரணமல்லூர்','05DP165PN':'பெரணமல்லூர்','05DP160P1':'பெரணமல்லூர்','05DP088P1':'தெள்ளார்','05DP028PN':'வந்தவாசி','05DP146PN':'பெரணமல்லூர்','05DP197PN':'தெள்ளார்','05DP058PY':'வந்தவாசி','05DP016P1':'வந்தவாசி','05DP182PN':'தெள்ளார்','05DP112PN':'தெள்ளார்','05DP088PY':'தெள்ளார்','05DP088P2':'தெள்ளார்','05DP154PN':'பெரணமல்லூர்','05DP094PN':'தெள்ளார்','05DP029PN':'வந்தவாசி','05DP199PY':'தெள்ளார்','05DP164P1':'பெரணமல்லூர்','05DP023PY':'வந்தவாசி','05DP023P2':'வந்தவாசி','05DP046P1':'வந்தவாசி','05DP091PN':'தெள்ளார்','05DP059P1':'வந்தவாசி','05DP070PN':'தெள்ளார்','05DP106P2':'தெள்ளார்','05DP071P1':'தெள்ளார்','05DP060PN':'வந்தவாசி','05DP026P1':'வந்தவாசி','05DP100PN':'தெள்ளார்','05DP083PN':'தெள்ளார்','05DP092P1':'தெள்ளார்','05DP088P3':'தெள்ளார்','05DP159PY':'பெரணமல்லூர்','05DP159P1':'பெரணமல்லூர்','05DB004PN':'பெரணமல்லூர்','05DV002P1':'தெள்ளார்','05DP071PY':'தெள்ளார்','05DP003PN':'வந்தவாசி','05DP004PN':'வந்தவாசி','05DP043PN':'வந்தவாசி','05DP031PN':'வந்தவாசி','05DP084P1':'தெள்ளார்','05DP126PY':'பெரணமல்லூர்','05DP093P1':'தெள்ளார்','05DP093PY':'தெள்ளார்','05DP151PY':'பெரணமல்லூர்','05DP022P1':'வந்தவாசி','05DP198PY':'தெள்ளார்','05DP035PN':'வந்தவாசி','05DP061PY':'வந்தவாசி','05DP045PY':'வந்தவாசி','05DP072PN':'தெள்ளார்','05DP051P2':'வந்தவாசி','05DP102PY':'தெள்ளார்','05DP102P1':'தெள்ளார்','05DP022PY':'வந்தவாசி','05DP041P1':'வந்தவாசி','05DP073PY':'தெள்ளார்','05DP005PN':'வந்தவாசி','05DP113PY':'தெள்ளார்','05DP113P1':'தெள்ளார்','05DP052PN':'வந்தவாசி','05DP147PN':'பெரணமல்லூர்','05DP054PN':'வந்தவாசி','05DP085PN':'தெள்ளார்','05DP039P1':'வந்தவாசி','05DP198P1':'தெள்ளார்','05DP117PN':'தெள்ளார்','05DP098PN':'தெள்ளார்','05DP114PN':'தெள்ளார்','05DP092PY':'தெள்ளார்','05DP099PN':'தெள்ளார்','05DP105P1':'தெள்ளார்','05DP153PN':'பெரணமல்லூர்','05DV023PY':'பெரணமல்லூர்','05DP148P1':'பெரணமல்லூர்','05DP150PY':'பெரணமல்லூர்','05DP061P1':'வந்தவாசி','05DP063PN':'வந்தவாசி','05DC004PN':'தெள்ளார்','05DP116PN':'தெள்ளார்','05DB003PY':'தெள்ளார்','05DP057PN':'வந்தவாசி','05DV002PY':'தெள்ளார்','05DP042PN':'வந்தவாசி','05DP069PN':'தெள்ளார்','05DP055PN':'வந்தவாசி','05DP074PN':'தெள்ளார்','05DP115PN':'தெள்ளார்','05DV008PY':'தெள்ளார்','05DV008P1':'தெள்ளார்','05DP067PN':'தெள்ளார்','05DP118P1':'தெள்ளார்','05DP039PY':'வந்தவாசி','05DP089P1':'தெள்ளார்','05DP081PN':'தெள்ளார்','05DP119PN':'தெள்ளார்','05DP166P1':'பெரணமல்லூர்','05DP166PY':'பெரணமல்லூர்','05DO001PN':'வந்தவாசி','05DO002PN':'வந்தவாசி','05DB001PN':'வந்தவாசி','05DB002P1':'வந்தவாசி','05DB002PY':'வந்தவாசி','05DB006PN':'வந்தவாசி','05DC001PN':'வந்தவாசி','05DC002PN':'வந்தவாசி','05DC003PN':'வந்தவாசி','05DC005PN':'வந்தவாசி','05DC006PN':'வந்தவாசி','05DP001PN':'வந்தவாசி','05DP048PN':'வந்தவாசி','05DP199P1':'தெள்ளார்','05DP044PY':'வந்தவாசி','05DP078PN':'தெள்ளார்','05DP009P1':'வந்தவாசி','05DP189PY':'வந்தவாசி','05DP059PY':'வந்தவாசி','05DP025PN':'வந்தவாசி','05DP162PN':'பெரணமல்லூர்','05DP015PN':'வந்தவாசி','05DP046PY':'வந்தவாசி','05JP105PN':'வெம்பாக்கம் 2','05JP123PN':'வெம்பாக்கம் 2','05JP168PN':'வெம்பாக்கம் 1','05JP136PY':'வெம்பாக்கம் 2','05JP127PY':'வெம்பாக்கம் 1','05JP127P1':'வெம்பாக்கம் 1','05JP109PN':'வெம்பாக்கம் 2','05JP162PY':'வெம்பாக்கம் 1','05JP156PY':'வெம்பாக்கம் 1','05JP156P1':'வெம்பாக்கம் 1','05JP163PN':'வெம்பாக்கம் 1','05JP138PY':'வெம்பாக்கம் 2','05JP165PN':'வெம்பாக்கம் 1','05JP121P2':'வெம்பாக்கம் 2','05JP164PN':'வெம்பாக்கம் 1','05JP131PY':'வெம்பாக்கம் 2','05JP135P1':'வெம்பாக்கம் 2','05JP152P1':'வெம்பாக்கம் 1','05JP102PY':'வெம்பாக்கம் 2','05JP177PY':'வெம்பாக்கம் 2','05JP114P2':'வெம்பாக்கம் 2','05JP134PN':'வெம்பாக்கம் 2','05JP143PN':'வெம்பாக்கம் 1','05JP173PN':'வெம்பாக்கம் 1','05JP127P2':'வெம்பாக்கம் 1','05JP002PN':'செய்யார்','05JP162P1':'வெம்பாக்கம் 1','05JP131P2':'வெம்பாக்கம் 2','05JP118PN':'வெம்பாக்கம் 2','05JP126PN':'வெம்பாக்கம் 1','05JP115PN':'வெம்பாக்கம் 2','05JP132PY':'வெம்பாக்கம் 2','05JP147PN':'வெம்பாக்கம் 1','05JP122PN':'வெம்பாக்கம் 2','05JP103PN':'வெம்பாக்கம் 2','05JP128PY':'வெம்பாக்கம் 1','05JP106P1':'வெம்பாக்கம் 2','05JP106PY':'வெம்பாக்கம் 2','05JP110PY':'வெம்பாக்கம் 2','05JP111PN':'வெம்பாக்கம் 2','05JP128P1':'வெம்பாக்கம் 1','05JP161P1':'வெம்பாக்கம் 1','05JP151P1':'வெம்பாக்கம் 1','05JP114PY':'வெம்பாக்கம் 2','05JP150PY':'வெம்பாக்கம் 1','05JP150P1':'வெம்பாக்கம் 1','05JP172PN':'வெம்பாக்கம் 1','05JP133PN':'வெம்பாக்கம் 2','05JP107PN':'வெம்பாக்கம் 2','05JP102P1':'வெம்பாக்கம் 2','05JP117P1':'வெம்பாக்கம் 2','05JP157PN':'வெம்பாக்கம் 1','05JP154PN':'வெம்பாக்கம் 1','05JP110P1':'வெம்பாக்கம் 2','05JP138P1':'வெம்பாக்கம் 2','05JP117PY':'வெம்பாக்கம் 2','05JP169PN':'வெம்பாக்கம் 1','05JP113PN':'வெம்பாக்கம் 2','05JP177P1':'வெம்பாக்கம் 2','05JP146PN':'வெம்பாக்கம் 1','05JP136P1':'வெம்பாக்கம் 2','05JP144PN':'வெம்பாக்கம் 1','05JP141PN':'வெம்பாக்கம் 2','05JP114P1':'வெம்பாக்கம் 2','05JP170PN':'வெம்பாக்கம் 1','05JP153P1':'வெம்பாக்கம் 1','05JP119PN':'வெம்பாக்கம் 2','05JP167PN':'வெம்பாக்கம் 1','05JP153PY':'வெம்பாக்கம் 1','05JP120PN':'வெம்பாக்கம் 2','05JP152PY':'வெம்பாக்கம் 1','05JP131P1':'வெம்பாக்கம் 2','05JP171PN':'வெம்பாக்கம் 1','05JP159PN':'வெம்பாக்கம் 1','05JP136P2':'வெம்பாக்கம் 2','05JP114P3':'வெம்பாக்கம் 2','05JP110P2':'வெம்பாக்கம் 2','05JP160PN':'வெம்பாக்கம் 1','05JP174PN':'வெம்பாக்கம் 1','05JP108PN':'வெம்பாக்கம் 2','05JP135PY':'வெம்பாக்கம் 2','05JP148PN':'வெம்பாக்கம் 1','05JP166PN':'வெம்பாக்கம் 1','05JP121PY':'வெம்பாக்கம் 2','05JP139P1':'வெம்பாக்கம் 2','05JP145PN':'வெம்பாக்கம் 1','05JP142PN':'வெம்பாக்கம் 1','05JP158PN':'வெம்பாக்கம் 1','05JP125PY':'வெம்பாக்கம் 1','05JP137PN':'வெம்பாக்கம் 2','05JP132P1':'வெம்பாக்கம் 2','05JP112PN':'வெம்பாக்கம் 2','05JP130PN':'வெம்பாக்கம் 1','05JP161PY':'வெம்பாக்கம் 1','05JP116PY':'வெம்பாக்கம் 2','05JP151PY':'வெம்பாக்கம் 1','05JP140PN':'வெம்பாக்கம் 2','05JP104PN':'வெம்பாக்கம் 2','05JP121P1':'வெம்பாக்கம் 2','05JP127P3':'வெம்பாக்கம் 1','05JP116P1':'வெம்பாக்கம் 2','05JP139PY':'வெம்பாக்கம் 2','05JP124PN':'வெம்பாக்கம் 1','05JP129PY':'வெம்பாக்கம் 1','05JP129P1':'வெம்பாக்கம் 1','05JP125P1':'வெம்பாக்கம் 1','05BP021PN':'போளூர்'};
-
-const INSPECTOR_MAP={
-  '7338749500':{name:'இணைப்பதிவாளர்',type:'officer',target:10},
-  '7338749503':{name:'துணைப்பதிவாளர், செய்யார் சரகம்',type:'officer',target:null},
-  '7338749504':{name:'துணைப்பதிவாளர் (பொவிதி)',type:'officer',target:50},
-  '7338749524':{name:'திருவண்ணாமலை HQ',type:'block',target:45},
-  '7338749525':{name:'திருவண்ணாமலை 1',type:'block',target:45},
-  '7338749526':{name:'கீழ்பென்னாத்தூர்',type:'block',target:45},
-  '7338749527':{name:'செங்கம்',type:'block',target:45},
-  '7338749528':{name:'தண்டராம்பட்டு',type:'block',target:45},
-  '7338749529':{name:'கலசபாக்கம்',type:'block',target:45},
-  '7338749530':{name:'போளூர்',type:'block',target:45},
-  '7338749531':{name:'ஜமுனாமரத்தூர்',type:'block',target:45},
-  '7338749532':{name:'சேத்பட்',type:'block',target:45},
-  '7338749533':{name:'ஆரணி (கிழக்கு)',type:'block',target:45},
-  '7338749534':{name:'செய்யார்',type:'block',target:45},
-  '7338749535':{name:'வெம்பாக்கம் 1',type:'block',target:45},
-  '7338749536':{name:'வந்தவாசி',type:'block',target:45},
-  '7338749537':{name:'பெரணமல்லூர்',type:'block',target:45},
-  '7338749538':{name:'தெள்ளார்',type:'block',target:45},
-  '7338749539':{name:'துரிஞ்சாபுரம்',type:'block',target:45},
-  '7338749540':{name:'புதுப்பாளையம்',type:'block',target:45},
-  '7338749541':{name:'ஆரணி (மேற்கு)',type:'block',target:45},
-  '7458968899':{name:'திருவண்ணாமலை 2',type:'block',target:45},
-  '8457896987':{name:'வெம்பாக்கம் 2',type:'block',target:45},
-  '8541478968':{name:'அனக்காவூர்',type:'block',target:45},
-};
-
-function resetInspection(){
-  document.getElementById('insp-file').value='';
-  document.getElementById('insp-squad-date').value='';
-  document.getElementById('insp-result').classList.add('hidden');
-  document.getElementById('insp-msg').classList.add('hidden');
-}
-
-function loadSquadCodesFromSquadTab(){
-  var rows=document.querySelectorAll('#sq-tbody tr');
-  if(!rows.length){alert('Generate a Squad table first.');return;}
-  var codes=[];
-  rows.forEach(function(row){
-    var cells=row.querySelectorAll('td');
-    if(cells[2])codes.push(cells[2].textContent.trim());
-  });
-  var el=document.getElementById('insp-squad-exclude');
-  if(el)el.value=codes.filter(Boolean).join(', ');
-  alert(codes.length+' squad shop codes loaded.');
-}
-
-function showInspMsg(msg,type){
-  var el=document.getElementById('insp-msg');
-  if(!el)return;
-  if(!msg){el.classList.add('hidden');return;}
-  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
-  el.innerHTML=msg;el.classList.remove('hidden');
-}
-
-function processInspection(){
-  var fileEl=document.getElementById('insp-file');
-  if(!fileEl.files||!fileEl.files[0]){showInspMsg('Excel file select seyyavum.','err');return;}
-  showInspMsg('<span class="spin spin-b"></span> Padikkirathu...','info');
-  var squadDate=document.getElementById('insp-squad-date').value;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var data=new Uint8Array(e.target.result);
-      var wb=XLSX.read(data,{type:'array',cellDates:true});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      var headerRow=-1;
-      for(var i=0;i<15;i++){
-        if(rows[i]&&rows[i].some(function(x){return String(x).includes('Inspector Mobile');})){headerRow=i;break;}
-      }
-      if(headerRow<0){showInspMsg('Header row not found.','err');return;}
-      var headers=rows[headerRow].map(function(h){return String(h).trim();});
-      var mobileCol=headers.findIndex(function(h){return h.includes('Inspector Mobile');});
-      var shopCodeCol=headers.findIndex(function(h){return h.toLowerCase().includes('fps code')||h.toLowerCase().includes('shop code');});
-      var dateCol=headers.findIndex(function(h){return h.toLowerCase().includes('date of inspection');});
-      var shopNameCol=headers.findIndex(function(h){return h.toLowerCase().includes('shop name')||h.toLowerCase().includes('fps name');});
-      var blockNameCol=headers.findIndex(function(h){return h.toLowerCase().includes('block name')||h.toLowerCase().includes('taluk')||h.toLowerCase().includes('block');});
-      if(mobileCol<0){showInspMsg('Inspector Mobile column not found.','err');return;}
-      if(shopCodeCol<0){showInspMsg('FPS Code column not found.','err');return;}
-      var shopSets={};var squadSets={};
-      var officerRows=[];
-      for(var ri=headerRow+1;ri<rows.length;ri++){
-        var row=rows[ri];
-        var rawMobile=String(row[mobileCol]||'').replace(/\.0+$/,'').trim();
-        var mobile=rawMobile.replace(/[^0-9]/g,'');
-        if(!mobile||mobile.length<10)continue;
-        var shopCode=String(row[shopCodeCol]||'').trim();
-        if(!shopCode)continue;
-        if(!shopSets[mobile])shopSets[mobile]=new Set();
-        shopSets[mobile].add(shopCode);
-        var mobInfo=INSPECTOR_MAP[mobile];
-        if(mobInfo&&mobInfo.type==='officer'&&dateCol>=0){
-          var rawD=row[dateCol];var dStr='';
-          if(rawD instanceof Date){dStr=rawD.toISOString().slice(0,10);}
-          else{dStr=String(rawD||'').slice(0,10);}
-          if(dStr){
-            var sName=shopNameCol>=0?String(row[shopNameCol]||'').trim():'';
-            var bName=blockNameCol>=0?String(row[blockNameCol]||'').trim():'';
-            officerRows.push({mobile:mobile,officerName:mobInfo.name,date:dStr,block:bName,shop:sName,code:shopCode});
-          }
-        }
-        if(squadDate&&dateCol>=0){
-          var rawDate=row[dateCol];var inspDate='';
-          if(rawDate instanceof Date){inspDate=rawDate.toISOString().slice(0,10);}
-          else{inspDate=String(rawDate).slice(0,10);}
-          if(inspDate===squadDate){
-            if(!squadSets[mobile])squadSets[mobile]=new Set();
-            squadSets[mobile].add(shopCode);
-          }
-        }
-      }
-      var excludeInput=(document.getElementById('insp-squad-exclude')?document.getElementById('insp-squad-exclude').value||'':'').trim();
-      var excludeCodes=new Set(excludeInput.split(',').map(function(s){return s.trim();}).filter(Boolean));
-      var blockResults=[];var officerResults=[];
-      Object.entries(INSPECTOR_MAP).forEach(function(entry){
-        var mobile=entry[0];var info=entry[1];
-        var myShops=shopSets[mobile]||new Set();
-        var adjusted=0;
-        myShops.forEach(function(code){if(!excludeCodes.has(code))adjusted++;});
-        var total=myShops.size;var squadCount=total-adjusted;
-        var pending=info.target!==null?Math.max(0,info.target-adjusted):null;
-        var ent={mobile:mobile,name:info.name,total:total,squadCount:squadCount,adjusted:adjusted,target:info.target,pending:pending};
-        if(info.type==='block')blockResults.push(ent);
-        else officerResults.push(ent);
-      });
-      blockResults.sort(function(a,b){return a.adjusted-b.adjusted;});
-      officerResults.sort(function(a,b){return(a.adjusted||0)-(b.adjusted||0);});
-      renderInspResults(blockResults,officerResults,squadDate,officerRows);
-      showInspMsg('','ok');
-      document.getElementById('insp-result').classList.remove('hidden');
-    }catch(err){showInspMsg('பிழை: '+err.message,'err');}
-  };
-  reader.readAsArrayBuffer(fileEl.files[0]);
-}
-
-function renderInspResults(blocks,officers,squadDate,officerRows){
-  officerRows=officerRows||[];
-  var dwDiv=document.getElementById('insp-daywise');
-  var dwTbody=document.getElementById('insp-daywise-tbody');
-  if(dwTbody&&officerRows.length>0){
-    officerRows.sort(function(a,b){
-      if(a.officerName!==b.officerName)return a.officerName.localeCompare(b.officerName);
-      return a.date.localeCompare(b.date);
-    });
-    var html='';var lastOfficer='';var slNo=0;
-    officerRows.forEach(function(r){
-      if(r.officerName!==lastOfficer){
-        html+='<tr style="background:#1f4788;color:#fff"><td colspan="5" style="padding:6px 10px;font-weight:700;border:1px solid #3a5ea0">'+r.officerName+'</td></tr>';
-        lastOfficer=r.officerName;slNo=0;
-      }
-      slNo++;
-      var dp=r.date.split('-');var fmtDate=dp.length===3?dp[2]+'/'+dp[1]+'/'+dp[0]:r.date;
-      var rowBg=slNo%2===0?'#eef3fb':'#ffffff';
-      html+='<tr style="background:'+rowBg+'">'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+slNo+'</td>'+
-        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0">'+fmtDate+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #c0c0c0">'+r.block+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #c0c0c0">'+r.shop+'</td>'+
-        '<td style="padding:6px 10px;border:1px solid #c0c0c0"></td></tr>';
-    });
-    dwTbody.innerHTML=html;
-    if(dwDiv)dwDiv.classList.remove('hidden');
-  }else{
-    if(dwDiv)dwDiv.classList.add('hidden');
-  }
-  var tbody=document.getElementById('insp-blocks');
-  if(tbody){
-    tbody.innerHTML=blocks.map(function(e,i){
-      var done=e.adjusted>=e.target;
-      var near=!done&&e.adjusted>=Math.ceil(e.target*0.75);
-      var rowBg=i%2===0?'#ffffff':'#dce6f1';
-      var pendCol=done?'#1a7a3c':'#c00000';
-      var countCol=done?'#1a7a3c':near?'#7d4800':'#c00000';
-      var pend=Math.max(0,e.target-e.adjusted);
-      var cs='padding:3px 6px;border:1px solid #bfbfbf;font-family:Calibri,Arial,sans-serif;font-size:12px';
-      return '<tr style="background:'+rowBg+'">'+
-        '<td style="'+cs+';text-align:center;color:#333">'+(i+1)+'</td>'+
-        '<td style="'+cs+';font-weight:600">'+e.name+'</td>'+
-        '<td style="'+cs+';text-align:center">'+e.target+'</td>'+
-        '<td style="'+cs+';text-align:center;font-weight:700;color:'+countCol+'">'+e.adjusted+'</td>'+
-        '<td style="'+cs+';text-align:center;font-weight:700;color:'+pendCol+'">'+(done?'✓':pend)+'</td></tr>';
-    }).join('');
-  }
-  var otbody=document.getElementById('insp-officers');
-  if(otbody){
-    var oCell='padding:3px 6px;border:1px solid #bfbfbf;font-family:Calibri,Arial,sans-serif;font-size:12px';
-    otbody.innerHTML=officers.map(function(e){
-      if(e.target===null){
-        return '<tr><td style="'+oCell+';font-weight:600">'+e.name+'</td>'+
-          '<td style="'+oCell+';text-align:center">-</td>'+
-          '<td style="'+oCell+';text-align:center;font-weight:700;color:#1f4788">'+e.adjusted+'</td>'+
-          '<td style="'+oCell+';text-align:center;color:#999">-</td></tr>';
-      }
-      var done=e.adjusted>=e.target;
-      var rowBg=done?'#e2efda':'#fce4d6';
-      var col=done?'#1a7a3c':'#c00000';
-      return '<tr style="background:'+rowBg+'">'+
-        '<td style="'+oCell+';font-weight:600">'+e.name+'</td>'+
-        '<td style="'+oCell+';text-align:center">'+e.target+'</td>'+
-        '<td style="'+oCell+';text-align:center;font-weight:700;color:'+col+'">'+e.adjusted+'</td>'+
-        '<td style="'+oCell+';text-align:center;font-weight:700;color:'+(done?'#1a7a3c':'#c00000')+'">'+(done?'✓':Math.max(0,e.target-e.adjusted))+'</td></tr>';
-    }).join('');
-  }
-  var doneN=blocks.filter(function(b){return b.adjusted>=b.target;}).length;
-  var partN=blocks.filter(function(b){return b.adjusted>0&&b.adjusted<b.target;}).length;
-  var noneN=blocks.filter(function(b){return b.adjusted===0;}).length;
-  var sum=document.getElementById('insp-summary');
-  if(sum)sum.innerHTML='Done: '+doneN+' | Pending: '+partN+' | Not started: '+noneN;
-  var titleEl=document.getElementById('insp-report-title');
-  if(titleEl){
-    var now=new Date();
-    var tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்','ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
-    titleEl.textContent=tamilMonths[now.getMonth()]+' '+now.getFullYear()+' — மாதாந்திர ஆய்வு முன்னேற்ற அறிக்கை';
-  }
-}
-
-async function screenshotBlocks(){
-  var wrap=document.getElementById('insp-blocks-wrap');
-  if(!wrap){alert('No data.');return;}
-  try{
-    if(typeof html2canvas==='undefined'){
-      await new Promise(function(res,rej){
-        var s=document.createElement('script');
-        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        s.onload=res;s.onerror=rej;document.head.appendChild(s);
-      });
-    }
-    var canvas=await html2canvas(wrap,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false});
-    canvas.toBlob(async function(blob){
-      try{
-        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-        alert('Screenshot copied to clipboard!');
-      }catch(e){
-        var a=document.createElement('a');a.download='inspection.png';
-        a.href=canvas.toDataURL('image/png');a.click();
-      }
-    },'image/png');
-  }catch(e){alert('Error: '+e.message);}
-}
-
-/* ─── SQUAD FUNCTIONS ─── */
-const BLOCKS_21=['திருவண்ணாமலை HQ','திருவண்ணாமலை 1','திருவண்ணாமலை 2',
-  'துரிஞ்சாபுரம்','கீழ்பென்னாத்தூர்','செங்கம்','புதுப்பாளையம்',
-  'தண்டராம்பட்டு','கலசபாக்கம்','போளூர்','ஜமுனாமரத்தூர்',
-  'சேத்பட்','ஆரணி (கிழக்கு)','ஆரணி (மேற்கு)','செய்யார்',
-  'அனக்காவூர்','வெம்பாக்கம் 1','வெம்பாக்கம் 2','வந்தவாசி',
-  'பெரணமல்லூர்','தெள்ளார்'];
-
-var sqStaffList=[];var sqShopData=[];var sqAssignments=[];var sqEditingId=null;
-
 
 /* ── Sub-tab switching inside Dashboard panel ── */
 function showSubTab(subId, el){
@@ -2544,7 +1391,7 @@ function processDaywise(input){
       var mobileCol=headers.findIndex(function(h){return h.includes('inspector mobile')||h.includes('mobile number')||h.includes('mobile');});
       var codeCol=headers.findIndex(function(h){return h.includes('fps code')||h.includes('shop code')||h.includes('code');});
       var dateCol=headers.findIndex(function(h){return h.includes('date of inspection')||h.includes('date');});
-      var shopNameCol=headers.findIndex(function(h){return h.includes('shop name')||h.includes('fps name')||h.includes('name');});
+      var shopNameCol=headers.findIndex(function(h){return h.includes('fps name')||h.includes('shop name');});
       if(mobileCol<0){showDwMsg('Inspector Mobile நெடுவரிசை கிடைக்கவில்லை.','err');return;}
       if(codeCol<0){showDwMsg('FPS Code நெடுவரிசை கிடைக்கவில்லை.','err');return;}
       if(dateCol<0){showDwMsg('Date of Inspection நெடுவரிசை கிடைக்கவில்லை.','err');return;}
@@ -2558,12 +1405,16 @@ function processDaywise(input){
         var code=String(row[codeCol]||'').trim();
         if(!code)continue;
         var rawD=row[dateCol];var dStr='';
-        if(rawD instanceof Date){dStr=rawD.toISOString().slice(0,10);}
-        else{dStr=String(rawD||'').slice(0,10);}
+        if(rawD instanceof Date){
+            var dd2=String(rawD.getDate()).padStart(2,'0');
+            var mm2=String(rawD.getMonth()+1).padStart(2,'0');
+            var yyyy2=rawD.getFullYear();
+            dStr=yyyy2+'-'+mm2+'-'+dd2;
+          } else{dStr=String(rawD||'').slice(0,10);}
         if(!dStr||dStr.length<10)continue;
         var shopName=shopNameCol>=0?String(row[shopNameCol]||'').trim():'';
         /* VLOOKUP block from SHOP_BLOCK_MAP */
-        var block=SHOP_BLOCK_MAP[code]||'';
+        var block=(typeof SHOP_BLOCK_MAP!=='undefined'&&SHOP_BLOCK_MAP[code])||'';
         var officerInfo=INSPECTOR_MAP[rawMob];
         var officerName=officerInfo?officerInfo.name:rawMob;
         officerRows.push({officer:officerName,date:dStr,block:block,shop:shopName,code:code});
@@ -2774,13 +1625,23 @@ async function saveStaffFromModal(){
 }
 
 /* Patch initApp to handle new tabs */
-var _origInitApp=initApp;
 async function initApp(){
-  await _origInitApp();
-  /* Handle inspection, squad, staff-master tabs */
+  renderBlockChips();
+  var d=new Date();d.setDate(d.getDate()+7);
+  var nsDl=document.getElementById('ns-deadline');if(nsDl)nsDl.value=d.toISOString().slice(0,10);
+  await loadFromDb();
+  renderDashboard();renderRepo();refreshDropdowns();
+
+  /* Tab switching — main tabs */
   document.querySelectorAll('.tab').forEach(function(t){
     t.addEventListener('click',function(){
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
+      document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('active');});
+      t.classList.add('active');
       var tab=t.dataset.tab;
+      var panel=document.getElementById('panel-'+tab);
+      if(panel)panel.classList.add('active');
+
       if(tab==='inspection'){}
       if(tab==='squad'){initSquadPanel();}
       if(tab==='staff-master'){loadSquadData().then(function(){renderStaffMaster();});}
