@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Thiruvannamalai — Sheet Tracker</title>
-
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;min-height:100vh;font-size:14px}
@@ -39,10 +40,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a1a;mi
 .tab:hover:not(.active){color:#222}
 .main{flex:1;padding:16px;max-width:1100px;margin:0 auto;width:100%}
 .panel{display:none}.panel.active{display:block}
-.sub-tab{padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--gray);white-space:nowrap;transition:color .15s,border-color .15s;border-radius:4px 4px 0 0}
-.sub-tab:hover:not(.active){background:var(--gray-lt);color:#333}
-.sub-tab.active{color:var(--blue);border-bottom-color:var(--blue);background:#f0f6ff}
-.sub-panel{display:block}.sub-panel.hidden{display:none}
 .sec-title{font-size:15px;font-weight:700;margin-bottom:3px}
 .sec-sub{font-size:12px;color:var(--gray);margin-bottom:14px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px}
@@ -128,22 +125,38 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 <div id="signin-screen">
   <div class="auth-card">
     <span class="auth-logo">🏛️</span>
-    <div class="auth-title">பொது விநியோக முறை அலுவலகம்</div>
+    <div class="auth-title">Thiruvannamalai District</div>
     <div class="auth-sub">திருவண்ணாமலை மாவட்டம் — Sheet Tracker</div>
-    <div style="margin-top:20px">
-      <label class="flbl">கடவுச்சொல் / Password</label>
-      <input class="finput" id="pwd-input" type="password" placeholder="Enter password"
-        style="font-size:15px;letter-spacing:2px;text-align:center"
-        onkeydown="if(event.key==='Enter')doLogin()">
-      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
-        <input type="checkbox" id="remember-me" style="width:16px;height:16px">
-        என்னை நினைவில் வை (Remember me)
-      </label>
-      <button class="btn btn-primary" style="margin-top:14px;width:100%;justify-content:center;padding:12px;font-size:15px" onclick="doLogin()">
-        🔐 உள்நுழை / Login
-      </button>
-      <div id="signin-msg" style="font-size:12px;color:#c0392b;text-align:center;margin-top:10px"></div>
+
+    <div id="step-cid">
+      <div style="background:#f0f7ff;border:1px solid #b8d4f5;border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--blue-dk);margin-bottom:10px">⚙️ One-time Setup (Free)</div>
+        <ol class="step-list">
+          <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
+          <li>APIs & Services → Library → Enable <strong>Google Sheets API</strong></li>
+          <li>Same Library → Enable <strong>Google Drive API</strong></li>
+          <li>Credentials → + Create Credentials → <strong>OAuth 2.0 Client ID</strong></li>
+          <li>Configure consent screen if asked → External → fill app name & email</li>
+          <li>Audience → Test users → Add your Gmail</li>
+          <li>Application type: <strong>Web application</strong> → Authorised JS origins: <code style="background:#eee;padding:1px 4px;border-radius:3px;font-size:11px">https://sathish-sics.github.io</code></li>
+          <li>Copy the <strong>Client ID</strong> → paste below</li>
+        </ol>
+        <label class="flbl" style="margin-top:10px">Google OAuth Client ID</label>
+        <input class="finput" id="cid-input" placeholder="xxxxxxxxx.apps.googleusercontent.com" style="font-size:12px">
+        <button class="btn btn-primary" style="margin-top:8px;width:100%;justify-content:center" onclick="saveClientId()">Save & Sign In</button>
+      </div>
+      <div style="font-size:11px;color:#aaa;text-align:center">100% Free — Google Sheets & Drive APIs are in the free tier</div>
     </div>
+
+    <div id="step-signin" class="hidden">
+      <div class="alert a-ok" style="margin-bottom:14px">✅ Client ID saved. Sign in with your Google account.</div>
+      <button id="g-btn" onclick="doSignIn()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:#fff;border:1.5px solid #dadce0;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:#3c4043">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="">
+        Sign in with Google
+      </button>
+      <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px;font-size:12px" onclick="resetCid()">← Change Client ID</button>
+    </div>
+    <div id="signin-msg" style="font-size:12px;color:#c0392b;text-align:center;margin-top:8px"></div>
   </div>
 </div>
 
@@ -151,280 +164,52 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 <div id="app">
   <div class="topbar">
     <div class="topbar-brand">
-      <strong>🏛 பொது விநியோக முறை அலுவலகம்</strong>
+      <strong>🏛 Thiruvannamalai — Sheet Tracker</strong>
       <span>திருவண்ணாமலை மாவட்டம் | 21 வட்டாரங்கள்</span>
     </div>
     <div class="topbar-right">
-
-      <button class="btn-sm" onclick="doSignOut()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">🔓 Sign Out</button>
+      <div class="cring">
+        <span id="cd-text">5:00</span>
+        <div class="cring-bar"><div class="cring-fill" id="cd-fill" style="width:100%"></div></div>
+        <span>auto</span>
+      </div>
+      <button class="btn-sm" onclick="manualRefresh()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">🔄 Refresh</button>
+      <button class="btn-sm" id="stop-btn" onclick="toggleAutoRefresh()" style="background:rgba(255,100,100,.3);color:#fff;border-color:rgba(255,255,255,.3)">⏸ Stop</button>
+      <img class="topbar-avatar" id="user-avatar" src="" alt="">
+      <span class="topbar-uname" id="user-name"></span>
+      <button class="btn-sm" onclick="doSignOut()" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)">Sign Out</button>
     </div>
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="dashboard">📊 தாள் கண்காணிப்பு</div>
-    <div class="tab" data-tab="inspection">&#128269; ஆய்வு அறிக்கை</div>
-    <div class="tab" data-tab="squad">&#9876; கூட்டுரை ஆய்வு</div>
-    <div class="tab" data-tab="staff-master">&#128101; பணியாளர் பட்டியல்</div>
+    <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
+    <div class="tab" data-tab="create">📄 New Sheet</div>
+    <div class="tab" data-tab="track">📥 Track Sheet</div>
+    <div class="tab" data-tab="monitor">🔍 Monitor Live</div>
+    <div class="tab" data-tab="whatsapp">💬 WhatsApp</div>
+    <div class="tab" data-tab="repo">🗄 Repository</div>
+    <div class="tab" data-tab="trash">🗑 Trash</div>
+    <div class="tab" data-tab="inspection">&#128269; Inspection</div>
+    <div class="tab" data-tab="squad">&#9876; Squad</div>
+    <div class="tab" data-tab="staff-master">&#128101; Staff Master</div>
   </div>
 
   <div class="main">
 
-    <!-- ═══ DASHBOARD (Sheet Tracking Hub) ═══ -->
+    <!-- ═══ DASHBOARD ═══ -->
     <div class="panel active" id="panel-dashboard">
-      <!-- Sub-tab bar -->
-      <div style="display:flex;gap:2px;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:16px">
-        <div class="sub-tab active" data-sub="sub-overview" onclick="showSubTab('sub-overview',this)">📊 நிலை அறிக்கை</div>
-        <div class="sub-tab" data-sub="sub-create" onclick="showSubTab('sub-create',this)">📄 புதிய தாள்</div>
-        <div class="sub-tab" data-sub="sub-track" onclick="showSubTab('sub-track',this)">📥 தாள் இணை</div>
-        <div class="sub-tab" data-sub="sub-monitor" onclick="showSubTab('sub-monitor',this)">🔍 நேரடி கண்காணிப்பு</div>
-        <div class="sub-tab" data-sub="sub-whatsapp" onclick="showSubTab('sub-whatsapp',this)">💬 WhatsApp</div>
-        <div class="sub-tab" data-sub="sub-repo" onclick="showSubTab('sub-repo',this)">🗄 களஞ்சியம்</div>
-        <div class="sub-tab" data-sub="sub-trash" onclick="showSubTab('sub-trash',this)">🗑 குப்பை</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+        <div class="sec-title">Dashboard</div>
+        <div id="last-refresh" style="font-size:11px;color:var(--gray)"></div>
       </div>
-
-      <!-- SUB: Overview (original dashboard) -->
-      <div id="sub-overview" class="sub-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">
-          <div class="sec-title" style="font-size:15px">நிலை அறிக்கை</div>
-          <div id="last-refresh" style="font-size:11px;color:var(--gray)"></div>
-        </div>
-        <div class="sec-sub">அனைத்து தாள்களின் நேரடி நிலை — Live block fill status</div>
-        <div class="stat-grid">
-          <div class="stat s-blue"><div class="lbl">Sheets</div><div class="val" id="st-total">0</div></div>
-          <div class="stat s-green"><div class="lbl">Fully Filled</div><div class="val" id="st-full">0</div></div>
-          <div class="stat s-amber"><div class="lbl">Partial</div><div class="val" id="st-partial">0</div></div>
-          <div class="stat s-red"><div class="lbl">Unfilled</div><div class="val" id="st-none">0</div></div>
-        </div>
-        <div id="dash-list"></div>
+      <div class="sec-sub">அனைத்து தாள்களின் நேரடி நிலை — Live block fill status</div>
+      <div class="stat-grid">
+        <div class="stat s-blue"><div class="lbl">Sheets</div><div class="val" id="st-total">0</div></div>
+        <div class="stat s-green"><div class="lbl">Fully Filled</div><div class="val" id="st-full">0</div></div>
+        <div class="stat s-amber"><div class="lbl">Partial</div><div class="val" id="st-partial">0</div></div>
+        <div class="stat s-red"><div class="lbl">Unfilled</div><div class="val" id="st-none">0</div></div>
       </div>
-
-      <!-- SUB: New Sheet (moved from panel-create) -->
-      <div id="sub-create" class="sub-panel hidden">
-<div class="sec-title">Add / Create Sheet</div>
-      <div class="sec-sub">Import an existing sheet link, or create a new district sheet from a State sheet.</div>
-
-      <div class="lang-tog">
-        <button class="lang-btn on" id="lt-ta" onclick="setLang('ta')">தமிழ் (Default)</button>
-        <button class="lang-btn" id="lt-en" onclick="setLang('en')">English</button>
-      </div>
-
-      <!-- COMMON FIELDS -->
-      <div class="card">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">📌 Sheet Details</div>
-        <div class="frow">
-          <div>
-            <label class="flbl">Sheet Title *</label>
-            <input class="finput" id="ns-title" placeholder="e.g. PDL-1 ஏப்ரல் 2025">
-          </div>
-          <div>
-            <label class="flbl">Type</label>
-            <select class="fselect" id="ns-type">
-              <option value="state">State Sheet — Head Office அனுப்பியது</option>
-              <option value="own">Own Sheet — நான் உருவாக்கியது</option>
-            </select>
-          </div>
-        </div>
-        <div class="frow">
-          <div>
-            <label class="flbl">Deadline</label>
-            <input class="finput" type="date" id="ns-deadline">
-          </div>
-          <div>
-            <label class="flbl">Notes</label>
-            <input class="finput" id="ns-notes" placeholder="குறிப்புகள்...">
-          </div>
-        </div>
-      </div>
-
-
-
-      <!-- OPTION B: CREATE FROM STATE SHEET -->
-      <div class="card" style="border-left:4px solid var(--green)">
-        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">📄 Create district sheet from State Head Office sheet</div>
-        <div class="alert a-info" style="margin-bottom:10px;font-size:12px">
-          The State sheet will be copied exactly. Only the Region/District names (in column B or C) will be replaced with your 21 block names. All headings, formulas, and formatting will remain intact.
-        </div>
-        <label class="flbl">State Head Office Sheet Link *</label>
-        <input class="finput" id="ns-state-src" placeholder="https://docs.google.com/spreadsheets/d/...">
-        <label class="flbl" style="margin-top:10px">New sheet title *</label>
-        <input class="finput" id="ns-new-title" placeholder="e.g. திருவண்ணாமலை — PDL-1 ஏப்ரல் 2025">
-        <label class="flbl" style="margin-top:10px">Group தேர்வு</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
-            <input type="checkbox" id="grp-blocks" checked onchange="updateGroupChips()"> வட்டாரங்கள் (21)
-          </label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
-            <input type="checkbox" id="grp-cms" onchange="updateGroupChips()"> சி.எம்.எஸ் (7)
-          </label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
-            <input type="checkbox" id="grp-stores" onchange="updateGroupChips()"> கிடங்குகள் (4)
-          </label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:6px">
-            <input type="checkbox" id="grp-lamps" onchange="updateGroupChips()"> LAMP (2)
-          </label>
-        </div>
-        <label class="flbl">தேர்ந்தெடுக்கப்பட்டவை</label>
-        <div class="chip-row" id="block-chips"></div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selAll()">அனைத்தும்</button>
-          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="selNone()">நீக்கு</button>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="createFromStateSheet()">
-            <span id="create-spin" class="hidden"><span class="spin"></span></span>
-            📄 Create District Sheet
-          </button>
-        </div>
-        <div id="create-msg" class="hidden" style="margin-top:10px"></div>
-        <!-- COPY LINK BOX shown after creation -->
-        <div id="new-link-box" class="hidden">
-          <div class="copy-link-box">
-            <span class="copy-link-url" id="new-link-url"></span>
-            <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;flex-shrink:0" onclick="copyNewLink()">📋 Copy Link</button>
-            <a id="new-link-open" href="#" target="_blank" style="font-size:12px;white-space:nowrap">Open ↗</a>
-          </div>
-        </div>
-      </div>
-      </div>
-
-      <!-- SUB: Track Sheet (moved from panel-track) -->
-      <div id="sub-track" class="sub-panel hidden">
-<div class="sec-title">Track Sheet</div>
-      <div class="sec-sub">Import an already-posted Google Sheet link to monitor block fill status and save to repository.</div>
-      <div class="card" style="border-left:4px solid var(--blue)">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px">📥 Import Existing Sheet</div>
-        <div class="frow">
-          <div>
-            <label class="flbl">Sheet Title *</label>
-            <input class="finput" id="tr-title" placeholder="e.g. PDL-1 மார்ச் 2025">
-          </div>
-          <div>
-            <label class="flbl">Type</label>
-            <select class="fselect" id="tr-type">
-              <option value="state">State Sheet — Head Office அனுப்பியது</option>
-              <option value="own">Own Sheet — நான் உருவாக்கியது</option>
-            </select>
-          </div>
-        </div>
-        <div class="frow">
-          <div>
-            <label class="flbl">District Sheet Link (already posted) *</label>
-            <input class="finput" id="tr-link" placeholder="https://docs.google.com/spreadsheets/d/...">
-          </div>
-          <div>
-            <label class="flbl">State Head Office Sheet Link (if any)</label>
-            <input class="finput" id="tr-state-link" placeholder="https://docs.google.com/spreadsheets/d/...">
-          </div>
-        </div>
-        <div class="frow">
-          <div>
-            <label class="flbl">Deadline</label>
-            <input class="finput" type="date" id="tr-deadline">
-          </div>
-          <div>
-            <label class="flbl">Notes</label>
-            <input class="finput" id="tr-notes" placeholder="குறிப்புகள்...">
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="trackImportSheet()">📥 Import & Read Now</button>
-        </div>
-        <div id="tr-msg" class="hidden" style="margin-top:10px"></div>
-      </div>
-      </div>
-
-      <!-- SUB: Monitor Live (moved from panel-monitor) -->
-      <div id="sub-monitor" class="sub-panel hidden">
-<div class="sec-title">Monitor — Live Sheet Reader</div>
-      <div class="sec-sub">கூகுள் தாள் செல்களை நேரடியாகப் படிக்கிறது. சூத்திர மதிப்புகள் கணக்கில் எடுக்கப்படுவதில்லை.</div>
-      <div class="card">
-        <div class="frow">
-          <div>
-            <label class="flbl">Sheet to Monitor</label>
-            <select class="fselect" id="mon-sel" onchange="onMonChange()">
-              <option value="">— Select a sheet —</option>
-            </select>
-          </div>
-          <div style="display:flex;align-items:flex-end">
-            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="readOneSheet()">
-              <span id="read-spin" class="hidden"><span class="spin"></span></span>
-              🔄 Read Sheet Now
-            </button>
-          </div>
-        </div>
-        <div id="mon-link-row" class="hidden">
-          <a id="mon-link" href="#" target="_blank" class="link-sm">Open in Google Sheets ↗</a>
-        </div>
-      </div>
-      <div id="mon-result"></div>
-      </div>
-
-      <!-- SUB: WhatsApp (moved from panel-whatsapp) -->
-      <div id="sub-whatsapp" class="sub-panel hidden">
-<div class="sec-title">WhatsApp Message Generator</div>
-      <div class="sec-sub">நேரடி நிரப்பு நிலையின் அடிப்படையில் தானாக உருவாக்கப்படுகிறது</div>
-      <div class="card">
-        <div class="frow">
-          <div>
-            <label class="flbl">Sheet</label>
-            <select class="fselect" id="wa-sel" onchange="genWA()">
-              <option value="">— Select —</option>
-            </select>
-          </div>
-          <div>
-            <label class="flbl">Message Type</label>
-            <select class="fselect" id="wa-type" onchange="genWA()">
-              <option value="initial">Initial request — link share</option>
-              <option value="reminder">Reminder — pending list</option>
-              <option value="final">Final reminder — urgent</option>
-              <option value="thanks">Thank you — all filled</option>
-            </select>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <span class="flbl" style="margin:0">Language:</span>
-          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="ta" checked onchange="genWA()"> தமிழ்</label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="en" onchange="genWA()"> English</label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="wa-lang" value="both" onchange="genWA()"> Both</label>
-        </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
-            <input type="checkbox" id="wa-show-filled" onchange="genWA()">
-            நிரப்பியவர்கள் (Filled list) காட்டு
-          </label>
-          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
-            <input type="checkbox" id="wa-show-signoff" checked onchange="genWA()">
-            Sign-off காட்டு
-          </label>
-        </div>
-      </div>
-      <div id="wa-out" class="hidden">
-        <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Generated Message</div>
-        <div class="wa-box" id="wa-text"></div>
-        <div class="btn-row"><button class="btn btn-green" onclick="copyWA()">📋 Copy Message</button></div>
-      </div>
-      </div>
-
-      <!-- SUB: Repository (moved from panel-repo) -->
-      <div id="sub-repo" class="sub-panel hidden">
-<div class="sec-title">Repository</div>
-      <div class="sec-sub">All tracked sheets — state and own, active and completed</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('all')">All</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('state')">State Sheets</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('own')">My Sheets</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('active')">Active</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="setRF('done')">Completed</button>
-      </div>
-      <div id="repo-list"></div>
-      </div>
-
-      <!-- SUB: Trash (moved from panel-trash) -->
-      <div id="sub-trash" class="sub-panel hidden">
-<div class="sec-title">🗑 Trash</div>
-      <div class="sec-sub">Deleted sheets — restore or permanently delete</div>
-      <div id="trash-list"></div>
-      </div>
+      <div id="dash-list"></div>
     </div>
 
     <!-- ═══ ADD SHEET ═══ -->
@@ -655,64 +440,7 @@ a{color:var(--blue)}.link-sm{font-size:12px}
         <div id="insp-msg" class="hidden" style="margin-top:10px"></div>
       </div>
 
-      <!-- SEPARATE: JR/DR Day-wise Report -->
-      <div class="card" style="margin-top:14px;border-left:4px solid var(--blue)">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px">&#128203; இணைப்பதிவாளர் / துணைப்பதிவாளர் — நாள்வாரி ஆய்வு அட்டவணை</div>
-        <div style="font-size:12px;color:var(--gray);margin-bottom:10px">MIS Excel இல் உள்ள FPS Code, Date of Inspection, Inspector Mobile, Shop Name நெடுவரிசைகள் பயன்படுத்தப்படும். Block Name தானாக கணக்கிடப்படும்.</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
-          <div style="flex:1;min-width:200px">
-            <label class="flbl">MIS Excel கோப்பு</label>
-            <input type="file" id="dw-file" accept=".xlsx,.xls"
-              style="padding:8px;border:2px dashed var(--border);border-radius:var(--r-sm);background:var(--gray-lt);cursor:pointer;width:100%"
-              onchange="processDaywise(this)">
-          </div>
-        </div>
-        <div id="dw-msg" class="hidden" style="margin-bottom:10px"></div>
-        <div id="dw-result" class="hidden">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-            <div style="font-size:13px;font-weight:700;color:var(--blue)" id="dw-title"></div>
-            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="copyDaywiseTable2()">&#128203; அட்டவணை நகலெடு</button>
-          </div>
-          <div style="background:#fff;border:2px solid #1f3864;border-radius:4px;overflow:auto;font-family:Arial,sans-serif">
-            <table style="width:100%;border-collapse:collapse;font-size:13px" id="dw-table">
-              <thead>
-                <tr style="background:#1f3864;color:#fff">
-                  <th style="padding:8px 10px;text-align:center;border:1px solid #3a5ea0;width:40px">வ.எண்</th>
-                  <th style="padding:8px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு தேதி</th>
-                  <th style="padding:8px 10px;text-align:left;border:1px solid #3a5ea0">வட்டாரம்</th>
-                  <th style="padding:8px 10px;text-align:left;border:1px solid #3a5ea0">கடையின் பெயர்</th>
-                  <th style="padding:8px 10px;text-align:left;border:1px solid #3a5ea0">குறிப்புகள்</th>
-                </tr>
-              </thead>
-              <tbody id="dw-tbody"></tbody>
-            </table>
-          </div>
-          <div id="dw-summary" style="margin-top:8px;font-size:12px;color:var(--gray)"></div>
-        </div>
-      </div>
-
       <div id="insp-result" class="hidden">
-        <!-- Day-wise Officer Inspection Table -->
-        <div id="insp-daywise" class="hidden" style="margin-top:20px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="font-size:13px;font-weight:700;color:var(--blue)">அலுவலர் நாள்வாரி ஆய்வு விவரம்</div>
-            <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="copyDaywiseTable()">&#128203; அட்டவணை நகலெடு</button>
-          </div>
-          <div style="background:#fff;border:2px solid #1f3864;border-radius:4px;overflow:hidden;font-family:Arial,sans-serif">
-            <table style="width:100%;border-collapse:collapse;font-size:13px" id="insp-daywise-tbl">
-              <thead>
-                <tr style="background:#1f3864;color:#fff">
-                  <th style="padding:8px 10px;text-align:center;border:1px solid #3a5ea0;width:40px">வ.எண்</th>
-                  <th style="padding:8px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு தேதி</th>
-                  <th style="padding:8px 10px;text-align:left;border:1px solid #3a5ea0">வட்டாரம்</th>
-                  <th style="padding:8px 10px;text-align:left;border:1px solid #3a5ea0">கடையின் பெயர்</th>
-                  <th style="padding:8px 10px;text-align:left;border:1px solid #3a5ea0">குறிப்புகள்</th>
-                </tr>
-              </thead>
-              <tbody id="insp-daywise-tbody"></tbody>
-            </table>
-          </div>
-        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -721,16 +449,16 @@ a{color:var(--blue)}.link-sm{font-size:12px}
               </div>
               <button class="btn btn-outline" onclick="screenshotBlocks()" style="font-size:11px;padding:4px 10px">&#128247; Screenshot</button>
             </div>
-            <div id="insp-blocks-wrap" style="background:#fff;border:1px solid #bbb;overflow:hidden;font-family:Calibri,Arial,sans-serif">
-              <div id="insp-report-title" style="background:#1f4788;color:#fff;padding:6px 8px;font-size:12px;font-weight:700;font-family:Calibri,Arial,sans-serif;text-align:center">ஆய்வு இலக்கு நிறைவேற்றம்</div>
-              <table style="width:100%;border-collapse:collapse;font-size:12px" id="insp-blocks-tbl">
+            <div id="insp-blocks-wrap" style="background:#fff;border:1px solid #bbb;border-radius:var(--r);overflow:hidden">
+              <div id="insp-report-title" style="background:#1f4788;color:#fff;padding:8px 12px;font-size:13px;font-weight:700">ஆய்வு இலக்கு நிறைவேற்றம்</div>
+              <table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #bbb" id="insp-blocks-tbl">
                 <thead>
-                  <tr style="background:#1f4788;color:#fff;font-family:Calibri,Arial,sans-serif;font-size:12px">
-                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;width:35px;font-weight:700">#</th>
-                    <th style="padding:4px 8px;text-align:left;border:1px solid #fff;font-weight:700">வட்டாரம்</th>
-                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;font-weight:700">இலக்கு</th>
-                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;font-weight:700">ஆய்வு செய்யப்பட்ட கடைகளின் எண்ணிக்கை</th>
-                    <th style="padding:4px 6px;text-align:center;border:1px solid #fff;font-weight:700">நிலுவை</th>
+                  <tr style="background:#1f4788;color:#fff">
+                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0;width:40px">#</th>
+                    <th style="padding:7px 10px;text-align:left;border:1px solid #3a5ea0">வட்டாரம்</th>
+                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">இலக்கு</th>
+                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">ஆய்வு செய்யப்பட்ட கடைகளின் எண்ணிக்கை</th>
+                    <th style="padding:7px 10px;text-align:center;border:1px solid #3a5ea0">நிலுவை</th>
                   </tr>
                 </thead>
                 <tbody id="insp-blocks"></tbody>
@@ -943,19 +671,6 @@ a{color:var(--blue)}.link-sm{font-size:12px}
 /* ══════════════════════════════════
    BLOCK DATA
 ══════════════════════════════════ */
-/* ── Group data for New Sheet creation ── */
-const CMS_NAMES=[
-  'திருவண்ணாமலை சி.எம்.எஸ்','செங்கம் சி.எம்.எஸ்','போளூர் சி.எம்.எஸ்',
-  'ஆரணி சி.எம்.எஸ்','செய்யாறு சி.எம்.எஸ்','வந்தவாசி சி.எம்.எஸ்','தெள்ளார் சி.எம்.எஸ்'
-];
-const STORE_NAMES=[
-  'Thiruvannamalai DCCWS','Arani Primary Store',
-  'Devigapuram Primary Store','Vandavasi Primary Store'
-];
-const LAMP_NAMES=[
-  'Nammiyampattu LAMP','Jamunamarathur LAMP'
-];
-
 const BLOCKS=[
   {en:'Tiruvannamalai HQ',ta:'திருவண்ணாமலை HQ'},
   {en:'Tiruvannamalai-1', ta:'திருவண்ணாமலை 1'},
@@ -1007,83 +722,1272 @@ const ALIASES={
 /* ══════════════════════════════════
    STATE
 ══════════════════════════════════ */
+let CLIENT_ID=localStorage.getItem('tvm_cid')||'274648150692-sfhciemsqnq1b8183178bcopmrvhp5pk.apps.googleusercontent.com';
+let accessToken=null;
+let dbSheetId=null;
+let sheets=[];
+let trashedSheets=[];
+let blockLang='ta';
+let selectedBlocks=new Set(BLOCKS.map((_,i)=>i));
+let repoFilter='all';
+let cdSec=300;
+let cdTimer=null;
+let newCreatedLink='';
+
+const SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file';
+const DISC=['https://sheets.googleapis.com/$discovery/rest?version=v4','https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
+const DB_TITLE='TVM Tracker DB';
+
+/* ── FILL DETECTION
+   We fetch data TWICE:
+   1. FORMATTED_VALUE  → what the cell shows
+   2. FORMULA          → raw formula if cell has one
+   A cell is "real data" if:
+   - Has a formula → the formula result is non-zero (>0)
+   - Has no formula (user typed) → any non-empty value including 0, -, 0.00
+   This way manually typed 0 = filled, formula-returned 0 = unfilled
+── */
+
+/* Direct fetch helpers — bypass gapi.client which sometimes drops scopes */
+async function gFetch(url,method,body){
+  method=method||'GET';
+  const opts={method,headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(url,opts);
+  const j=await r.json();
+  if(!r.ok)throw new Error((j.error&&j.error.message)?j.error.message:JSON.stringify(j));
+  return j;
+}
+async function sheetsGetMeta(sid){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'?fields=sheets.properties');}
+async function sheetsGetRange(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueRenderOption=FORMATTED_VALUE');}
+async function sheetsBatchGet(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMATTED_VALUE');}
+async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
+async function sheetsBatchGetFormula(sid,ranges){const q=ranges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&');return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values:batchGet?'+q+'&valueRenderOption=FORMULA');}
+async function sheetsBatchUpdate(sid,requests){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+':batchUpdate','POST',{requests:requests});}
+async function sheetsValuesநீக்கு(sid,range){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+':clear','POST',{});}
+async function sheetsValuesUpdate(sid,range,values){return gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values/'+encodeURIComponent(range)+'?valueInputOption=RAW','PUT',{values:values});}
+async function sheetsCreate(body){return gFetch('https://sheets.googleapis.com/v4/spreadsheets','POST',body);}
+async function driveCopy(sid,name){return gFetch('https://www.googleapis.com/drive/v3/files/'+sid+'/copy','POST',{name:name});}
+async function driveSearch(q){return gFetch('https://www.googleapis.com/drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id,name)');}
+async function drivePermission(sid){return gFetch('https://www.googleapis.com/drive/v3/files/'+sid+'/permissions','POST',{role:'writer',type:'anyone'});}
+
+function today(){return new Date().toISOString().slice(0,10)}
+function nowStr(){return new Date().toLocaleString('en-IN')}
+function daysSince(d){if(!d)return 0;const x=Math.floor((new Date()-new Date(d))/86400000);return x<0?0:x}
+function sidFromUrl(u){const m=(u||'').match(/\/d\/([a-zA-Z0-9_-]+)/);return m?m[1]:null}
+
 /* ══════════════════════════════════
-   PASSWORD AUTH — replaces Google OAuth
+   AUTH
 ══════════════════════════════════ */
-const APP_PASSWORD='TVM@PDS2026';
-const SESSION_KEY='tvm_session';
-const REMEMBER_KEY='tvm_remember';
-
-function showSignMsg(m){
-  var el=document.getElementById('signin-msg');
-  if(el)el.textContent=m;
-}
-
-function doLogin(){
-  var pwd=document.getElementById('pwd-input').value;
-  var remember=document.getElementById('remember-me').checked;
-  if(pwd===APP_PASSWORD){
-    // Save session
-    sessionStorage.setItem(SESSION_KEY,'1');
-    if(remember){localStorage.setItem(REMEMBER_KEY,'1');}
-    else{localStorage.removeItem(REMEMBER_KEY);}
-    document.getElementById('signin-screen').style.display='none';
-    document.getElementById('app').style.display='flex';
-    initApp();
-  } else {
-    showSignMsg('தவறான கடவுச்சொல். Wrong password.');
-    document.getElementById('pwd-input').value='';
-    document.getElementById('pwd-input').focus();
-  }
-}
-
-function doSignOut(){
-  sessionStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(REMEMBER_KEY);
-  document.getElementById('app').style.display='none';
-  document.getElementById('signin-screen').style.display='flex';
-  document.getElementById('pwd-input').value='';
-  showSignMsg('');
-}
-
-function checkSession(){
-  // Already logged in this tab?
-  if(sessionStorage.getItem(SESSION_KEY)==='1')return true;
-  // Remember me checked on this device?
-  if(localStorage.getItem(REMEMBER_KEY)==='1'){
-    sessionStorage.setItem(SESSION_KEY,'1');
-    return true;
-  }
-  return false;
-}
-
-window.addEventListener('load',function(){
-  if(checkSession()){
-    document.getElementById('signin-screen').style.display='none';
-    document.getElementById('app').style.display='flex';
-    initApp();
-  } else {
-    document.getElementById('pwd-input').focus();
+window.addEventListener('load',()=>{
+  if(CLIENT_ID){
+    document.getElementById('cid-input').value=CLIENT_ID;
+    document.getElementById('step-cid').classList.add('hidden');
+    document.getElementById('step-signin').classList.remove('hidden');
   }
 });
+function saveClientId(){
+  const v=document.getElementById('cid-input').value.trim();
+  if(!v){alert('Paste your Client ID first.');return;}
+  CLIENT_ID=v;localStorage.setItem('tvm_cid',v);
+  doSignIn();
+}
+function resetCid(){
+  document.getElementById('step-signin').classList.add('hidden');
+  document.getElementById('step-cid').classList.remove('hidden');
+}
+function doSignIn(){
+  if(!CLIENT_ID){alert('Set Client ID first.');return;}
+  showSignMsg('Opening Google sign-in...');
+  if(typeof gapi==='undefined'){showSignMsg('Error: Google API not loaded. Check internet connection.');return;}
+  gapi.load('client',async()=>{
+    try{
+      await gapi.client.init({discoveryDocs:DISC});
+      const tc=google.accounts.oauth2.initTokenClient({
+        client_id:CLIENT_ID,scope:SCOPES,
+        prompt:'consent',
+        callback:async r=>{
+          if(r.error){showSignMsg('Sign-in error: '+r.error);return;}
+          accessToken=r.access_token;
+          gapi.client.setToken({access_token:accessToken});
+          try{
+            const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+accessToken}}).then(x=>x.json());
+            document.getElementById('user-name').textContent=ui.name||ui.email||'';
+            if(ui.picture)document.getElementById('user-avatar').src=ui.picture;
+          }catch(ue){}
+          document.getElementById('signin-screen').style.display='none';
+          document.getElementById('app').style.display='flex';
+          await initApp();
+        }
+      });
+      tc.requestAccessToken();
+    }catch(e){showSignMsg('Error: '+e.message);}
+  });
+}
+function doSignOut(){
+  if(accessToken)google.accounts.oauth2.revoke(accessToken);
+  accessToken=null;dbSheetId=null;sheets=[];trashedSheets=[];
+  clearInterval(cdTimer);
+  document.getElementById('signin-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+function showSignMsg(m){document.getElementById('signin-msg').textContent=m;}
 
-/* ── Sub-tab switching inside Dashboard panel ── */
-function showSubTab(subId, el){
-  document.querySelectorAll('.sub-panel').forEach(function(p){p.classList.add('hidden');});
-  document.querySelectorAll('.sub-tab').forEach(function(t){t.classList.remove('active');});
-  var p=document.getElementById(subId);
-  if(p)p.classList.remove('hidden');
-  if(el)el.classList.add('active');
-  // Trigger renders
-  if(subId==='sub-repo')renderRepo();
-  if(subId==='sub-trash')renderTrash();
-  if(subId==='sub-monitor')onMonChange();
-  if(subId==='sub-whatsapp')refreshDropdowns();
-  if(subId==='sub-track'){
-    var d=new Date();d.setDate(d.getDate()+7);
-    var el2=document.getElementById('tr-deadline');if(el2)el2.value=d.toISOString().slice(0,10);
+/* Tab listeners — attached at page load, independent of initApp */
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const panelId='panel-'+t.dataset.tab;
+      const panel=document.getElementById(panelId);
+      if(panel)panel.classList.add('active');
+      if(typeof refreshDropdowns==='function')refreshDropdowns();
+      if(t.dataset.tab==='repo')renderRepo();
+      if(t.dataset.tab==='trash')renderTrash();
+      if(t.dataset.tab==='track'){
+        const d=new Date();d.setDate(d.getDate()+7);
+        document.getElementById('tr-deadline').value=d.toISOString().slice(0,10);
+      }
+      if(t.dataset.tab==='squad')initSquadPanel();
+      if(t.dataset.tab==='staff-master'){loadSquadData().then(()=>renderStaffMaster());}
+    });
+  });
+});
+
+/* ══════════════════════════════════
+   INIT
+══════════════════════════════════ */
+async function initApp(){
+  renderBlockChips();
+  const d=new Date();d.setDate(d.getDate()+7);
+  document.getElementById('ns-deadline').value=d.toISOString().slice(0,10);
+  await ensureDb();
+  await loadFromDb();
+  renderDashboard();renderRepo();refreshDropdowns();
+  await autoRefreshAll();
+  startCountdown();
+}
+
+/* ══════════════════════════════════
+   DB — TVM Tracker DB Google Sheet
+   Columns: id|title|type|link|sheetId|stateLink|deadline|notes|createdAt|status|lang|blockStatusJSON|lastRead|trashed
+══════════════════════════════════ */
+async function ensureDb(){
+  const r=await driveSearch("name='"+DB_TITLE+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+  const files=(r.files||[]);
+  if(files.length>0){dbSheetId=files[0].id;return;}
+  const cr=await sheetsCreate({properties:{title:DB_TITLE},sheets:[{properties:{title:'TVMData'}}]});
+  dbSheetId=cr.spreadsheetId;
+  dbTabName='TVMData';
+  await sheetsValuesUpdate(dbSheetId,'TVMData!A1',[['id','title','type','link','sheetId','stateLink','deadline','notes','createdAt','status','lang','blockStatusJSON','lastRead','trashed']]);
+}
+
+function sj(s){try{return JSON.parse(s);}catch{return [];}}
+
+let dbTabName='Sheet1'; // will be detected on load
+
+async function loadFromDb(){
+  // Detect actual tab name
+  try{
+    const meta=await sheetsGetMeta(dbSheetId);
+    dbTabName=meta.sheets[0].properties.title;
+  }catch(e){}
+  const r=await sheetsGetRange(dbSheetId,dbTabName+'!A2:N2000');
+  const rows=(r.values||[]).filter(r=>r[0]);
+  sheets=rows.filter(r=>r[13]!=='1').map(r=>({
+    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
+    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
+    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:false
+  }));
+  trashedSheets=rows.filter(r=>r[13]==='1').map(r=>({
+    id:parseInt(r[0]),title:r[1]||'',type:r[2]||'own',link:r[3]||'',sheetId:r[4]||'',
+    stateLink:r[5]||'',deadline:r[6]||'',notes:r[7]||'',createdAt:r[8]||'',
+    status:r[9]||'active',lang:r[10]||'ta',blockStatus:sj(r[11]),lastRead:r[12]||'',trashed:true
+  }));
+}
+
+async function saveToDb(){
+  const all=[...sheets,...trashedSheets];
+  const rows=all.map(s=>[s.id,s.title,s.type,s.link,s.sheetId,s.stateLink,s.deadline,s.notes,s.createdAt,s.status,s.lang,JSON.stringify(s.blockStatus),s.lastRead,s.trashed?'1':'0']);
+  await sheetsValuesநீக்கு(dbSheetId,dbTabName+'!A2:N2000');
+  if(rows.length>0){await sheetsValuesUpdate(dbSheetId,dbTabName+'!A2',rows);}
+}
+
+/* ══════════════════════════════════
+   COUNTDOWN
+══════════════════════════════════ */
+let autoRunning=true;
+function toggleAutoRefresh(){
+  autoRunning=!autoRunning;
+  const btn=document.getElementById('stop-btn');
+  if(autoRunning){
+    btn.textContent='⏸ Stop';
+    btn.style.background='rgba(255,100,100,.3)';
+    startCountdown();
+  }else{
+    clearInterval(cdTimer);
+    btn.textContent='▶ Start';
+    btn.style.background='rgba(100,255,100,.3)';
+    document.getElementById('cd-text').textContent='Paused';
   }
 }
+function startCountdown(){
+  clearInterval(cdTimer);
+  cdSec=300;updateCd();
+  cdTimer=setInterval(async()=>{
+    if(!autoRunning)return;
+    cdSec--;updateCd();
+    if(cdSec<=0){cdSec=300;await autoRefreshAll();}
+  },1000);
+}
+function updateCd(){
+  const m=Math.floor(cdSec/60),s=cdSec%60;
+  document.getElementById('cd-text').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('cd-fill').style.width=(cdSec/300*100)+'%';
+}
+async function manualRefresh(){
+  await autoRefreshAll();cdSec=300;updateCd();
+}
+async function autoRefreshAll(){
+  if(!dbSheetId)return;
+  const active=sheets.filter(s=>s.status==='active'&&s.sheetId);
+  for(const s of active){
+    try{await readSheetData(s);}
+    catch(e){console.warn('Read failed:',s.title,e.message);}
+  }
+  if(active.length)await saveToDb();
+  document.getElementById('last-refresh').textContent='Last refreshed: '+nowStr();
+  renderDashboard();refreshDropdowns();
+}
+
+/* ══════════════════════════════════
+   FILL DETECTION
+   Key rule: formula cells that return 0
+   are reported by Sheets API as "0" string.
+   We detect real user-typed data by:
+   1. Cell must be non-empty string
+   2. Value must not be 0/0.0/0.00/"-"/"—"
+   3. Value must be a meaningful number >0
+      OR a non-numeric non-empty string
+══════════════════════════════════ */
+/* isRealData(formattedVal, formulaVal)
+   formulaVal: if cell has a formula, this starts with '='
+   If formula exists and formatted result is 0/empty → unfilled
+   If no formula (user typed) → any non-empty value = filled (including 0, -, 0.00) */
+function isRealData(fmtCell, fmlCell){
+  const fmt=String(fmtCell||'').trim();
+  const fml=String(fmlCell||'').trim();
+  if(fmt==='')return false; // empty = unfilled regardless
+  const hasFormula=fml.startsWith('=');
+  if(hasFormula){
+    // Formula cell: only filled if result is meaningful non-zero
+    if(fmt==='0'||fmt==='0.0'||fmt==='0.00'||fmt==='0.000')return false;
+    const n=parseFloat(fmt);
+    if(!isNaN(n))return n>0;
+    return fmt.length>0;
+  }
+  // User typed: any non-empty value counts as filled
+  return fmt.length>0;
+}
+
+function matchBlock(row){
+  for(const cell of row){
+    if(!cell)continue;
+    const norm=String(cell).trim().toLowerCase().replace(/\s+/g,' ').replace(/[_]/g,' ');
+    if(ALIASES[norm]!==undefined)return ALIASES[norm];
+    for(const [alias,idx] of Object.entries(ALIASES)){
+      if(norm===alias||norm.includes(alias)||alias.includes(norm))return idx;
+    }
+  }
+  return -1;
+}
+
+/* ══════════════════════════════════
+   READ SHEET — scans all tabs,
+   accumulates real data score per block
+══════════════════════════════════ */
+async function readSheetData(s){
+  const meta=await sheetsGetMeta(s.sheetId);
+  const tabs=meta.sheets.map(sh=>sh.properties.title);
+  const ranges=tabs.map(t=>"'"+t+"'!A:Z");
+  // Fetch both formatted values and formula values in parallel
+  const [fmtResp, fmlResp]=await Promise.all([
+    sheetsBatchGet(s.sheetId,ranges),
+    sheetsBatchGetFormula(s.sheetId,ranges)
+  ]);
+
+  const blockScore={};
+
+  (fmtResp.valueRanges||[]).forEach((vr,ti)=>{
+    const tabName=tabs[ti];
+    const rows=vr.values||[];
+    const fmlRows=(fmlResp.valueRanges&&fmlResp.valueRanges[ti]&&fmlResp.valueRanges[ti].values)||[];
+
+    let blockCol=-1;
+    for(let ri=0;ri<Math.min(rows.length,10);ri++){
+      for(let ci=0;ci<(rows[ri]||[]).length;ci++){
+        if(matchBlock([rows[ri][ci]])>=0){blockCol=ci;break;}
+      }
+      if(blockCol>=0)break;
+    }
+
+    rows.forEach((row,ri)=>{
+      if(!row||row.length===0)return;
+      const bIdx=matchBlock(row);
+      if(bIdx<0)return;
+      const fmlRow=fmlRows[ri]||[];
+      let score=0;
+      row.forEach((cell,ci)=>{
+        if(ci===blockCol)return;
+        if(isRealData(cell, fmlRow[ci]))score++;
+      });
+      if(!blockScore[bIdx]){blockScore[bIdx]={score:0,tabs:[]};}
+      blockScore[bIdx].score+=score;
+      if(!blockScore[bIdx].tabs.includes(tabName))blockScore[bIdx].tabs.push(tabName);
+    });
+  });
+
+  // Convert score to status
+  s.blockStatus=BLOCKS.map((_,i)=>{
+    const bs=blockScore[i];
+    let status='unfilled';
+    if(bs){
+      if(bs.score>=4)status='filled';
+      else if(bs.score>=1)status='partial';
+    }
+    return{idx:i,status,tabs:bs?bs.tabs:[],updatedAt:today()};
+  });
+  s.lastRead=nowStr();
+}
+
+/* ══════════════════════════════════
+   IMPORT EXISTING SHEET
+══════════════════════════════════ */
+async function importSheet(){
+  const title=document.getElementById('ns-title').value.trim();
+  const link=document.getElementById('ns-existing-link').value.trim();
+  if(!title){alert('Please enter a sheet title.');return;}
+  if(!link){alert('Please paste a Google Sheet link.');return;}
+  const sid=sidFromUrl(link);
+  if(!sid){alert('Invalid Google Sheet link.');return;}
+  const rec={
+    id:Date.now(),title,type:document.getElementById('ns-type').value,
+    link,sheetId:sid,
+    stateLink:document.getElementById('ns-state-link').value.trim(),
+    deadline:document.getElementById('ns-deadline').value,
+    notes:document.getElementById('ns-notes').value.trim(),
+    createdAt:today(),status:'active',lang:blockLang,
+    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+    lastRead:'',trashed:false
+  };
+  showCMsg('<span class="spin spin-b"></span> Reading sheet cells...','info');
+  try{
+    await readSheetData(rec);
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
+    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
+    await saveToDb();
+    renderDashboard();refreshDropdowns();renderRepo();
+    showCMsg('✅ Sheet imported and read successfully!','ok');
+    document.getElementById('ns-title').value='';
+    document.getElementById('ns-existing-link').value='';
+    document.getElementById('ns-state-link').value='';
+  }catch(e){
+    console.error('importSheet error:',e);
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);await saveToDb();}
+    renderDashboard();refreshDropdowns();renderRepo();
+    showCMsg('⚠️ Sheet saved. Could not read cells: '+e.message,'warn');
+  }
+}
+
+
+/* ══════════════════════════════════
+   TRACK IMPORT SHEET (Track Sheet tab)
+══════════════════════════════════ */
+async function trackImportSheet(){
+  const title=document.getElementById('tr-title').value.trim();
+  const link=document.getElementById('tr-link').value.trim();
+  if(!title){alert('Please enter a sheet title.');return;}
+  if(!link){alert('Please paste a Google Sheet link.');return;}
+  const sid=sidFromUrl(link);
+  if(!sid){alert('Invalid Google Sheet link.');return;}
+  const msgEl=document.getElementById('tr-msg');
+  msgEl.className='alert a-info';msgEl.innerHTML='<span class="spin spin-b"></span> Reading sheet cells...';msgEl.classList.remove('hidden');
+  const rec={
+    id:Date.now(),
+    title,
+    type:document.getElementById('tr-type').value,
+    link,sheetId:sid,
+    stateLink:document.getElementById('tr-state-link').value.trim(),
+    deadline:document.getElementById('tr-deadline').value,
+    notes:document.getElementById('tr-notes').value.trim(),
+    createdAt:today(),status:'active',lang:'ta',
+    blockStatus:BLOCKS.map((_,i)=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+    lastRead:'',trashed:false
+  };
+  try{
+    await readSheetData(rec);
+    if(!sheets.find(x=>x.sheetId===rec.sheetId)){sheets.unshift(rec);}
+    else{const i=sheets.findIndex(x=>x.sheetId===rec.sheetId);sheets[i]=rec;}
+    await saveToDb();
+    renderDashboard();refreshDropdowns();renderRepo();
+    msgEl.className='alert a-ok';msgEl.innerHTML='✅ Sheet imported and read successfully! Check Dashboard.';
+    document.getElementById('tr-title').value='';
+    document.getElementById('tr-link').value='';
+    document.getElementById('tr-state-link').value='';
+    document.getElementById('tr-notes').value='';
+  }catch(e){
+    console.error('trackImport error:',e);
+    msgEl.className='alert a-err';msgEl.innerHTML='❌ '+e.message+'<br><small>Sheet must be shared (anyone with link can view/edit). Check if you are signed in properly.</small>';
+  }
+}
+/* ══════════════════════════════════
+   CREATE FROM STATE SHEET
+   Steps:
+   1. Read state sheet metadata (all tabs, all data)
+   2. Copy entire sheet using Drive copy API
+   3. Find region/district name column in each tab
+   4. Replace district names with 21 block names (Tamil)
+   5. Delete extra rows beyond 21 blocks
+   6. Keep total/summary row if exists
+   7. Share publicly
+══════════════════════════════════ */
+async function createFromStateSheet(){
+  const stateLink=document.getElementById('ns-state-src').value.trim();
+  const newTitle=document.getElementById('ns-new-title').value.trim()||document.getElementById('ns-title').value.trim();
+  if(!stateLink){alert('Please paste the State sheet link.');return;}
+  if(!newTitle){alert('Please enter a title for the new sheet.');return;}
+  const stateSid=sidFromUrl(stateLink);
+  if(!stateSid){alert('Invalid State sheet link.');return;}
+
+  const selIdx=[...selectedBlocks].sort((a,b)=>a-b);
+  const selBlocks=selIdx.map(i=>BLOCKS[i]);
+
+  document.getElementById('create-spin').classList.remove('hidden');
+  document.getElementById('new-link-box').classList.add('hidden');
+  showCMsg('Step 1/4: Copying state sheet to your Drive...','info');
+
+  try{
+    // STEP 1: Copy the entire spreadsheet via Drive API
+    const copyResp=await driveCopy(stateSid,newTitle);
+    const newSid=copyResp.id;
+    const newUrl=`https://docs.google.com/spreadsheets/d/${newSid}/edit`;
+
+    showCMsg('Step 2/4: Reading sheet structure...','info');
+
+    // STEP 2: Get all tabs and their data
+    const meta=await sheetsGetMeta(newSid);
+    const tabSheets=meta.sheets;
+
+    showCMsg('Step 3/4: Replacing region names with block names...','info');
+
+    // STEP 3: For each tab, find region name column and replace
+    for(const tabSheet of tabSheets){
+      const tabTitle=tabSheet.properties.title;
+      const tabId=tabSheet.properties.sheetId;
+
+      // Read the tab data
+      const dataResp=await sheetsGetRange(newSid,"'"+tabTitle+"'!A:Z");
+      const rows=dataResp.values||[];
+      if(rows.length===0)continue;
+
+      // Find the column that has district/region names
+      // Strategy: scan rows 3-10, find column where cells match known district patterns
+      let nameCol=-1;
+      let firstDataRow=-1;
+      const districtPatterns=['ariyalur','chennai','coimbatore','cuddalore','dharmapuri','dindigul',
+        'erode','kancheepuram','chengalpattu','kanyakumari','karur','krishnagiri','madurai',
+        'nagapattinam','mayiladuthurai','namakkal','nilgiris','perambalur','pudukkottai',
+        'ramanathapuram','salem','sivagangai','thanjavur','theni','tiruchy','tirunelveli',
+        'tenkasi','tiruppur','tiruvallur','tiruvannamalai','tiruvarur','vellore','villupuram',
+        'virudhunagar','thiruvannamalai','திருவண்ணாமலை','அரியலூர்','சென்னை'];
+
+      for(let ri=0;ri<Math.min(rows.length,15);ri++){
+        const row=rows[ri]||[];
+        for(let ci=0;ci<row.length;ci++){
+          const cellVal=String(row[ci]||'').trim().toLowerCase();
+          if(districtPatterns.some(p=>cellVal.includes(p))){
+            nameCol=ci;firstDataRow=ri;break;
+          }
+        }
+        if(nameCol>=0)break;
+      }
+
+      if(nameCol<0)continue; // no region column found in this tab
+
+      // Find total row (usually last row with "total"/"மொத்தம்" keyword)
+      let totalRowIdx=-1;
+      for(let ri=rows.length-1;ri>=firstDataRow;ri--){
+        const rowStr=(rows[ri]||[]).join(' ').toLowerCase();
+        if(rowStr.includes('total')||rowStr.includes('மொத்தம்')||rowStr.includes('grand')){
+          totalRowIdx=ri;break;
+        }
+      }
+
+      // Build requests: update block names in nameCol
+      const requests=[];
+
+      // Replace each district name with block name (rows firstDataRow to firstDataRow+selBlocks.length-1)
+      for(let bi=0;bi<selBlocks.length;bi++){
+        const rowIdx=firstDataRow+bi;
+        if(rowIdx>=rows.length)break;
+        requests.push({
+          updateCells:{
+            range:{sheetId:tabId,startRowIndex:rowIdx,endRowIndex:rowIdx+1,startColumnIndex:nameCol,endColumnIndex:nameCol+1},
+            rows:[{values:[{userEnteredValue:{stringValue:selBlocks[bi].ta}}]}],
+            fields:'userEnteredValue'
+          }
+        });
+      }
+
+      // Delete extra rows (rows after 21 blocks and before total row)
+      const lastBlockRow=firstDataRow+selBlocks.length;
+      let deleteUpTo=totalRowIdx>=0?totalRowIdx:rows.length;
+      if(deleteUpTo>lastBlockRow){
+        requests.push({
+          deleteDimension:{range:{sheetId:tabId,dimension:'ROWS',startIndex:lastBlockRow,endIndex:deleteUpTo}}
+        });
+      }
+
+      if(requests.length>0){await sheetsBatchUpdate(newSid,requests);}
+    }
+
+    showCMsg('Step 4/4: Saving to tracker...','info');
+
+    // STEP 4: Try to share publicly — skip if Drive permission API fails
+    try{
+      await drivePermission(newSid);
+    }catch(permErr){
+      console.warn('Share permission skipped:',permErr.message);
+      // Not a fatal error — sheet is still created, user can share manually
+    }
+
+    // Save to tracker
+    const rec={
+      id:Date.now(),title:newTitle,type:'state',
+      link:newUrl,sheetId:newSid,
+      stateLink:stateLink,
+      deadline:document.getElementById('ns-deadline').value,
+      notes:document.getElementById('ns-notes').value.trim(),
+      createdAt:today(),status:'active',lang:'ta',
+      blockStatus:selIdx.map(i=>({idx:i,status:'unfilled',tabs:[],updatedAt:null})),
+      lastRead:'',trashed:false
+    };
+    if(!sheets.find(x=>x.sheetId===newSid)){sheets.unshift(rec);}
+    await saveToDb();
+    renderDashboard();refreshDropdowns();renderRepo();
+
+    newCreatedLink=newUrl;
+    document.getElementById('new-link-url').textContent=newUrl;
+    document.getElementById('new-link-open').href=newUrl;
+    document.getElementById('new-link-box').classList.remove('hidden');
+    showCMsg('✅ District sheet created successfully! Copy the link and share in WhatsApp.','ok');
+
+  }catch(e){
+    showCMsg('❌ Error: '+e.message,'err');
+  }
+  document.getElementById('create-spin').classList.add('hidden');
+}
+
+function copyNewLink(){
+  navigator.clipboard.writeText(newCreatedLink).then(()=>{
+    alert('✅ Link copied!\nShare this in your WhatsApp group.');
+  });
+}
+
+function showCMsg(html,type){
+  const el=document.getElementById('create-msg');
+  const cls={info:'a-info',ok:'a-ok',warn:'a-warn',err:'a-err'};
+  el.className='alert '+cls[type];el.innerHTML=html;
+  el.classList.remove('hidden');
+}
+
+/* ══════════════════════════════════
+   MONITOR
+══════════════════════════════════ */
+function onMonChange(){
+  const id=parseInt(document.getElementById('mon-sel').value);
+  const s=sheets.find(x=>x.id===id);
+  if(s&&s.link){document.getElementById('mon-link').href=s.link;document.getElementById('mon-link-row').classList.remove('hidden');}
+  else document.getElementById('mon-link-row').classList.add('hidden');
+  document.getElementById('mon-result').innerHTML='';
+}
+async function readOneSheet(){
+  const id=parseInt(document.getElementById('mon-sel').value);
+  if(!id){alert('Select a sheet first.');return;}
+  const s=sheets.find(x=>x.id===id);
+  if(!s)return;
+  document.getElementById('read-spin').classList.remove('hidden');
+  document.getElementById('mon-result').innerHTML='<div class="alert a-info"><span class="spin spin-b"></span> Reading sheet cells...</div>';
+  try{
+    await readSheetData(s);await saveToDb();
+    renderDashboard();refreshDropdowns();
+    renderMonTable(s);
+  }catch(e){
+    document.getElementById('mon-result').innerHTML=`<div class="alert a-err">❌ Error: ${e.message}<br><small>Ensure sheet is shared "Anyone with link can view".</small></div>`;
+  }
+  document.getElementById('read-spin').classList.add('hidden');
+}
+
+function renderMonTable(s){
+  const f=s.blockStatus.filter(b=>b.status==='filled').length;
+  const p=s.blockStatus.filter(b=>b.status==='partial').length;
+  const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
+  const t=s.blockStatus.length;
+  const pct=Math.round((f/Math.max(t,1))*100);
+  const col=pct>=100?'green':pct>0?'amber':'red';
+  let html=`<div class="card" style="padding:14px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <div style="font-size:14px;font-weight:700">${s.title}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge b-green">✓ ${f} நிரப்பினர்</span>
+        <span class="badge b-amber">◑ ${p} பகுதி</span>
+        <span class="badge b-red">✗ ${n} நிரப்பவில்லை</span>
+      </div>
+    </div>
+    <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Last read: ${s.lastRead||'—'} · ${pct}% complete</div>
+    <div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>#</th><th>ஒப்பந்த வட்டாரம்</th><th>Block</th><th>நிலை</th><th>Tabs found</th><th>நாட்கள்</th></tr></thead><tbody>`;
+  s.blockStatus.forEach((bs,i)=>{
+    const b=BLOCKS[bs.idx];
+    const sc=bs.status==='filled'?'b-green':bs.status==='partial'?'b-amber':'b-red';
+    const sl=bs.status==='filled'?'நிரப்பினர்':bs.status==='partial'?'பகுதி':'நிரப்பவில்லை';
+    const days=bs.updatedAt?daysSince(bs.updatedAt):daysSince(s.createdAt);
+    html+=`<tr>
+      <td style="color:var(--gray);font-size:11px">${i+1}</td>
+      <td style="font-weight:600">${b.ta}</td>
+      <td style="font-size:12px;color:var(--gray)">${b.en}</td>
+      <td><span class="badge ${sc}">${sl}</span></td>
+      <td style="font-size:11px;color:var(--gray)">${(bs.tabs||[]).join(', ')||'—'}</td>
+      <td style="font-size:12px;color:${bs.status==='filled'?'var(--green)':bs.status==='partial'?'var(--amber)':'var(--red)'}">${days}d</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-outline" style="font-size:12px" onclick="goToWA(${s.id})">📤 Generate WhatsApp Message</button>
+    </div></div>`;
+  document.getElementById('mon-result').innerHTML=html;
+}
+
+/* ══════════════════════════════════
+   DASHBOARD
+══════════════════════════════════ */
+function renderDashboard(){
+  const active=sheets.filter(s=>s.status==='active');
+  let fc=0,pc=0,nc=0;
+  active.forEach(s=>{
+    const bs=s.blockStatus||[];
+    const f=bs.filter(b=>b.status==='filled').length;
+    const p=bs.filter(b=>b.status==='partial').length;
+    const t=bs.length;
+    if(f===t&&t>0)fc++;else if(f>0||p>0)pc++;else nc++;
+  });
+  document.getElementById('st-total').textContent=active.length;
+  document.getElementById('st-full').textContent=fc;
+  document.getElementById('st-partial').textContent=pc;
+  document.getElementById('st-none').textContent=nc;
+
+  if(!active.length){
+    document.getElementById('dash-list').innerHTML='<div class="alert a-info">No active sheets. Go to "Add Sheet" to begin.</div>';
+    return;
+  }
+  document.getElementById('dash-list').innerHTML=active.map(s=>{
+    const f=s.blockStatus.filter(b=>b.status==='filled').length;
+    const p=s.blockStatus.filter(b=>b.status==='partial').length;
+    const n=s.blockStatus.filter(b=>b.status==='unfilled').length;
+    const t=Math.max(s.blockStatus.length,1);
+    const pct=Math.round((f/t)*100);
+    const col=pct>=100?'green':pct>0?'amber':'red';
+    const dl=s.deadline?Math.ceil((new Date(s.deadline)-new Date())/86400000):null;
+    let dlb='';
+    if(dl!==null){if(dl<0)dlb=`<span class="badge b-red">Overdue ${Math.abs(dl)}d</span>`;
+    else if(dl<=2)dlb=`<span class="badge b-amber">Due in ${dl}d</span>`;
+    else dlb=`<span class="badge b-gray">Due ${s.deadline}</span>`;}
+    const pendTa=s.blockStatus.filter(b=>b.status!=='filled').map(b=>BLOCKS[b.idx].ta);
+    return `<div class="sheet-item">
+      <div class="sheet-head">
+        <div>
+          <div class="sheet-title">${s.title}</div>
+          <div class="sheet-meta">${s.type==='state'?'🏛 State Sheet':'📁 My Sheet'} · ${s.createdAt}${s.lastRead?` · <span style="color:var(--green)">நேரடி: ${s.lastRead}</span>`:' · <span style="color:var(--amber)">Not yet read</span>'}</div>
+          ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Open Sheet ↗</a>`:''}
+          ${s.link?`<button class="btn-sm" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Link copied!'))" style="margin-left:6px;font-size:11px">📋 Copy Link</button>`:''}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start;justify-content:flex-end">
+          ${dlb}
+          <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
+          <button class="btn-sm" onclick="quickRead(${s.id})">🔄</button>
+          <button class="btn-sm" onclick="archiveSheet(${s.id})">✓ Done</button>
+          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})">🗑</button>
+        </div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar pg-${col}" style="width:${pct}%"></div></div>
+      <div style="display:flex;gap:14px;font-size:12px;margin-top:6px;flex-wrap:wrap">
+        <span><span class="dot dot-g"></span>${f} நிரப்பினர்</span>
+        <span><span class="dot dot-a"></span>${p} பகுதி</span>
+        <span><span class="dot dot-r"></span>${n} நிரப்பவில்லை</span>
+        <span style="color:var(--gray)">${t} மொத்தம்</span>
+      </div>
+      ${n>0?`<div style="margin-top:7px;font-size:12px;color:var(--red);line-height:1.6">⏳ நிலுவை: ${pendTa.join(', ')}</div>`:''}
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn-sm-g" onclick="goToWA(${s.id})">💬 WhatsApp</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function quickRead(id){
+  const s=sheets.find(x=>x.id===id);if(!s)return;
+  try{await readSheetData(s);await saveToDb();renderDashboard();}
+  catch(e){alert('Error: '+e.message);}
+}
+async function archiveSheet(id){
+  if(!confirm('Mark this sheet as completed?'))return;
+  const s=sheets.find(x=>x.id===id);if(s)s.status='done';
+  await saveToDb();renderDashboard();refreshDropdowns();renderRepo();
+}
+async function trashSheet(id){
+  if(!confirm('Move to trash?'))return;
+  const idx=sheets.findIndex(x=>x.id===id);
+  if(idx>=0){
+    sheets[idx].trashed=true;
+    trashedSheets.push(sheets[idx]);
+    sheets.splice(idx,1);
+    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
+  }
+}
+async function restoreSheet(id){
+  const idx=trashedSheets.findIndex(x=>x.id===id);
+  if(idx>=0){
+    trashedSheets[idx].trashed=false;
+    sheets.push(trashedSheets[idx]);
+    trashedSheets.splice(idx,1);
+    await saveToDb();renderDashboard();refreshDropdowns();renderRepo();renderTrash();
+  }
+}
+async function permDelete(id){
+  if(!confirm('Permanently delete? This cannot be undone.'))return;
+  const idx=trashedSheets.findIndex(x=>x.id===id);
+  if(idx>=0){trashedSheets.splice(idx,1);await saveToDb();renderTrash();}
+}
+
+/* ══════════════════════════════════
+   DROPDOWNS
+══════════════════════════════════ */
+function refreshDropdowns(){
+  const active=sheets.filter(s=>s.status==='active');
+  const opts='<option value="">— Select a sheet —</option>'+active.map(s=>`<option value="${s.id}">${s.title}</option>`).join('');
+  document.getElementById('mon-sel').innerHTML=opts;
+  document.getElementById('wa-sel').innerHTML=opts;
+}
+
+/* ══════════════════════════════════
+   WHATSAPP — CORRECTED TAMIL TEXT
+══════════════════════════════════ */
+function goToWA(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab=whatsapp]').classList.add('active');
+  document.getElementById('panel-whatsapp').classList.add('active');
+  refreshDropdowns();
+  document.getElementById('wa-sel').value=id;
+  document.getElementById('wa-type').value='reminder';
+  genWA();
+}
+function genWA(){
+  const id=parseInt(document.getElementById('wa-sel').value);
+  const type=document.getElementById('wa-type').value;
+  const lang=document.querySelector('input[name=wa-lang]:checked').value;
+  const out=document.getElementById('wa-out');
+  if(!id){out.classList.add('hidden');return;}
+  const s=sheets.find(x=>x.id===id);
+  if(!s){out.classList.add('hidden');return;}
+
+  const filled=s.blockStatus.filter(b=>b.status==='filled');
+  const pending=s.blockStatus.filter(b=>b.status!=='filled');
+  const pct=Math.round((filled.length/Math.max(s.blockStatus.length,1))*100);
+  const days=daysSince(s.createdAt);
+  const lnk=s.link||'[இணைப்பு சேர்க்கப்படும்]';
+  const pTa=pending.map(b=>BLOCKS[b.idx].ta).join('\n');
+  const pEn=pending.map(b=>BLOCKS[b.idx].en).join('\n');
+  const fTa=filled.map(b=>BLOCKS[b.idx].ta).join(', ');
+  const fEn=filled.map(b=>BLOCKS[b.idx].en).join(', ');
+  const SIGN_TA='— துணைப்பதிவாளர் (பொவிதி) அலுவலகம், திருவண்ணாமலை';
+  const SIGN_EN='— Deputy Registrar (Civil Supplies) Office, Thiruvannamalai';
+
+  const msgs={
+    initial:{
+      ta:`🏛 *திருவண்ணாமலை மாவட்டம்*\n\nமதிப்பிற்குரிய ஒப்பந்த வட்டார அலுவலர்களே,\n\nகீழ்கண்ட Google Sheet-ஐ விரைவில் நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n📋 *தலைப்பு:* ${s.title}\n🔗 *இணைப்பு:* ${lnk}\n📅 *கடைசி தேதி:* ${s.deadline||'விரைவில்'}\n\nதங்கள் வட்டாரத்தின் அனைத்து தரவுகளையும் முழுமையாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n\n${SIGN_TA}`,
+      en:`🏛 *Thiruvannamalai District*\n\nDear Block Officers,\n\nYou are requested to fill the following Google Sheet at the earliest.\n\n📋 *Sheet:* ${s.title}\n🔗 *Link:* ${lnk}\n📅 *Deadline:* ${s.deadline||'ASAP'}\n\nPlease fill all columns completely.\n\n${SIGN_EN}`
+    },
+    reminder:{
+      ta:`⚠️ *நினைவூட்டல் — ${s.title}*\n\n✅ நிரப்பியவர்கள் (${filled.length}): ${fTa||'—'}\n\n⏳ *இன்னும் நிரப்பாதவர்கள் (${pending.length}):*\n${pTa}\n\n🔗 ${lnk}\n⏰ ${days} நாட்களாக நிரப்பப்படாமல் உள்ளது · ${pct}% முடிந்தது\n\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது\n${SIGN_TA}`,
+      en:`⚠️ *REMINDER — ${s.title}*\n\n✅ Filled (${filled.length}): ${fEn||'—'}\n\n⏳ *Pending (${pending.length}):*\n${pEn}\n\n🔗 ${lnk}\n⏰ Pending for ${days} day${days!==1?'s':''} · ${pct}% done\n\nYou are requested to fill immediately.\n${SIGN_EN}`
+    },
+    final:{
+      ta:`🚨 *இறுதி நினைவூட்டல் — ${s.title}*\n\nகீழ்வரும் வட்டாரங்கள் இன்னும் நிரப்பவில்லை:\n\n❌ *(${pending.length} வட்டாரங்கள்):*\n${pTa}\n\n🔗 ${lnk}\n\n⚠️ தங்கள் தரவுகள் இல்லாமல் மாவட்ட அறிக்கை சமர்ப்பிக்க இயலாது.\nஉடனடியாக நிரப்புமாறு கேட்டுக்கொள்ளப்படுகிறது.\n${SIGN_TA}`,
+      en:`🚨 *FINAL REMINDER — ${s.title}*\n\nDistrict report cannot be submitted without data from:\n\n❌ *(${pending.length} blocks):*\n${pEn}\n\n🔗 ${lnk}\n\nYou are requested to fill IMMEDIATELY.\n${SIGN_EN}`
+    },
+    thanks:{
+      ta:`✅ *நன்றி — ${s.title}*\n\nஅனைத்து ${s.blockStatus.length} வட்டாரங்களும் தரவுகளை நிரப்பியதற்கு மிக்க நன்றி! 🙏\n\nமாவட்ட தரவுகள் தொகுக்கப்பட்டு மாநில அலுவலகத்திற்கு அனுப்பப்படும்.\n${SIGN_TA}`,
+      en:`✅ *Thank You — ${s.title}*\n\nAll ${s.blockStatus.length} block officers have submitted data! 🙏\n\nData will be compiled and submitted to State Head Office.\n${SIGN_EN}`
+    }
+  };
+
+  const m=msgs[type];
+  let txt='';
+  if(lang==='ta')txt=m.ta;
+  else if(lang==='en')txt=m.en;
+  else txt=m.ta+'\n\n────────────────\n\n'+m.en;
+  document.getElementById('wa-text').textContent=txt;
+  out.classList.remove('hidden');
+}
+function copyWA(){
+  navigator.clipboard.writeText(document.getElementById('wa-text').textContent)
+    .then(()=>alert('✅ செய்தி நகலெடுக்கப்பட்டது!\nMessage copied!'));
+}
+
+/* ══════════════════════════════════
+   REPOSITORY
+══════════════════════════════════ */
+function setRF(f){repoFilter=f;renderRepo();}
+function renderRepo(){
+  let list=sheets;
+  if(repoFilter==='state')list=sheets.filter(s=>s.type==='state');
+  else if(repoFilter==='own')list=sheets.filter(s=>s.type==='own');
+  else if(repoFilter==='active')list=sheets.filter(s=>s.status==='active');
+  else if(repoFilter==='done')list=sheets.filter(s=>s.status==='done');
+  const el=document.getElementById('repo-list');
+  if(!list.length){el.innerHTML='<div class="alert a-info">No sheets found.</div>';return;}
+  el.innerHTML=list.map(s=>{
+    const f=s.blockStatus.filter(b=>b.status==='filled').length;
+    const pct=Math.round((f/Math.max(s.blockStatus.length,1))*100);
+    const col=pct>=100?'green':pct>0?'amber':'red';
+    return `<div class="sheet-item" style="margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${s.title}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt} · Deadline: ${s.deadline||'—'} · ${s.lastRead?`நேரடி: ${s.lastRead}`:''}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+            ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
+            ${s.link?`<button class="btn-sm" style="font-size:11px;padding:3px 8px" onclick="navigator.clipboard.writeText('${s.link}').then(()=>alert('Copied!'))">📋 Copy</button>`:''}
+            ${s.stateLink?`<a href="${s.stateLink}" target="_blank" class="link-sm" style="color:var(--gray)">State Sheet ↗</a>`:''}
+          </div>
+          ${s.notes?`<div style="font-size:11px;color:var(--gray);margin-top:4px;font-style:italic">${s.notes}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">
+          <span class="badge b-${col==='green'?'green':col==='amber'?'amber':'red'}">${pct}%</span>
+          <span class="badge b-${s.status==='active'?'blue':'gray'}">${s.status==='active'?'Active':'Done'}</span>
+          <button class="btn-sm btn-sm-r" onclick="trashSheet(${s.id})" style="font-size:11px">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════
+   TRASH
+══════════════════════════════════ */
+function renderTrash(){
+  const el=document.getElementById('trash-list');
+  if(!trashedSheets.length){el.innerHTML='<div class="alert a-info">Trash is empty.</div>';return;}
+  el.innerHTML=trashedSheets.map(s=>`
+    <div class="trash-item">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600">${s.title}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${s.type==='state'?'🏛 State':'📁 Own'} · ${s.createdAt}</div>
+          ${s.link?`<a href="${s.link}" target="_blank" class="link-sm">Sheet ↗</a>`:''}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="restoreSheet(${s.id})">↩ Restore</button>
+          <button class="btn btn-red" style="font-size:12px;padding:5px 10px" onclick="permDelete(${s.id})">Delete Forever</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════
+   CHIPS & LANG
+══════════════════════════════════ */
+function setLang(l){
+  blockLang=l;
+  document.getElementById('lt-ta').classList.toggle('on',l==='ta');
+  document.getElementById('lt-en').classList.toggle('on',l==='en');
+  renderBlockChips();
+}
+function renderBlockChips(){
+  document.getElementById('block-chips').innerHTML=BLOCKS.map((b,i)=>
+    `<span class="chip ${selectedBlocks.has(i)?'on':''}" onclick="toggleChip(${i})">${blockLang==='ta'?b.ta:b.en}</span>`
+  ).join('');
+}
+function toggleChip(i){selectedBlocks.has(i)?selectedBlocks.delete(i):selectedBlocks.add(i);renderBlockChips();}
+function selAll(){selectedBlocks=new Set(BLOCKS.map((_,i)=>i));renderBlockChips();}
+function selNone(){selectedBlocks=new Set();renderBlockChips();}
+
+
+/* ══════════════════════════════════
+   INSPECTION + SQUAD + STAFF JS
+══════════════════════════════════ */
+
+/* isRealData - final version */
+function isRealData(fmtCell,fmlCell){
+  var fmt=String(fmtCell||'').trim();
+  if(fmt==='')return false;
+  var ERRORS=['#div/0!','#ref!','#value!','#name?','#n/a!','#null!','#num!','#error!'];
+  if(ERRORS.indexOf(fmt.toLowerCase())>=0)return false;
+  return true;
+}
+
+function detectLastDataColumn(fmtCols,fmlCols){
+  var lastCol=0;
+  var totalCols=Math.max(fmtCols.length,fmlCols.length);
+  for(var ci=0;ci<totalCols;ci++){
+    var fmtCol=fmtCols[ci]||[];
+    var fmlCol=fmlCols[ci]||[];
+    for(var ri=0;ri<20;ri++){
+      var fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      var fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      if(isRealData(fmt,fml)){lastCol=ci;break;}
+    }
+  }
+  return lastCol;
+}
+
+function detectManualColumns(fmtCols,fmlCols,startCol,lastCol){
+  var isManualCol=[];
+  for(var ci=startCol;ci<=lastCol;ci++){
+    var colIdx=ci-startCol;
+    var fmtCol=fmtCols[colIdx]||[];
+    var fmlCol=fmlCols[colIdx]||[];
+    var manualFound=false;
+    for(var ri=0;ri<20;ri++){
+      var fmt=String(((fmtCol[ri]||[])[0])!==undefined?(fmtCol[ri]||[])[0]:'').trim();
+      var fml=String(((fmlCol[ri]||[])[0])!==undefined?(fmlCol[ri]||[])[0]:'').trim();
+      if(fmt!==''&&fml===''){manualFound=true;break;}
+    }
+    isManualCol[ci]=manualFound;
+  }
+  return isManualCol;
+}
+
+function calcFillStatus(fV,tV){
+  if(tV===0)return{status:'unfilled',reason:'No fillable fields'};
+  var rem=tV-fV,pct=Math.round(fV/tV*100);
+  if(tV<=5){
+    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+    return{status:'unfilled',reason:fV+'/'+tV+' fields - all required'};
+  }
+  if(tV<=10){
+    if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+    if(fV>=3){var note=rem===1?' - 1 field yet to be filled':'';return{status:'partial',reason:fV+'/'+tV+' fields filled'+note};}
+    return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields filled'};
+  }
+  var minP=Math.max(6,Math.ceil(tV*0.30));
+  var nearC=Math.ceil(tV*0.10);
+  if(fV===tV)return{status:'filled',reason:'All '+tV+' fields filled'};
+  if(fV>=minP){
+    var note2=(rem>0&&rem<=nearC)?' - only '+rem+' field'+(rem>1?'s':'')+' yet to be filled':'';
+    return{status:'partial',reason:fV+'/'+tV+' fields ('+pct+'%) filled'+note2};
+  }
+  return{status:'unfilled',reason:'Only '+fV+'/'+tV+' fields ('+pct+'%) - below minimum'};
+}
+
+/* Override readSheetData with column-by-column version */
+async function readSheetData(s){
+  var meta=await sheetsGetMeta(s.sheetId);
+  var tabs=meta.sheets.map(function(sh){return sh.properties.title;});
+  var blockData={};
+  for(var ti=0;ti<tabs.length;ti++){
+    var tabName=tabs[ti];
+    var enc=function(t){return "'"+t+"'";};
+    var fmtFull=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+
+      '/values/'+encodeURIComponent(enc(tabName)+'!A:Z')+'?valueRenderOption=FORMATTED_VALUE');
+    var fmtRows=fmtFull.values||[];
+    if(!fmtRows.length)continue;
+    var blockCol=-1,firstDataRow=-1;
+    for(var ri=0;ri<fmtRows.length&&(blockCol<0||firstDataRow<0);ri++){
+      for(var ci=0;ci<(fmtRows[ri]||[]).length;ci++){
+        if(matchBlock([String((fmtRows[ri]||[])[ci]||'').trim()])>=0){
+          if(blockCol<0)blockCol=ci;if(firstDataRow<0)firstDataRow=ri;break;
+        }
+      }
+    }
+    if(blockCol<0||firstDataRow<0)continue;
+    var dataColStart=blockCol+1;
+    var colLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    var colRanges=[];
+    for(var ci2=dataColStart;ci2<=25;ci2++)colRanges.push(enc(tabName)+'!'+colLetters[ci2]+':'+colLetters[ci2]);
+    var batchFmt=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
+      colRanges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&')+'&valueRenderOption=FORMATTED_VALUE');
+    var batchFml=await gFetch('https://sheets.googleapis.com/v4/spreadsheets/'+s.sheetId+'/values:batchGet?'+
+      colRanges.map(function(r){return'ranges='+encodeURIComponent(r);}).join('&')+'&valueRenderOption=FORMULA');
+    var fmtCols=(batchFmt.valueRanges||[]).map(function(vr){return vr.values||[];});
+    var fmlCols=(batchFml.valueRanges||[]).map(function(vr){return vr.values||[];});
+    var lastColRel=detectLastDataColumn(fmtCols,fmlCols);
+    if(lastColRel<0)continue;
+    var isManualCol=detectManualColumns(fmtCols,fmlCols,0,lastColRel);
+    var tabMaxV=0;
+    for(var k in isManualCol){if(isManualCol[k])tabMaxV++;}
+    if(tabMaxV===0)continue;
+    var tabBlockBest={};
+    for(var ri2=firstDataRow;ri2<fmtRows.length;ri2++){
+      var row2=[];
+      for(var ci3=0;ci3<=lastColRel+dataColStart;ci3++){
+        if(ci3<dataColStart)row2.push((fmtRows[ri2]||[])[ci3]!==undefined?(fmtRows[ri2]||[])[ci3]:'');
+        else{var colIdx2=ci3-dataColStart;row2.push(((fmtCols[colIdx2]||[])[ri2]||[])[0]!==undefined?((fmtCols[colIdx2]||[])[ri2]||[])[0]:'');}
+      }
+      var bIdx=matchBlock(row2);
+      if(bIdx<0)continue;
+      if(/total/.test(row2.join(' ').toLowerCase()))continue;
+      var filledV2=0;
+      for(var colIdx3=0;colIdx3<=lastColRel;colIdx3++){
+        if(!isManualCol[colIdx3])continue;
+        var fmt2=String(((fmtCols[colIdx3]||[])[ri2]||[])[0]!==undefined?((fmtCols[colIdx3]||[])[ri2]||[])[0]:'').trim();
+        var fml2=String(((fmlCols[colIdx3]||[])[ri2]||[])[0]!==undefined?((fmlCols[colIdx3]||[])[ri2]||[])[0]:'').trim();
+        if(isRealData(fmt2,fml2))filledV2++;
+      }
+      if(tabBlockBest[bIdx]===undefined||filledV2>tabBlockBest[bIdx])tabBlockBest[bIdx]=filledV2;
+    }
+    for(var bIdxStr in tabBlockBest){
+      var bIdx2=parseInt(bIdxStr);
+      if(!blockData[bIdx2])blockData[bIdx2]={filledV:0,totalV:0,tabs:[]};
+      blockData[bIdx2].filledV+=tabBlockBest[bIdxStr];
+      blockData[bIdx2].totalV+=tabMaxV;
+      if(blockData[bIdx2].tabs.indexOf(tabName)<0)blockData[bIdx2].tabs.push(tabName);
+    }
+  }
+  s.blockStatus=BLOCKS.map(function(_,i){
+    var bd=blockData[i];
+    if(!bd||bd.totalV===0)return{idx:i,status:'unfilled',reason:'Block not found',tabs:[],updatedAt:today()};
+    var res=calcFillStatus(bd.filledV,bd.totalV);
+    return{idx:i,status:res.status,reason:res.reason,tabs:bd.tabs,filledV:bd.filledV,totalV:bd.totalV,updatedAt:today()};
+  });
+  s.lastRead=nowStr();
+}
+
+/* renderMonTable patched to show reason */
+var _origRenderMonTable=renderMonTable;
+function renderMonTable(s){
+  _origRenderMonTable(s);
+  /* patch badge cells to show reason */
+  var rows=document.querySelectorAll('#mon-result tr');
+  /* already handled by new renderMonTable if present */
+}
+
+/* ─── INSPECTION FUNCTIONS ─── */
+const INSPECTOR_MAP={
+  '7338749500':{name:'இணைப்பதிவாளர்',type:'officer',target:10},
+  '7338749503':{name:'துணைப்பதிவாளர், செய்யார் சரகம்',type:'officer',target:null},
+  '7338749504':{name:'துணைப்பதிவாளர் (பொவிதி)',type:'officer',target:50},
+  '7338749524':{name:'திருவண்ணாமலை HQ',type:'block',target:45},
+  '7338749525':{name:'திருவண்ணாமலை 1',type:'block',target:45},
+  '7338749526':{name:'கீழ்பென்னாத்தூர்',type:'block',target:45},
+  '7338749527':{name:'செங்கம்',type:'block',target:45},
+  '7338749528':{name:'தண்டராம்பட்டு',type:'block',target:45},
+  '7338749529':{name:'கலசபாக்கம்',type:'block',target:45},
+  '7338749530':{name:'போளூர்',type:'block',target:45},
+  '7338749531':{name:'ஜமுனாமரத்தூர்',type:'block',target:45},
+  '7338749532':{name:'சேத்பட்',type:'block',target:45},
+  '7338749533':{name:'ஆரணி (கிழக்கு)',type:'block',target:45},
+  '7338749534':{name:'செய்யார்',type:'block',target:45},
+  '7338749535':{name:'வெம்பாக்கம் 1',type:'block',target:45},
+  '7338749536':{name:'வந்தவாசி',type:'block',target:45},
+  '7338749537':{name:'பெரணமல்லூர்',type:'block',target:45},
+  '7338749538':{name:'தெள்ளார்',type:'block',target:45},
+  '7338749539':{name:'துரிஞ்சாபுரம்',type:'block',target:45},
+  '7338749540':{name:'புதுப்பாளையம்',type:'block',target:45},
+  '7338749541':{name:'ஆரணி (மேற்கு)',type:'block',target:45},
+  '7458968899':{name:'திருவண்ணாமலை 2',type:'block',target:45},
+  '8457896987':{name:'வெம்பாக்கம் 2',type:'block',target:45},
+  '8541478968':{name:'அனக்காவூர்',type:'block',target:45},
+};
+
+function resetInspection(){
+  document.getElementById('insp-file').value='';
+  document.getElementById('insp-squad-date').value='';
+  document.getElementById('insp-result').classList.add('hidden');
+  document.getElementById('insp-msg').classList.add('hidden');
+}
+
+function loadSquadCodesFromSquadTab(){
+  var rows=document.querySelectorAll('#sq-tbody tr');
+  if(!rows.length){alert('Generate a Squad table first.');return;}
+  var codes=[];
+  rows.forEach(function(row){
+    var cells=row.querySelectorAll('td');
+    if(cells[2])codes.push(cells[2].textContent.trim());
+  });
+  var el=document.getElementById('insp-squad-exclude');
+  if(el)el.value=codes.filter(Boolean).join(', ');
+  alert(codes.length+' squad shop codes loaded.');
+}
+
+function showInspMsg(msg,type){
+  var el=document.getElementById('insp-msg');
+  if(!el)return;
+  if(!msg){el.classList.add('hidden');return;}
+  el.className='alert '+(type==='err'?'a-err':type==='ok'?'a-ok':'a-info');
+  el.innerHTML=msg;el.classList.remove('hidden');
+}
+
+function processInspection(){
+  var fileEl=document.getElementById('insp-file');
+  if(!fileEl.files||!fileEl.files[0]){showInspMsg('Excel file select seyyavum.','err');return;}
+  showInspMsg('<span class="spin spin-b"></span> Padikkirathu...','info');
+  var squadDate=document.getElementById('insp-squad-date').value;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=new Uint8Array(e.target.result);
+      var wb=XLSX.read(data,{type:'array',cellDates:true});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      var headerRow=-1;
+      for(var i=0;i<15;i++){
+        if(rows[i]&&rows[i].some(function(x){return String(x).includes('Inspector Mobile');})){headerRow=i;break;}
+      }
+      if(headerRow<0){showInspMsg('Header row not found.','err');return;}
+      var headers=rows[headerRow].map(function(h){return String(h).trim();});
+      var mobileCol=headers.findIndex(function(h){return h.includes('Inspector Mobile');});
+      var shopCodeCol=headers.findIndex(function(h){return h.toLowerCase().includes('fps code')||h.toLowerCase().includes('shop code');});
+      var dateCol=headers.findIndex(function(h){return h.toLowerCase().includes('date of inspection');});
+      if(mobileCol<0){showInspMsg('Inspector Mobile column not found.','err');return;}
+      if(shopCodeCol<0){showInspMsg('FPS Code column not found.','err');return;}
+      var shopSets={};var squadSets={};
+      for(var ri=headerRow+1;ri<rows.length;ri++){
+        var row=rows[ri];
+        var rawMobile=String(row[mobileCol]||'').replace(/\.0+$/,'').trim();
+        var mobile=rawMobile.replace(/[^0-9]/g,'');
+        if(!mobile||mobile.length<10)continue;
+        var shopCode=String(row[shopCodeCol]||'').trim();
+        if(!shopCode)continue;
+        if(!shopSets[mobile])shopSets[mobile]=new Set();
+        shopSets[mobile].add(shopCode);
+        if(squadDate&&dateCol>=0){
+          var rawDate=row[dateCol];var inspDate='';
+          if(rawDate instanceof Date){inspDate=rawDate.toISOString().slice(0,10);}
+          else{inspDate=String(rawDate).slice(0,10);}
+          if(inspDate===squadDate){
+            if(!squadSets[mobile])squadSets[mobile]=new Set();
+            squadSets[mobile].add(shopCode);
+          }
+        }
+      }
+      var excludeInput=(document.getElementById('insp-squad-exclude')?document.getElementById('insp-squad-exclude').value||'':'').trim();
+      var excludeCodes=new Set(excludeInput.split(',').map(function(s){return s.trim();}).filter(Boolean));
+      var blockResults=[];var officerResults=[];
+      Object.entries(INSPECTOR_MAP).forEach(function(entry){
+        var mobile=entry[0];var info=entry[1];
+        var myShops=shopSets[mobile]||new Set();
+        var adjusted=0;
+        myShops.forEach(function(code){if(!excludeCodes.has(code))adjusted++;});
+        var total=myShops.size;var squadCount=total-adjusted;
+        var pending=info.target!==null?Math.max(0,info.target-adjusted):null;
+        var ent={mobile:mobile,name:info.name,total:total,squadCount:squadCount,adjusted:adjusted,target:info.target,pending:pending};
+        if(info.type==='block')blockResults.push(ent);
+        else officerResults.push(ent);
+      });
+      blockResults.sort(function(a,b){return a.adjusted-b.adjusted;});
+      officerResults.sort(function(a,b){return(a.adjusted||0)-(b.adjusted||0);});
+      renderInspResults(blockResults,officerResults,squadDate);
+      showInspMsg('','ok');
+      document.getElementById('insp-result').classList.remove('hidden');
+    }catch(err){showInspMsg('Error: '+err.message,'err');}
+  };
+  reader.readAsArrayBuffer(fileEl.files[0]);
+}
+
+function renderInspResults(blocks,officers,squadDate){
+  /* Block table - columns: #, Vattaram, Ilakku, Aayvu seyyapatta, Niluvaai */
+  var tbody=document.getElementById('insp-blocks');
+  if(tbody){
+    tbody.innerHTML=blocks.map(function(e,i){
+      var done=e.adjusted>=e.target;
+      var near=!done&&e.adjusted>=Math.ceil(e.target*0.75);
+      var rowBg=i%2===0?'#ffffff':'#eef3fb';
+      var pendCol=done?'#1a7a3c':'#c00000';
+      var countCol=done?'#1a7a3c':near?'#7d4800':'#c00000';
+      var pend=Math.max(0,e.target-e.adjusted);
+      return '<tr style="background:'+rowBg+'">'+
+        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#666;font-size:12px">'+(i+1)+'</td>'+
+        '<td style="padding:6px 10px;border:1px solid #c0c0c0;font-weight:600">'+e.name+'</td>'+
+        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+e.target+'</td>'+
+        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-size:18px;font-weight:800;color:'+countCol+'">'+e.adjusted+'</td>'+
+        '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:'+pendCol+'">'+
+        (done?'&#10003;':pend)+'</td></tr>';
+    }).join('');
+  }
+  var otbody=document.getElementById('insp-officers');
+  if(otbody){
+    otbody.innerHTML=officers.map(function(e){
+      if(e.target===null){
+        return '<tr><td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">'+e.name+'</td>'+
+          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0">-</td>'+
+          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:#1f4788">'+e.adjusted+'</td>'+
+          '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#999">-</td></tr>';
+      }
+      var done=e.adjusted>=e.target;
+      var rowBg=done?'#e8f5ee':'#fde8e8';
+      var col=done?'#1a7a3c':'#c00000';
+      return '<tr style="background:'+rowBg+'">'+
+        '<td style="padding:7px 10px;font-weight:600;border:1px solid #c0c0c0">'+e.name+'</td>'+
+        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+e.target+'</td>'+
+        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-size:17px;font-weight:800;color:'+col+'">'+e.adjusted+'</td>'+
+        '<td style="padding:7px 10px;text-align:center;border:1px solid #c0c0c0;font-weight:700;color:'+(done?'#1a7a3c':'#c00000')+'">'+
+        (done?'&#10003;':Math.max(0,e.target-e.adjusted))+'</td></tr>';
+    }).join('');
+  }
+  var doneN=blocks.filter(function(b){return b.adjusted>=b.target;}).length;
+  var partN=blocks.filter(function(b){return b.adjusted>0&&b.adjusted<b.target;}).length;
+  var noneN=blocks.filter(function(b){return b.adjusted===0;}).length;
+  var sum=document.getElementById('insp-summary');
+  if(sum)sum.innerHTML='Done: '+doneN+' | Pending: '+partN+' | Not started: '+noneN;
+
+  /* Set title */
+  var titleEl=document.getElementById('insp-report-title');
+  if(titleEl){
+    var now=new Date();
+    var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var tamilMonths=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்','ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
+    titleEl.textContent=tamilMonths[now.getMonth()]+' '+now.getFullYear()+' — மாதாந்திர ஆய்வு முன்னேற்ற அறிக்கை';
+  }
+}
+
+async function screenshotBlocks(){
+  var wrap=document.getElementById('insp-blocks-wrap');
+  if(!wrap){alert('No data.');return;}
+  try{
+    if(typeof html2canvas==='undefined'){
+      await new Promise(function(res,rej){
+        var s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload=res;s.onerror=rej;document.head.appendChild(s);
+      });
+    }
+    var canvas=await html2canvas(wrap,{backgroundColor:'#ffffff',scale:2,useCORS:true,logging:false});
+    canvas.toBlob(async function(blob){
+      try{
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        alert('Screenshot copied to clipboard!');
+      }catch(e){
+        var a=document.createElement('a');a.download='inspection.png';
+        a.href=canvas.toDataURL('image/png');a.click();
+      }
+    },'image/png');
+  }catch(e){alert('Error: '+e.message);}
+}
+
+/* ─── SQUAD FUNCTIONS ─── */
+const BLOCKS_21=['திருவண்ணாமலை HQ','திருவண்ணாமலை 1','திருவண்ணாமலை 2',
+  'துரிஞ்சாபுரம்','கீழ்பென்னாத்தூர்','செங்கம்','புதுப்பாளையம்',
+  'தண்டராம்பட்டு','கலசபாக்கம்','போளூர்','ஜமுனாமரத்தூர்',
+  'சேத்பட்','ஆரணி (கிழக்கு)','ஆரணி (மேற்கு)','செய்யார்',
+  'அனக்காவூர்','வெம்பாக்கம் 1','வெம்பாக்கம் 2','வந்தவாசி',
+  'பெரணமல்லூர்','தெள்ளார்'];
+
+var sqStaffList=[];var sqShopData=[];var sqAssignments=[];var sqEditingId=null;
 
 /* ── Google Sheet Staff Master API ── */
 var STAFF_SHEET_URL='https://script.google.com/macros/s/AKfycbyPOVjxAk-1KDTTzAmvsEN_qqathZ4GNXcr-ZBpSjgBlEqk1SI_KEaQpjZVdhD1_cRCJg/exec';
@@ -1364,121 +2268,6 @@ function renderSquadTable(rows,unassigned,date,blocks){
   document.getElementById('sq-result').classList.remove('hidden');
 }
 
-
-/* ══════════════════════════════════
-   JR/DR DAY-WISE INSPECTION REPORT
-══════════════════════════════════ */
-function processDaywise(input){
-  var file=input.files[0];if(!file)return;
-  var msgEl=document.getElementById('dw-msg');
-  var resEl=document.getElementById('dw-result');
-  msgEl.className='alert a-info';msgEl.innerHTML='<span class="spin spin-b"></span> படிக்கிறது...';msgEl.classList.remove('hidden');
-  resEl.classList.add('hidden');
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var data=new Uint8Array(e.target.result);
-      var wb=XLSX.read(data,{type:'array',cellDates:true});
-      var ws=wb.Sheets[wb.SheetNames[0]];
-      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      /* Find header row */
-      var headerRow=-1;
-      for(var i=0;i<15;i++){
-        if(rows[i]&&rows[i].some(function(x){return String(x).toLowerCase().includes('inspector mobile')||String(x).toLowerCase().includes('mobile');})){headerRow=i;break;}
-      }
-      if(headerRow<0){showDwMsg('Header row not found.','err');return;}
-      var headers=rows[headerRow].map(function(h){return String(h).trim().toLowerCase();});
-      var mobileCol=headers.findIndex(function(h){return h.includes('inspector mobile')||h.includes('mobile number')||h.includes('mobile');});
-      var codeCol=headers.findIndex(function(h){return h.includes('fps code')||h.includes('shop code')||h.includes('code');});
-      var dateCol=headers.findIndex(function(h){return h.includes('date of inspection')||h.includes('date');});
-      var shopNameCol=headers.findIndex(function(h){return h.includes('fps name')||h.includes('shop name');});
-      if(mobileCol<0){showDwMsg('Inspector Mobile நெடுவரிசை கிடைக்கவில்லை.','err');return;}
-      if(codeCol<0){showDwMsg('FPS Code நெடுவரிசை கிடைக்கவில்லை.','err');return;}
-      if(dateCol<0){showDwMsg('Date of Inspection நெடுவரிசை கிடைக்கவில்லை.','err');return;}
-      /* Officer mobiles — JR and DR only */
-      var officerMobiles={'7338749500':true,'7338749503':true,'7338749504':true};
-      var officerRows=[];
-      for(var ri=headerRow+1;ri<rows.length;ri++){
-        var row=rows[ri];
-        var rawMob=String(row[mobileCol]||'').replace(/\.0+$/,'').trim().replace(/[^0-9]/g,'');
-        if(!officerMobiles[rawMob])continue;
-        var code=String(row[codeCol]||'').trim();
-        if(!code)continue;
-        var rawD=row[dateCol];var dStr='';
-        if(rawD instanceof Date){
-            var dd2=String(rawD.getDate()).padStart(2,'0');
-            var mm2=String(rawD.getMonth()+1).padStart(2,'0');
-            var yyyy2=rawD.getFullYear();
-            dStr=yyyy2+'-'+mm2+'-'+dd2;
-          } else{dStr=String(rawD||'').slice(0,10);}
-        if(!dStr||dStr.length<10)continue;
-        var shopName=shopNameCol>=0?String(row[shopNameCol]||'').trim():'';
-        /* VLOOKUP block from SHOP_BLOCK_MAP */
-        var block=(typeof SHOP_BLOCK_MAP!=='undefined'&&SHOP_BLOCK_MAP[code])||'';
-        var officerInfo=INSPECTOR_MAP[rawMob];
-        var officerName=officerInfo?officerInfo.name:rawMob;
-        officerRows.push({officer:officerName,date:dStr,block:block,shop:shopName,code:code});
-      }
-      if(!officerRows.length){showDwMsg('MIS Excel-ல் இணைப்பதிவாளர் / துணைப்பதிவாளர் பதிவுகள் எதுவும் கிடைக்கவில்லை.','err');return;}
-      /* Sort by officer then date */
-      officerRows.sort(function(a,b){
-        if(a.officer!==b.officer)return a.officer.localeCompare(b.officer);
-        return a.date.localeCompare(b.date);
-      });
-      /* Render */
-      var tbody=document.getElementById('dw-tbody');
-      var html='';var lastOfficer='';var slNo=0;
-      officerRows.forEach(function(r){
-        if(r.officer!==lastOfficer){
-          html+='<tr style="background:#1f3864;color:#fff"><td colspan="5" style="padding:7px 10px;font-weight:700;font-size:13px;border:1px solid #3a5ea0">'+r.officer+'</td></tr>';
-          lastOfficer=r.officer;slNo=0;
-        }
-        slNo++;
-        var dp=r.date.split('-');var fmtDate=dp.length===3?dp[2]+'/'+dp[1]+'/'+dp[0]:r.date;
-        var rowBg=slNo%2===0?'#eef3fb':'#ffffff';
-        html+='<tr style="background:'+rowBg+'">'+
-          '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0;color:#555">'+slNo+'</td>'+
-          '<td style="padding:6px 10px;text-align:center;border:1px solid #c0c0c0">'+fmtDate+'</td>'+
-          '<td style="padding:6px 10px;border:1px solid #c0c0c0">'+r.block+'</td>'+
-          '<td style="padding:6px 10px;border:1px solid #c0c0c0">'+r.shop+'</td>'+
-          '<td style="padding:6px 10px;border:1px solid #c0c0c0"></td></tr>';
-      });
-      tbody.innerHTML=html;
-      /* Title */
-      var now=new Date();
-      var tamilMonths2=['ஜனவரி','பிப்ரவரி','மார்ச்','ஏப்ரல்','மே','ஜூன்','ஜூலை','ஆகஸ்ட்','செப்டம்பர்','அக்டோபர்','நவம்பர்','டிசம்பர்'];
-      document.getElementById('dw-title').textContent=tamilMonths2[now.getMonth()]+' '+now.getFullYear()+' — அலுவலர் நாள்வாரி ஆய்வு விவரம்';
-      document.getElementById('dw-summary').textContent='மொத்தம் '+officerRows.length+' கடைகள் ஆய்வு செய்யப்பட்டன.';
-      msgEl.classList.add('hidden');
-      resEl.classList.remove('hidden');
-    }catch(err){showDwMsg('பிழை: '+err.message,'err');}
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function showDwMsg(msg,type){
-  var el=document.getElementById('dw-msg');
-  el.className='alert '+(type==='err'?'a-err':'a-info');
-  el.innerHTML=msg;el.classList.remove('hidden');
-}
-
-function copyDaywiseTable2(){
-  var tbl=document.getElementById('dw-table');
-  if(!tbl)return;
-  var range=document.createRange();range.selectNode(tbl);
-  window.getSelection().removeAllRanges();window.getSelection().addRange(range);
-  document.execCommand('copy');window.getSelection().removeAllRanges();
-  alert('அட்டவணை நகலெடுக்கப்பட்டது! Word-ல் ஒட்டவும்.');
-}
-
-function copyDaywiseTable(){
-  var tbl=document.getElementById('insp-daywise-tbl');
-  if(!tbl){alert('No table to copy.');return;}
-  var range=document.createRange();range.selectNode(tbl);
-  window.getSelection().removeAllRanges();window.getSelection().addRange(range);
-  document.execCommand('copy');window.getSelection().removeAllRanges();
-  alert('அட்டவணை நகலெடுக்கப்பட்டது! Word-ல் ஒட்டவும்.');
-}
 function copySquadTable(){
   var tbl=document.getElementById('sq-table');
   if(!tbl){alert('No table generated.');return;}
@@ -1625,27 +2414,16 @@ async function saveStaffFromModal(){
 }
 
 /* Patch initApp to handle new tabs */
+var _origInitApp=initApp;
 async function initApp(){
-  renderBlockChips();
-  var d=new Date();d.setDate(d.getDate()+7);
-  var nsDl=document.getElementById('ns-deadline');if(nsDl)nsDl.value=d.toISOString().slice(0,10);
-  await loadFromDb();
-  renderDashboard();renderRepo();refreshDropdowns();
-
-  /* Tab switching — main tabs */
+  await _origInitApp();
+  /* Handle inspection, squad, staff-master tabs */
   document.querySelectorAll('.tab').forEach(function(t){
     t.addEventListener('click',function(){
-      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
-      document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('active');});
-      t.classList.add('active');
       var tab=t.dataset.tab;
-      var panel=document.getElementById('panel-'+tab);
-      if(panel)panel.classList.add('active');
-
       if(tab==='inspection'){}
       if(tab==='squad'){initSquadPanel();}
       if(tab==='staff-master'){loadSquadData().then(function(){renderStaffMaster();});}
-      if(tab==='dashboard'){showSubTab('sub-overview',document.querySelector('[data-sub="sub-overview"]'));}
     });
   });
 }
